@@ -9,7 +9,7 @@ import { ShowCardSkeleton } from '@/components/ShowCardSkeleton'
 import { AddShowModal } from '@/components/AddShowModal'
 import { EditShowModal } from '@/components/EditShowModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
-import { Show } from '@/lib/types'
+import { Show, RSVPSummary } from '@/lib/types'
 import { Plus, LogOut } from 'lucide-react'
 
 export default function Home() {
@@ -17,6 +17,7 @@ export default function Home() {
   const [, setUserName] = useState<string | null>(null)
   const [upcomingShows, setUpcomingShows] = useState<Show[]>([])
   const [pastShows, setPastShows] = useState<Show[]>([])
+  const [rsvpsData, setRsvpsData] = useState<Record<string, RSVPSummary>>({})
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -43,6 +44,29 @@ export default function Home() {
     }
   }, [authenticated])
 
+  const fetchRSVPsForShows = async (shows: Show[]) => {
+    const rsvpsPromises = shows.map(async (show) => {
+      try {
+        const response = await fetch(`/api/rsvps/${show.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          return { showId: show.id, rsvps: data }
+        }
+      } catch (error) {
+        console.error(`Error fetching RSVPs for show ${show.id}:`, error)
+      }
+      return { showId: show.id, rsvps: { going: [], maybe: [], not_going: [] } }
+    })
+
+    const rsvpsResults = await Promise.all(rsvpsPromises)
+    const newRsvpsData = rsvpsResults.reduce((acc, { showId, rsvps }) => {
+      acc[showId] = rsvps
+      return acc
+    }, {} as Record<string, RSVPSummary>)
+
+    setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+  }
+
   const fetchShows = async () => {
     setLoading(true)
     try {
@@ -51,6 +75,7 @@ export default function Home() {
       if (upcomingResponse.ok) {
         const upcomingData = await upcomingResponse.json()
         setUpcomingShows(upcomingData)
+        await fetchRSVPsForShows(upcomingData)
       }
 
       // Fetch past shows
@@ -58,6 +83,7 @@ export default function Home() {
       if (pastResponse.ok) {
         const pastData = await pastResponse.json()
         setPastShows(pastData)
+        await fetchRSVPsForShows(pastData)
       }
     } catch (error) {
       console.error('Error fetching shows:', error)
@@ -84,6 +110,18 @@ export default function Home() {
     fetchShows()
     setShowEditModal(false)
     setEditingShow(null)
+  }
+
+  const updateRSVPs = async (showId: string) => {
+    try {
+      const response = await fetch(`/api/rsvps/${showId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setRsvpsData(prev => ({ ...prev, [showId]: data }))
+      }
+    } catch (error) {
+      console.error(`Error updating RSVPs for show ${showId}:`, error)
+    }
   }
 
   const handleDeleteShow = (showId: string) => {
@@ -186,8 +224,10 @@ export default function Home() {
                   key={show.id} 
                   show={show} 
                   isPast={false} 
+                  rsvps={rsvpsData[show.id] || { going: [], maybe: [], not_going: [] }}
                   onEdit={handleEditShow}
                   onDelete={handleDeleteShow}
+                  onRSVPUpdate={() => updateRSVPs(show.id)}
                 />
               ))
             )}
@@ -208,8 +248,10 @@ export default function Home() {
                   key={show.id} 
                   show={show} 
                   isPast={true} 
+                  rsvps={rsvpsData[show.id] || { going: [], maybe: [], not_going: [] }}
                   onEdit={handleEditShow}
                   onDelete={handleDeleteShow}
+                  onRSVPUpdate={() => updateRSVPs(show.id)}
                 />
               ))
             )}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Show, RSVPSummary } from '@/lib/types'
@@ -11,12 +11,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 interface ShowCardProps {
   show: Show
   isPast: boolean
+  rsvps: RSVPSummary
   onEdit?: (show: Show) => void
   onDelete?: (showId: string) => void
+  onRSVPUpdate?: () => void
 }
 
-export function ShowCard({ show, isPast, onEdit, onDelete }: ShowCardProps) {
-  const [rsvps, setRsvps] = useState<RSVPSummary>({ going: [], maybe: [], not_going: [] })
+export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }: ShowCardProps) {
   const [loading, setLoading] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
 
@@ -24,23 +25,6 @@ export function ShowCard({ show, isPast, onEdit, onDelete }: ShowCardProps) {
   useEffect(() => {
     setUserName(localStorage.getItem('userName'))
   }, [])
-
-  const fetchRSVPs = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/rsvps/${show.id}`)
-      if (response.ok) {
-        const data = await response.json()
-        setRsvps(data)
-      }
-    } catch (error) {
-      console.error('Error fetching RSVPs:', error)
-    }
-  }, [show.id])
-
-  // Fetch RSVPs for this show
-  useEffect(() => {
-    fetchRSVPs()
-  }, [fetchRSVPs])
 
   const handleRSVP = async (status: 'going' | 'maybe' | 'not_going' | null) => {
     if (!userName || loading) return
@@ -83,7 +67,9 @@ export function ShowCard({ show, isPast, onEdit, onDelete }: ShowCardProps) {
       }
       
       // Refresh RSVPs
-      await fetchRSVPs()
+      if (onRSVPUpdate) {
+        onRSVPUpdate()
+      }
     } catch (error) {
       console.error('Error saving RSVP:', error)
       alert('Failed to save RSVP')
