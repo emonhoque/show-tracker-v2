@@ -9,6 +9,7 @@ import { ShowCardSkeleton } from '@/components/ShowCardSkeleton'
 import { AddShowModal } from '@/components/AddShowModal'
 import { EditShowModal } from '@/components/EditShowModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
+import { PWAFeatures } from '@/components/PWAFeatures'
 import { Show, RSVPSummary } from '@/lib/types'
 import { Plus, LogOut } from 'lucide-react'
 
@@ -26,6 +27,7 @@ export default function Home() {
   const [deletingShowTitle, setDeletingShowTitle] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isOffline, setIsOffline] = useState(false)
 
   // Check if component is mounted on client side
   useEffect(() => {
@@ -34,6 +36,23 @@ export default function Home() {
     if (storedName) {
       setUserName(storedName)
       setAuthenticated(true)
+    }
+  }, [])
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false)
+    const handleOffline = () => setIsOffline(true)
+    
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    
+    // Check initial status
+    setIsOffline(!navigator.onLine)
+    
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
     }
   }, [])
 
@@ -199,6 +218,13 @@ export default function Home() {
             </Button>
           </div>
         </div>
+        {isOffline && (
+          <div className="bg-yellow-100 border-t border-yellow-200 px-4 py-2">
+            <p className="text-sm text-yellow-800 text-center">
+              You're offline. Some features may not be available.
+            </p>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
@@ -281,6 +307,9 @@ export default function Home() {
         showTitle={deletingShowTitle}
         onConfirm={confirmDeleteShow}
       />
+
+      {/* PWA Features */}
+      <PWAFeatures onRefresh={fetchShows} />
     </div>
   )
 }
