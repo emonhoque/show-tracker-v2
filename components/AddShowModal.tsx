@@ -117,7 +117,8 @@ export function AddShowModal({ open, onOpenChange, onShowAdded }: AddShowModalPr
                   required
                 >
                   <option value="">Select time</option>
-                  {Array.from({ length: 24 }, (_, hour) => {
+                  {Array.from({ length: 24 }, (_, index) => {
+                    const hour = (15 + index) % 24;
                     const timeString = `${hour.toString().padStart(2, '0')}:00`;
                     const displayTime = new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
                       hour: 'numeric',
