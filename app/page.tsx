@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PasswordGate } from '@/components/PasswordGate'
 import { ShowCard } from '@/components/ShowCard'
+import { ShowCardSkeleton } from '@/components/ShowCardSkeleton'
 import { AddShowModal } from '@/components/AddShowModal'
 import { EditShowModal } from '@/components/EditShowModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
@@ -172,7 +173,11 @@ export default function Home() {
           
           <TabsContent value="upcoming" className="space-y-4">
             {loading ? (
-              <p className="text-center text-gray-500 py-8">Loading...</p>
+              <>
+                <ShowCardSkeleton />
+                <ShowCardSkeleton />
+                <ShowCardSkeleton />
+              </>
             ) : upcomingShows.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No upcoming shows</p>
             ) : (
@@ -190,7 +195,11 @@ export default function Home() {
           
           <TabsContent value="past" className="space-y-4">
             {loading ? (
-              <p className="text-center text-gray-500 py-8">Loading...</p>
+              <>
+                <ShowCardSkeleton />
+                <ShowCardSkeleton />
+                <ShowCardSkeleton />
+              </>
             ) : pastShows.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No past shows</p>
             ) : (
