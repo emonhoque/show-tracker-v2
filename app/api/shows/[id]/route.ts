@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/db'
+import { bostonToUTC } from '@/lib/time'
+import { 
+  validateTitle, 
+  validateVenue, 
+  validateCity, 
+  validateUrl, 
+  validateNotes, 
+  validateDate, 
+  validateTime 
+} from '@/lib/validation'
 
 export async function DELETE(
   request: NextRequest,
@@ -54,29 +64,56 @@ export async function PUT(
       )
     }
 
-    // Validate required fields
-    if (!title || !date_local || !time_local || !city || !venue) {
-      return NextResponse.json(
-        { error: 'Missing required fields: title, date_local, time_local, city, venue' },
-        { status: 400 }
-      )
+    // Validate and sanitize all inputs
+    const titleValidation = validateTitle(title)
+    if (!titleValidation.isValid) {
+      return NextResponse.json({ error: titleValidation.error }, { status: 400 })
     }
 
-    // Convert Boston local time to UTC
-    const bostonDateTime = new Date(`${date_local}T${time_local}`)
-    const utcDateTime = new Date(bostonDateTime.getTime() - (bostonDateTime.getTimezoneOffset() * 60000))
+    const venueValidation = validateVenue(venue)
+    if (!venueValidation.isValid) {
+      return NextResponse.json({ error: venueValidation.error }, { status: 400 })
+    }
 
-    // Update the show
+    const cityValidation = validateCity(city)
+    if (!cityValidation.isValid) {
+      return NextResponse.json({ error: cityValidation.error }, { status: 400 })
+    }
+
+    const dateValidation = validateDate(date_local)
+    if (!dateValidation.isValid) {
+      return NextResponse.json({ error: dateValidation.error }, { status: 400 })
+    }
+
+    const timeValidation = validateTime(time_local)
+    if (!timeValidation.isValid) {
+      return NextResponse.json({ error: timeValidation.error }, { status: 400 })
+    }
+
+    const urlValidation = validateUrl(ticket_url || '')
+    if (!urlValidation.isValid) {
+      return NextResponse.json({ error: urlValidation.error }, { status: 400 })
+    }
+
+    const notesValidation = validateNotes(notes || '')
+    if (!notesValidation.isValid) {
+      return NextResponse.json({ error: notesValidation.error }, { status: 400 })
+    }
+
+    // Convert Boston local date and time to UTC
+    const utcDateTime = bostonToUTC(dateValidation.sanitizedValue!, timeValidation.sanitizedValue!)
+
+    // Update the show with sanitized values
     const { data, error } = await supabase
       .from('shows')
       .update({
-        title,
+        title: titleValidation.sanitizedValue,
         date_time: utcDateTime.toISOString(),
-        time_local,
-        city,
-        venue,
-        ticket_url: ticket_url || null,
-        notes: notes || null
+        time_local: timeValidation.sanitizedValue,
+        city: cityValidation.sanitizedValue,
+        venue: venueValidation.sanitizedValue,
+        ticket_url: urlValidation.sanitizedValue || null,
+        notes: notesValidation.sanitizedValue || null
       })
       .eq('id', id)
       .select()

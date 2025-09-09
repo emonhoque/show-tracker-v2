@@ -1,6 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { 
+  validateTitle, 
+  validateVenue, 
+  validateCity, 
+  validateUrl, 
+  validateNotes, 
+  validateDate, 
+  validateTime 
+} from '@/lib/validation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -28,9 +37,46 @@ export function AddShowModal({ open, onOpenChange, onShowAdded }: AddShowModalPr
     e.preventDefault()
     setError('')
 
-    // Validate required fields
-    if (!formData.title || !formData.date_local || !formData.time_local || !formData.city || !formData.venue) {
-      setError('Please fill in all required fields')
+    // Validate and sanitize all inputs
+    const titleValidation = validateTitle(formData.title)
+    if (!titleValidation.isValid) {
+      setError(titleValidation.error!)
+      return
+    }
+
+    const venueValidation = validateVenue(formData.venue)
+    if (!venueValidation.isValid) {
+      setError(venueValidation.error!)
+      return
+    }
+
+    const cityValidation = validateCity(formData.city)
+    if (!cityValidation.isValid) {
+      setError(cityValidation.error!)
+      return
+    }
+
+    const dateValidation = validateDate(formData.date_local)
+    if (!dateValidation.isValid) {
+      setError(dateValidation.error!)
+      return
+    }
+
+    const timeValidation = validateTime(formData.time_local)
+    if (!timeValidation.isValid) {
+      setError(timeValidation.error!)
+      return
+    }
+
+    const urlValidation = validateUrl(formData.ticket_url)
+    if (!urlValidation.isValid) {
+      setError(urlValidation.error!)
+      return
+    }
+
+    const notesValidation = validateNotes(formData.notes)
+    if (!notesValidation.isValid) {
+      setError(notesValidation.error!)
       return
     }
 

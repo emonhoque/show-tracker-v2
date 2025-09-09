@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/db'
 import { isShowPast } from '@/lib/time'
+import { validateUserName, validateRsvpStatus } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,12 +16,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate and sanitize user name
+    const nameValidation = validateUserName(name)
+    if (!nameValidation.isValid) {
+      return NextResponse.json({ error: nameValidation.error }, { status: 400 })
+    }
+
     // Validate status
-    if (status !== 'going' && status !== 'maybe' && status !== 'not_going') {
-      return NextResponse.json(
-        { error: 'Invalid status. Must be "going", "maybe", or "not_going"' },
-        { status: 400 }
-      )
+    const statusValidation = validateRsvpStatus(status)
+    if (!statusValidation.isValid) {
+      return NextResponse.json({ error: statusValidation.error }, { status: 400 })
     }
 
     // Check if the show is in the past
@@ -44,11 +49,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upsert RSVP
+    // Upsert RSVP with sanitized name
     const { data, error } = await supabase
       .from('rsvps')
       .upsert(
-        { show_id, name, status, updated_at: new Date().toISOString() },
+        { show_id, name: nameValidation.sanitizedValue, status: statusValidation.sanitizedValue, updated_at: new Date().toISOString() },
         { onConflict: 'show_id,name' }
       )
       .select()

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/db'
+import { validateUserName } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,12 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required fields' },
         { status: 400 }
       )
+    }
+
+    // Validate and sanitize user name
+    const nameValidation = validateUserName(name)
+    if (!nameValidation.isValid) {
+      return NextResponse.json({ error: nameValidation.error }, { status: 400 })
     }
 
     // Check if the show is in the past
@@ -37,12 +44,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Delete the RSVP record
+    // Delete the RSVP record with sanitized name
     const { error } = await supabase
       .from('rsvps')
       .delete()
       .eq('show_id', show_id)
-      .eq('name', name)
+      .eq('name', nameValidation.sanitizedValue)
 
     if (error) {
       console.error('Database error:', error)

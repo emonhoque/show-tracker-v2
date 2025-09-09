@@ -23,7 +23,7 @@ export function usePWAFeatures() {
   useEffect(() => {
     const checkPWA = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      const isIOSPWA = (window.navigator as any).standalone === true
+      const isIOSPWA = (window.navigator as Navigator & { standalone?: boolean }).standalone === true
       const isAndroidPWA = window.matchMedia('(display-mode: standalone)').matches && 
                           /Android/i.test(navigator.userAgent)
       

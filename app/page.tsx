@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PasswordGate } from '@/components/PasswordGate'
@@ -11,11 +11,12 @@ import { EditShowModal } from '@/components/EditShowModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
 import { PWAFeatures } from '@/components/PWAFeatures'
 import { Show, RSVPSummary } from '@/lib/types'
+import { formatNameForDisplay } from '@/lib/validation'
 import { Plus, LogOut } from 'lucide-react'
 
 export default function Home() {
   const [authenticated, setAuthenticated] = useState(false)
-  const [, setUserName] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
   const [upcomingShows, setUpcomingShows] = useState<Show[]>([])
   const [pastShows, setPastShows] = useState<Show[]>([])
   const [rsvpsData, setRsvpsData] = useState<Record<string, RSVPSummary>>({})
@@ -56,14 +57,7 @@ export default function Home() {
     }
   }, [])
 
-  // Fetch shows when authenticated
-  useEffect(() => {
-    if (authenticated) {
-      fetchShows()
-    }
-  }, [authenticated])
-
-  const fetchRSVPsForShows = async (shows: Show[]) => {
+  const fetchRSVPsForShows = useCallback(async (shows: Show[]) => {
     const rsvpsPromises = shows.map(async (show) => {
       try {
         const response = await fetch(`/api/rsvps/${show.id}`)
@@ -84,9 +78,9 @@ export default function Home() {
     }, {} as Record<string, RSVPSummary>)
 
     setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
-  }
+  }, [])
 
-  const fetchShows = async () => {
+  const fetchShows = useCallback(async () => {
     setLoading(true)
     try {
       // Fetch upcoming shows
@@ -109,7 +103,14 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchRSVPsForShows])
+
+  // Fetch shows when authenticated
+  useEffect(() => {
+    if (authenticated) {
+      fetchShows()
+    }
+  }, [authenticated, fetchShows])
 
   const handleAuthentication = (name: string) => {
     setUserName(name)
@@ -206,7 +207,12 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Show Tracker</h1>
+          <div>
+            <h1 className="text-2xl font-bold">Show Tracker</h1>
+            {userName && (
+              <p className="text-sm text-gray-600">Welcome, {formatNameForDisplay(userName)}</p>
+            )}
+          </div>
           <div className="flex gap-2">
             <Button onClick={() => setShowAddModal(true)} size="sm">
               <Plus className="w-4 h-4 mr-1" />
@@ -221,7 +227,7 @@ export default function Home() {
         {isOffline && (
           <div className="bg-yellow-100 border-t border-yellow-200 px-4 py-2">
             <p className="text-sm text-yellow-800 text-center">
-              You're offline. Some features may not be available.
+              You&apos;re offline. Some features may not be available.
             </p>
           </div>
         )}

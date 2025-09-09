@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Show, RSVPSummary } from '@/lib/types'
 import { formatUserTime } from '@/lib/time'
+import { formatNameForDisplay } from '@/lib/validation'
 import { ExternalLink, MoreVertical, Edit, Trash2 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
@@ -79,11 +80,11 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
   }
 
   const userStatus = userName
-    ? rsvps.going.includes(userName)
+    ? rsvps.going.includes(userName.toLowerCase())
       ? 'going'
-      : rsvps.maybe.includes(userName)
+      : rsvps.maybe.includes(userName.toLowerCase())
       ? 'maybe'
-      : rsvps.not_going.includes(userName)
+      : rsvps.not_going.includes(userName.toLowerCase())
       ? 'not_going'
       : null
     : null
@@ -153,17 +154,17 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
         <div className="space-y-2 text-sm">
           {rsvps.going.length > 0 && (
             <div>
-              <span className="font-semibold">{isPast ? 'Went:' : 'Going:'}</span> {rsvps.going.join(', ')}
+              <span className="font-semibold">{isPast ? 'Went:' : 'Going:'}</span> {rsvps.going.map(formatNameForDisplay).join(', ')}
             </div>
           )}
           {rsvps.maybe.length > 0 && (
             <div>
-              <span className="font-semibold">Maybe:</span> {rsvps.maybe.join(', ')}
+              <span className="font-semibold">Maybe:</span> {rsvps.maybe.map(formatNameForDisplay).join(', ')}
             </div>
           )}
           {rsvps.not_going.length > 0 && (
             <div>
-              <span className="font-semibold">Not Going:</span> {rsvps.not_going.join(', ')}
+              <span className="font-semibold">Not Going:</span> {rsvps.not_going.map(formatNameForDisplay).join(', ')}
             </div>
           )}
         </div>

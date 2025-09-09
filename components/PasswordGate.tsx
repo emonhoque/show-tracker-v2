@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { validateUserName } from '@/lib/validation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,8 +21,8 @@ export function PasswordGate({ onSuccess }: PasswordGateProps) {
     e.preventDefault()
     setError('')
 
-    if (!password || !name.trim()) {
-      setError('Please fill in all fields')
+    if (!password) {
+      setError('Password is required')
       return
     }
 
@@ -30,9 +31,16 @@ export function PasswordGate({ onSuccess }: PasswordGateProps) {
       return
     }
 
-    // Store name in localStorage and proceed
-    localStorage.setItem('userName', name.trim())
-    onSuccess(name.trim())
+    // Validate and sanitize user name
+    const nameValidation = validateUserName(name)
+    if (!nameValidation.isValid) {
+      setError(nameValidation.error!)
+      return
+    }
+
+    // Store sanitized name in localStorage and proceed
+    localStorage.setItem('userName', nameValidation.sanitizedValue!)
+    onSuccess(nameValidation.sanitizedValue!)
   }
 
   return (
@@ -40,14 +48,14 @@ export function PasswordGate({ onSuccess }: PasswordGateProps) {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">EDM Adoption Clinic Show Tracker</CardTitle>
-          <CardDescription>Enter the shared password and your name to continue</CardDescription>
+          <CardDescription>Enter the shared password and your full name to continue</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
                 type="text"
-                placeholder="Your Name"
+                placeholder="Your Full Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full"
