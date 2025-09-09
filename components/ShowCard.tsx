@@ -153,7 +153,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
         <div className="space-y-2 text-sm">
           {rsvps.going.length > 0 && (
             <div>
-              <span className="font-semibold">Going:</span> {rsvps.going.join(', ')}
+              <span className="font-semibold">{isPast ? 'Went:' : 'Going:'}</span> {rsvps.going.join(', ')}
             </div>
           )}
           {rsvps.maybe.length > 0 && (
@@ -164,11 +164,6 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
           {rsvps.not_going.length > 0 && (
             <div>
               <span className="font-semibold">Not Going:</span> {rsvps.not_going.join(', ')}
-            </div>
-          )}
-          {isPast && rsvps.going.length > 0 && (
-            <div>
-              <span className="font-semibold">Went:</span> {rsvps.going.join(', ')}
             </div>
           )}
         </div>
