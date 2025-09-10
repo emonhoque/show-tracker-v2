@@ -7,30 +7,63 @@ const BOSTON_TZ = 'America/New_York'
  * Convert a UTC timestamp to Boston time and format it
  */
 export function formatBostonTime(utcDate: string | Date): string {
-  const date = new Date(utcDate)
-  const bostonDate = toZonedTime(date, BOSTON_TZ)
-  return format(bostonDate, 'EEE MMM d, h:mm a')
+  try {
+    const date = new Date(utcDate)
+    const bostonDate = toZonedTime(date, BOSTON_TZ)
+    const currentYear = new Date().getFullYear()
+    const showYear = bostonDate.getFullYear()
+    
+    // Include year if it's different from current year
+    const formatString = showYear !== currentYear 
+      ? 'EEE MMM d, yyyy, h:mm a'
+      : 'EEE MMM d, h:mm a'
+    
+    return format(bostonDate, formatString)
+  } catch (error) {
+    console.error('Error formatting Boston time:', error)
+    return 'Invalid date'
+  }
 }
 
 /**
  * Format time as entered by user with "(local time)" suffix
  */
 export function formatUserTime(utcDate: string | Date, userTimeInput: string): string {
-  const date = new Date(utcDate)
-  const bostonDate = toZonedTime(date, BOSTON_TZ)
-  const dayOfWeek = format(bostonDate, 'EEE MMM d')
-  
-  // Parse the user's time input to get the display format
-  const [hours, minutes] = userTimeInput.split(':')
-  const hour = parseInt(hours, 10)
-  const minute = parseInt(minutes, 10)
-  
-  // Convert to 12-hour format with AM/PM
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  const displayMinute = minute.toString().padStart(2, '0')
-  
-  return `${dayOfWeek}, ${displayHour}:${displayMinute} ${ampm} (Local)`
+  try {
+    const date = new Date(utcDate)
+    const bostonDate = toZonedTime(date, BOSTON_TZ)
+    const currentYear = new Date().getFullYear()
+    const showYear = bostonDate.getFullYear()
+    
+    // Include year if it's different from current year
+    const dayOfWeek = showYear !== currentYear 
+      ? format(bostonDate, 'EEE MMM d, yyyy')
+      : format(bostonDate, 'EEE MMM d')
+    
+    // Parse the user's time input to get the display format
+    if (!userTimeInput || typeof userTimeInput !== 'string') {
+      return dayOfWeek
+    }
+    
+    const [hours, minutes] = userTimeInput.split(':')
+    const hour = parseInt(hours, 10)
+    const minute = parseInt(minutes, 10)
+    
+    // Validate parsed values
+    if (isNaN(hour) || isNaN(minute)) {
+      return dayOfWeek
+    }
+    
+    // Convert to 12-hour format with AM/PM
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const displayMinute = minute.toString().padStart(2, '0')
+    
+    return `${dayOfWeek}, ${displayHour}:${displayMinute} ${ampm} (Local)`
+  } catch (error) {
+    console.error('Error formatting user time:', error)
+    return 'Invalid date'
+  }
 }
 
 /**

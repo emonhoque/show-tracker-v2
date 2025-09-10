@@ -217,6 +217,10 @@ export function normalizeNameForStorage(name: string): string {
 
 // Format name for display (title case)
 export function formatNameForDisplay(normalizedName: string): string {
+  if (!normalizedName || typeof normalizedName !== 'string') {
+    return ''
+  }
+  
   return normalizedName
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))

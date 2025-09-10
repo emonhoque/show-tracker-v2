@@ -79,12 +79,12 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
     }
   }
 
-  const userStatus = userName
-    ? rsvps.going.includes(userName.toLowerCase())
+  const userStatus = userName && rsvps
+    ? rsvps.going?.includes(userName.toLowerCase())
       ? 'going'
-      : rsvps.maybe.includes(userName.toLowerCase())
+      : rsvps.maybe?.includes(userName.toLowerCase())
       ? 'maybe'
-      : rsvps.not_going.includes(userName.toLowerCase())
+      : rsvps.not_going?.includes(userName.toLowerCase())
       ? 'not_going'
       : null
     : null
@@ -152,17 +152,17 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
 
         {/* RSVPs */}
         <div className="space-y-2 text-sm">
-          {rsvps.going.length > 0 && (
+          {rsvps?.going?.length > 0 && (
             <div>
               <span className="font-semibold">{isPast ? 'Went:' : 'Going:'}</span> {rsvps.going.map(formatNameForDisplay).join(', ')}
             </div>
           )}
-          {rsvps.maybe.length > 0 && (
+          {rsvps?.maybe?.length > 0 && (
             <div>
               <span className="font-semibold">Maybe:</span> {rsvps.maybe.map(formatNameForDisplay).join(', ')}
             </div>
           )}
-          {rsvps.not_going.length > 0 && (
+          {rsvps?.not_going?.length > 0 && (
             <div>
               <span className="font-semibold">Not Going:</span> {rsvps.not_going.map(formatNameForDisplay).join(', ')}
             </div>
