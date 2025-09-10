@@ -1,4 +1,7 @@
-const CACHE_NAME = 'show-tracker-v2';
+const CACHE_NAME = 'show-tracker-v3';
+const STATIC_CACHE = 'show-tracker-static-v3';
+const DYNAMIC_CACHE = 'show-tracker-dynamic-v3';
+
 const urlsToCache = [
   '/',
   '/assets/android-chrome-192x192.png',
@@ -15,7 +18,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(STATIC_CACHE)
       .then((cache) => {
         return cache.addAll(urlsToCache);
       })
@@ -50,6 +53,46 @@ self.addEventListener('fetch', (event) => {
   // Don't cache Vercel Speed Insights scripts - let them load fresh
   if (url.pathname.startsWith('/_vercel/speed-insights/')) {
     event.respondWith(fetch(request));
+    return;
+  }
+
+  // Handle JavaScript chunks with special logic
+  if (url.pathname.startsWith('/_next/static/chunks/') && url.pathname.endsWith('.js')) {
+    event.respondWith(
+      caches.open(DYNAMIC_CACHE).then(cache => {
+        return cache.match(request).then(response => {
+          if (response) {
+            // Return cached version but also fetch fresh in background
+            fetch(request).then(fetchResponse => {
+              if (fetchResponse.ok) {
+                cache.put(request, fetchResponse.clone());
+              }
+            }).catch(() => {
+              // Ignore fetch errors for background updates
+            });
+            return response;
+          }
+          
+          // If not in cache, fetch from network
+          return fetch(request).then(fetchResponse => {
+            if (fetchResponse.ok) {
+              cache.put(request, fetchResponse.clone());
+            }
+            return fetchResponse;
+          }).catch(error => {
+            console.error('Chunk load error:', error);
+            // Return a basic error response instead of failing completely
+            return new Response(
+              'console.error("Chunk load failed, please refresh the page");',
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/javascript' }
+              }
+            );
+          });
+        });
+      })
+    );
     return;
   }
 
@@ -88,7 +131,7 @@ self.addEventListener('activate', (event) => {
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
+            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
               return caches.delete(cacheName);
             }
           })

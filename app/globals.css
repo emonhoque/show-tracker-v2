@@ -119,4 +119,35 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Fix calendar icon color - only invert in dark mode */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+  }
+  
+  /* For Firefox - only invert in dark mode */
+  .dark input[type="date"]::-moz-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+  }
+  
+  /* For other browsers - only invert in dark mode */
+  .dark input[type="date"]::-ms-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+  }
+  
+  /* Ensure calendar icon is visible in light mode */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+  }
+  
+  input[type="date"]::-moz-calendar-picker-indicator {
+    cursor: pointer;
+  }
+  
+  input[type="date"]::-ms-calendar-picker-indicator {
+    cursor: pointer;
+  }
 }

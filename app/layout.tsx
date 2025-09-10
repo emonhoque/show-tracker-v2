@@ -82,13 +82,73 @@ export default function RootLayout({
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {                      // Service worker registered successfully
+                    .then(function(registration) {
+                      console.log('Service worker registered successfully');
                     })
                     .catch(function(registrationError) {
-                      // Service worker registration failed
+                      console.error('Service worker registration failed:', registrationError);
                     });
                 });
               }
+
+              // Handle chunk load errors with more robust error handling
+              window.addEventListener('error', function(event) {
+                if (event.message && event.message.includes('Loading chunk')) {
+                  console.error('Chunk load error detected:', event.message);
+                  
+                  // Clear service worker and caches before reloading
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                      registrations.forEach(registration => {
+                        registration.unregister();
+                      });
+                    });
+                  }
+                  
+                  if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                      cacheNames.forEach(cacheName => {
+                        caches.delete(cacheName);
+                      });
+                    });
+                  }
+                  
+                  // Force reload after clearing caches
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1500);
+                }
+              });
+
+              // Handle unhandled promise rejections (chunk load errors)
+              window.addEventListener('unhandledrejection', function(event) {
+                if (event.reason && event.reason.message && event.reason.message.includes('Loading chunk')) {
+                  console.error('Chunk load error (unhandled rejection):', event.reason.message);
+                  event.preventDefault();
+                  
+                  // Clear service worker and caches before reloading
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                      registrations.forEach(registration => {
+                        registration.unregister();
+                      });
+                    });
+                  }
+                  
+                  if ('caches' in window) {
+                    caches.keys().then(cacheNames => {
+                      cacheNames.forEach(cacheName => {
+                        caches.delete(cacheName);
+                      });
+                    });
+                  }
+                  
+                  // Force reload after clearing caches
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1500);
+                }
+              });
             `,
           }}
         />
