@@ -46,6 +46,7 @@ export default function Home() {
       setUserName(storedName)
       setAuthenticated(true)
     }
+
   }, [])
 
   // Monitor online/offline status
@@ -207,6 +208,7 @@ export default function Home() {
     setUpcomingShows([])
     setPastShows([])
   }
+
 
   // Show loading state until component is mounted
   if (!mounted) {
