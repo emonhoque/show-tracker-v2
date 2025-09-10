@@ -166,13 +166,6 @@ export function validateDate(date: string): ValidationResult {
     return { isValid: false, error: 'Please enter a valid date' }
   }
   
-  // Check if date is not too far in the past (more than 1 year ago)
-  const oneYearAgo = new Date()
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
-  
-  if (dateObj < oneYearAgo) {
-    return { isValid: false, error: 'Date cannot be more than 1 year in the past' }
-  }
   
   // Check if date is not too far in the future (more than 2 years)
   const twoYearsFromNow = new Date()
