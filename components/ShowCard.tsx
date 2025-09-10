@@ -32,11 +32,6 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
 
     setLoading(true)
     
-    // Optimistic update - immediately update the UI
-    if (onRSVPUpdate) {
-      onRSVPUpdate()
-    }
-    
     try {
       if (status) {
         // Add or update RSVP
@@ -53,10 +48,6 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
         if (!response.ok) {
           const error = await response.json()
           alert(error.error || 'Failed to save RSVP')
-          // Refresh RSVPs to revert optimistic update
-          if (onRSVPUpdate) {
-            onRSVPUpdate()
-          }
           return
         }
       } else {
@@ -73,20 +64,17 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
         if (!response.ok) {
           const error = await response.json()
           alert(error.error || 'Failed to remove RSVP')
-          // Refresh RSVPs to revert optimistic update
-          if (onRSVPUpdate) {
-            onRSVPUpdate()
-          }
           return
         }
+      }
+
+      // Update RSVPs after successful API call
+      if (onRSVPUpdate) {
+        onRSVPUpdate()
       }
     } catch (error) {
       console.error('Error saving RSVP:', error)
       alert('Failed to save RSVP')
-      // Refresh RSVPs to revert optimistic update
-      if (onRSVPUpdate) {
-        onRSVPUpdate()
-      }
     } finally {
       setLoading(false)
     }

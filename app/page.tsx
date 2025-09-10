@@ -12,6 +12,7 @@ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
 import { PWAFeatures } from '@/components/PWAFeatures'
 import { Show, RSVPSummary } from '@/lib/types'
 import { formatNameForDisplay } from '@/lib/validation'
+import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import { Plus, LogOut } from 'lucide-react'
 
 export default function Home() {
@@ -35,6 +36,7 @@ export default function Home() {
   const [deletingShowId, setDeletingShowId] = useState<string | null>(null)
   const [deletingShowTitle, setDeletingShowTitle] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [isOffline, setIsOffline] = useState(false)
 
@@ -66,31 +68,38 @@ export default function Home() {
     }
   }, [])
 
-  const fetchShows = useCallback(async (pastPage: number = 1) => {
-    setLoading(true)
+  const fetchShows = useCallback(async (pastPage: number = 1, isLoadMore: boolean = false) => {
+    if (isLoadMore) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+    }
+    
     try {
-      // Fetch upcoming shows (now includes RSVPs)
-      const upcomingResponse = await fetch('/api/shows/upcoming')
-      if (upcomingResponse.ok) {
-        const upcomingData = await upcomingResponse.json()
-        if (Array.isArray(upcomingData)) {
-          setUpcomingShows(upcomingData)
-          
-          // Extract RSVPs from shows
-          const newRsvpsData: Record<string, RSVPSummary> = {}
-          upcomingData.forEach((show: Show & { rsvps?: RSVPSummary }) => {
-            if (show.rsvps) {
-              newRsvpsData[show.id] = show.rsvps
-            }
-          })
-          setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+      // Fetch upcoming shows (now includes RSVPs) - only on initial load
+      if (!isLoadMore) {
+        const upcomingResponse = await fetch('/api/shows/upcoming')
+        if (upcomingResponse.ok) {
+          const upcomingData = await upcomingResponse.json()
+          if (Array.isArray(upcomingData)) {
+            setUpcomingShows(upcomingData)
+            
+            // Extract RSVPs from shows
+            const newRsvpsData: Record<string, RSVPSummary> = {}
+            upcomingData.forEach((show: Show & { rsvps?: RSVPSummary }) => {
+              if (show.rsvps) {
+                newRsvpsData[show.id] = show.rsvps
+              }
+            })
+            setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+          } else {
+            console.error('Invalid upcoming shows data format:', upcomingData)
+            setUpcomingShows([])
+          }
         } else {
-          console.error('Invalid upcoming shows data format:', upcomingData)
+          console.error('Failed to fetch upcoming shows:', upcomingResponse.status)
           setUpcomingShows([])
         }
-      } else {
-        console.error('Failed to fetch upcoming shows:', upcomingResponse.status)
-        setUpcomingShows([])
       }
 
       // Fetch past shows with pagination
@@ -98,7 +107,17 @@ export default function Home() {
       if (pastResponse.ok) {
         const pastData = await pastResponse.json()
         if (pastData && Array.isArray(pastData.shows)) {
-          setPastShows(pastData.shows)
+          if (isLoadMore) {
+            // Append new shows to existing ones, filtering out duplicates
+            setPastShows(prev => {
+              const existingIds = new Set(prev.map(show => show.id))
+              const newShows = pastData.shows.filter(show => !existingIds.has(show.id))
+              return [...prev, ...newShows]
+            })
+          } else {
+            // Replace shows on initial load
+            setPastShows(pastData.shows)
+          }
           setPastShowsPagination(pastData.pagination)
           
           // Extract RSVPs from shows
@@ -111,16 +130,24 @@ export default function Home() {
           setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
         } else {
           console.error('Invalid past shows data format:', pastData)
-          setPastShows([])
+          if (!isLoadMore) {
+            setPastShows([])
+          }
         }
       } else {
         console.error('Failed to fetch past shows:', pastResponse.status)
-        setPastShows([])
+        if (!isLoadMore) {
+          setPastShows([])
+        }
       }
     } catch (error) {
       console.error('Error fetching shows:', error)
     } finally {
-      setLoading(false)
+      if (isLoadMore) {
+        setLoadingMore(false)
+      } else {
+        setLoading(false)
+      }
     }
   }, [])
 
@@ -143,6 +170,19 @@ export default function Home() {
   const handlePastShowsPageChange = (newPage: number) => {
     fetchShows(newPage)
   }
+
+  const loadMorePastShows = useCallback(() => {
+    if (pastShowsPagination.hasNext && !loadingMore) {
+      fetchShows(pastShowsPagination.page + 1, true)
+    }
+  }, [pastShowsPagination.hasNext, pastShowsPagination.page, loadingMore, fetchShows])
+
+  // Infinite scroll for past shows
+  const { sentinelRef } = useInfiniteScroll({
+    hasMore: pastShowsPagination.hasNext,
+    isLoading: loadingMore,
+    onLoadMore: loadMorePastShows
+  })
 
   const handleEditShow = (show: Show) => {
     setEditingShow(show)
@@ -312,37 +352,18 @@ export default function Home() {
                   />
                 ))}
                 
-                {/* Pagination Controls */}
-                {pastShowsPagination.totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-4 mt-6 py-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePastShowsPageChange(pastShowsPagination.page - 1)}
-                      disabled={!pastShowsPagination.hasPrev || loading}
-                    >
-                      Previous
-                    </Button>
-                    
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">
-                        Page {pastShowsPagination.page} of {pastShowsPagination.totalPages}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        ({pastShowsPagination.total} total shows)
-                      </span>
+                {/* Infinite scroll loading indicator */}
+                {loadingMore && (
+                  <div className="flex justify-center py-4">
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                      <span>Loading more shows...</span>
                     </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePastShowsPageChange(pastShowsPagination.page + 1)}
-                      disabled={!pastShowsPagination.hasNext || loading}
-                    >
-                      Next
-                    </Button>
                   </div>
                 )}
+                
+                {/* Infinite scroll sentinel */}
+                <div ref={sentinelRef} className="h-4" />
               </>
             )}
           </TabsContent>
