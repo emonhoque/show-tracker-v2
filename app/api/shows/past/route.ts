@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
       // Group RSVPs by status
       if (show.rsvps) {
-        show.rsvps.forEach((rsvp: any) => {
+        show.rsvps.forEach((rsvp: { name: string; status: string }) => {
           if (rsvp.status === 'going') {
             rsvps.going.push(rsvp.name)
           } else if (rsvp.status === 'maybe') {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Remove rsvps from the show object and add processed rsvps
-      const { rsvps: _, ...showWithoutRsvps } = show
+      const { rsvps: _rsvps, ...showWithoutRsvps } = show
       return {
         ...showWithoutRsvps,
         rsvps

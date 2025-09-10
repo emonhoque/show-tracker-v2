@@ -76,7 +76,7 @@ export default function Home() {
         
         // Extract RSVPs from shows
         const newRsvpsData: Record<string, RSVPSummary> = {}
-        upcomingData.forEach((show: any) => {
+        upcomingData.forEach((show: Show & { rsvps?: RSVPSummary }) => {
           if (show.rsvps) {
             newRsvpsData[show.id] = show.rsvps
           }
@@ -93,7 +93,7 @@ export default function Home() {
         
         // Extract RSVPs from shows
         const newRsvpsData: Record<string, RSVPSummary> = {}
-        pastData.shows.forEach((show: any) => {
+        pastData.shows.forEach((show: Show & { rsvps?: RSVPSummary }) => {
           if (show.rsvps) {
             newRsvpsData[show.id] = show.rsvps
           }
