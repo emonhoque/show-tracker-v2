@@ -208,7 +208,7 @@ export function normalizeNameForStorage(name: string): string {
   return sanitizeText(name).toLowerCase()
 }
 
-// Format name for display (title case)
+// Format name for display (title case with special handling for prefixes)
 export function formatNameForDisplay(normalizedName: string): string {
   if (!normalizedName || typeof normalizedName !== 'string') {
     return ''
@@ -216,6 +216,22 @@ export function formatNameForDisplay(normalizedName: string): string {
   
   return normalizedName
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map(word => {
+      if (!word) return word
+      
+      // Handle common prefixes that should keep the next letter capitalized
+      const prefixes = ['mc', 'mac', 'o\'', 'd\'', 'de', 'da', 'di', 'du', 'del', 'della', 'delle', 'dello', 'degli', 'dei', 'dal', 'dalla', 'dalle', 'dallo', 'dalli', 'dalle', 'van', 'von', 'le', 'la', 'el', 'al']
+      
+      const lowerWord = word.toLowerCase()
+      for (const prefix of prefixes) {
+        if (lowerWord.startsWith(prefix)) {
+          return prefix.charAt(0).toUpperCase() + prefix.slice(1) + 
+                 (word.length > prefix.length ? word.charAt(prefix.length).toUpperCase() + word.slice(prefix.length + 1) : '')
+        }
+      }
+      
+      // Default title case for other words
+      return word.charAt(0).toUpperCase() + word.slice(1)
+    })
     .join(' ')
 }
