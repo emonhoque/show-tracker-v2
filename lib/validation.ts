@@ -220,13 +220,15 @@ export function formatNameForDisplay(normalizedName: string): string {
       if (!word) return word
       
       // Handle common prefixes that should keep the next letter capitalized
-      const prefixes = ['mc', 'mac', 'o\'', 'd\'', 'de', 'da', 'di', 'du', 'del', 'della', 'delle', 'dello', 'degli', 'dei', 'dal', 'dalla', 'dalle', 'dallo', 'dalli', 'dalle', 'van', 'von', 'le', 'la', 'el', 'al']
+      // Only match if the prefix is followed by another character (not just the prefix alone)
+      const prefixes = ['mc', 'mac', 'o\'', 'd\'', 'de', 'da', 'di', 'du', 'del', 'della', 'delle', 'dello', 'degli', 'dei', 'dal', 'dalla', 'dalle', 'dallo', 'dalli', 'dalle', 'van', 'von', 'le', 'la']
       
       const lowerWord = word.toLowerCase()
       for (const prefix of prefixes) {
-        if (lowerWord.startsWith(prefix)) {
+        // Only match if the word starts with the prefix AND has more characters after it
+        if (lowerWord.startsWith(prefix) && word.length > prefix.length) {
           return prefix.charAt(0).toUpperCase() + prefix.slice(1) + 
-                 (word.length > prefix.length ? word.charAt(prefix.length).toUpperCase() + word.slice(prefix.length + 1) : '')
+                 word.charAt(prefix.length).toUpperCase() + word.slice(prefix.length + 1)
         }
       }
       
