@@ -117,7 +117,12 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
           {(onEdit || (onDelete && !isPast)) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0"
+                  aria-label={`More options for ${show.title}`}
+                >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -170,7 +175,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
               variant="outline"
               size="sm"
               asChild
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/20"
+              className="text-blue-800 hover:text-blue-900 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/20"
             >
               <a href={show.google_photos_url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-4 h-4 mr-1" />
@@ -183,7 +188,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
               variant="outline"
               size="sm"
               asChild
-              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              className="text-green-800 hover:text-green-900 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300"
             >
               <a href={show.spotify_url} target="_blank" rel="noopener noreferrer">
                 <SpotifyIcon className="w-4 h-4 mr-1" />
@@ -196,7 +201,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
               variant="outline"
               size="sm"
               asChild
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-red-800 hover:text-red-900 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300"
             >
               <a href={show.apple_music_url} target="_blank" rel="noopener noreferrer">
                 <AppleMusicIcon className="w-4 h-4 mr-1" />

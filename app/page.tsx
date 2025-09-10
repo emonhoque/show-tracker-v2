@@ -375,6 +375,7 @@ export default function Home() {
           </TabsList>
           
           <TabsContent value="upcoming" className="space-y-4">
+            <h2 className="sr-only">Upcoming Shows</h2>
             {loading ? (
               <>
                 <ShowCardSkeleton />
@@ -399,6 +400,7 @@ export default function Home() {
           </TabsContent>
           
           <TabsContent value="past" className="space-y-4">
+            <h2 className="sr-only">Past Shows</h2>
             {loading ? (
               <>
                 <ShowCardSkeleton />

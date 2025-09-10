@@ -1,20 +1,22 @@
 # EDM Adoption Clinic Show Tracker
 
-A modern, password-protected Progressive Web App (PWA) for groups to track shows and manage RSVPs. Built with Next.js and Supabase, featuring offline capabilities and native app-like experience.
+A modern, password-protected Progressive Web App (PWA) for groups to track shows and manage RSVPs. Built with Next.js 15.5.2 and Supabase, featuring offline capabilities and native app-like experience.
 
 ## Features
 
 - 🔐 **Password-protected access** - Simple shared password with show/hide toggle
 - 📅 **Show management** - Add, edit, and delete shows with intuitive time picker
-- ✅ **Smart RSVP system** - Going/Maybe/Not Going for upcoming, Went/Maybe/Not Going for past shows
-- 📱 **Progressive Web App** - Installable on mobile and desktop devices
+- ✅ **Smart RSVP system** - Going/Maybe/Not Going for upcoming, I was there!/Clear for past shows
+- 📱 **Progressive Web App** - Installable on mobile and desktop devices with scroll-to-top
 - 🕐 **Smart time picker** - Starts at 3 PM, cycles to 2 PM (realistic show times)
 - 📊 **Intelligent sorting** - Next show first (upcoming), newest first (past)
 - 🌐 **Offline detection** - Graceful handling when connection is lost
 - ⚡ **High-performance database** - Optimized queries, indexes, and caching
 - 🚀 **Instant RSVP updates** - Optimistic UI updates for immediate feedback
-- 📄 **Pagination** - Efficient loading of past shows (20 per page)
-- 🎨 **Modern UI** - Clean, responsive design with smooth animations
+- 📄 **Pagination** - Efficient loading of past shows (20 per page) with infinite scroll
+- 🎨 **Modern UI** - Clean, responsive design with smooth animations and dark/light theme support
+- 🎵 **Music integration** - Spotify and Apple Music links for shows
+- 📸 **Photo sharing** - Google Photos links for past shows
 
 ## Quick Start
 
@@ -26,7 +28,7 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/emonhoque/show-tracker
    cd show-tracker
    ```
 
@@ -52,6 +54,9 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
    
    # Timezone configuration
    TZ=America/New_York
+   
+   # Vercel Storage Blob (optional)
+   BLOB_READ_WRITE_TOKEN=blob
    ```
 
 5. **Run the application**
@@ -72,7 +77,7 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 ### PWA Installation
 - **Mobile**: Tap "Add to Home Screen" in your browser menu
 - **Desktop**: Look for the install button in your browser's address bar
-- **Features**: Once installed, enjoy pull-to-refresh and scroll-to-top functionality
+- **Features**: Once installed, scroll-to-top functionality, and native app-like experience
 
 ### Time Picker
 - Shows start at 3:00 PM and cycle through to 2:00 PM the next day
@@ -96,11 +101,14 @@ The easiest way to deploy is using [Vercel](https://vercel.com/new):
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15, React, TypeScript
-- **Styling**: Tailwind CSS
+- **Frontend**: Next.js 15.5.2, React 19.1.0, TypeScript 5
+- **Styling**: Tailwind CSS 4
 - **Database**: Supabase (PostgreSQL) with performance optimizations
 - **PWA**: Service Worker, Web App Manifest
 - **Icons**: Lucide React
+- **Date Handling**: date-fns with timezone support
+- **UI Components**: Radix UI primitives
+- **Testing**: Jest with React Testing Library
 - **Deployment**: Vercel (recommended)
 
 ## Database Setup
@@ -108,6 +116,7 @@ The easiest way to deploy is using [Vercel](https://vercel.com/new):
 The app uses a single, comprehensive database setup file (`database-complete-setup.sql`) that includes:
 
 - **Tables**: `shows` and `rsvps` with proper relationships
+- **Show Fields**: title, date_time, time_local, city, venue, ticket_url, spotify_url, apple_music_url, google_photos_url, notes
 - **Indexes**: Optimized for upcoming/past shows and RSVP joins
 - **RLS Policies**: Streamlined for performance and security
 - **Statistics**: Updated for optimal query planning
@@ -128,9 +137,11 @@ This app is a fully functional Progressive Web App with:
 
 - **Installable**: Can be installed on mobile and desktop devices
 - **Offline capable**: Works without internet connection (with graceful degradation)
-- **Native-like experience**: Pull-to-refresh, scroll-to-top, app-like navigation
+- **Native-like experience**: Scroll-to-top, app-like navigation
 - **No stale data**: Always fetches fresh show/RSVP data when online
 - **Cross-platform**: Works on iOS, Android, Windows, macOS, Linux
+- **Theme support**: Dark and light mode with system preference detection
+- **Responsive design**: Optimized for all screen sizes
 
 ## Performance Optimizations
 
@@ -142,16 +153,39 @@ This app is a fully functional Progressive Web App with:
 
 ### Frontend Level
 - **Optimistic updates**: RSVP changes feel instant with immediate UI feedback
-- **Pagination**: Past shows load 20 at a time instead of all at once
+- **Infinite scroll**: Past shows load 20 at a time with seamless infinite scroll
 - **Skeleton loading**: Smooth loading states prevent layout shifts
 - **Smart caching**: Static assets cached, API data always fresh
 - **Efficient re-renders**: Minimal unnecessary component updates
+- **Chunk loading**: Optimized webpack configuration for mobile performance
+- **Error handling**: Robust chunk load error recovery with automatic cache clearing
 
 ### Performance Impact
 - **80% fewer database calls** - From 11+ queries to just 2 per page load
 - **2-5x faster queries** - Optimized database structure and indexes
 - **Instant RSVP updates** - No waiting for server responses
 - **Better scalability** - Handles large numbers of shows efficiently
+
+## Additional Features
+
+### Show Management
+- **Rich show data**: Support for ticket URLs, Spotify/Apple Music links, Google Photos, and notes
+- **Smart time handling**: Boston timezone support with proper UTC conversion
+- **Validation**: Comprehensive input validation and sanitization
+- **Edit/Delete**: Full CRUD operations with confirmation dialogs
+
+### User Experience
+- **Theme switching**: Dark and light mode with persistent preference
+- **Mobile optimization**: Touch-friendly interface with proper mobile gestures
+- **Offline indicators**: Clear visual feedback when connection is lost
+- **Loading states**: Skeleton loaders and smooth transitions
+- **Error handling**: Graceful error recovery and user feedback
+
+### Security & Performance
+- **Input sanitization**: All user inputs are validated and sanitized
+- **Service worker**: Advanced caching strategy for optimal performance
+- **Chunk optimization**: Webpack configuration optimized for mobile devices
+- **Database security**: Row Level Security (RLS) policies for data protection
 
 ## License
 
