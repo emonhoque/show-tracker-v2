@@ -14,7 +14,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { title, date_local, time_local, city, venue, ticket_url, notes } = body
+    const { title, date_local, time_local, city, venue, ticket_url, spotify_url, apple_music_url, notes } = body
 
     // Validate and sanitize all inputs
     const titleValidation = validateTitle(title)
@@ -42,9 +42,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: timeValidation.error }, { status: 400 })
     }
 
-    const urlValidation = validateUrl(ticket_url || '')
-    if (!urlValidation.isValid) {
-      return NextResponse.json({ error: urlValidation.error }, { status: 400 })
+    const ticketUrlValidation = validateUrl(ticket_url || '')
+    if (!ticketUrlValidation.isValid) {
+      return NextResponse.json({ error: ticketUrlValidation.error }, { status: 400 })
+    }
+
+    const spotifyUrlValidation = validateUrl(spotify_url || '')
+    if (!spotifyUrlValidation.isValid) {
+      return NextResponse.json({ error: spotifyUrlValidation.error }, { status: 400 })
+    }
+
+    const appleMusicUrlValidation = validateUrl(apple_music_url || '')
+    if (!appleMusicUrlValidation.isValid) {
+      return NextResponse.json({ error: appleMusicUrlValidation.error }, { status: 400 })
     }
 
     const notesValidation = validateNotes(notes || '')
@@ -65,7 +75,9 @@ export async function POST(request: NextRequest) {
           time_local: timeValidation.sanitizedValue,
           city: cityValidation.sanitizedValue,
           venue: venueValidation.sanitizedValue,
-          ticket_url: urlValidation.sanitizedValue || null,
+          ticket_url: ticketUrlValidation.sanitizedValue || null,
+          spotify_url: spotifyUrlValidation.sanitizedValue || null,
+          apple_music_url: appleMusicUrlValidation.sanitizedValue || null,
           notes: notesValidation.sanitizedValue || null
         }
       ])

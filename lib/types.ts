@@ -6,6 +6,8 @@ export interface Show {
   city: string
   venue: string
   ticket_url?: string | null
+  spotify_url?: string | null
+  apple_music_url?: string | null
   notes?: string | null
   created_at: string
 }

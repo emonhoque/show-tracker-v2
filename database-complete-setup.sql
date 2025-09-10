@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS shows (
     city TEXT NOT NULL DEFAULT 'Boston',
     venue TEXT NOT NULL,
     ticket_url TEXT,
+    spotify_url TEXT,
+    apple_music_url TEXT,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -22,6 +22,8 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
     city: 'Boston',
     venue: '',
     ticket_url: '',
+    spotify_url: '',
+    apple_music_url: '',
     notes: ''
   })
   const [saving, setSaving] = useState(false)
@@ -39,6 +41,8 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
         city: show.city,
         venue: show.venue,
         ticket_url: show.ticket_url || '',
+        spotify_url: show.spotify_url || '',
+        apple_music_url: show.apple_music_url || '',
         notes: show.notes || ''
       })
     }
@@ -179,6 +183,30 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
                 value={formData.ticket_url}
                 onChange={(e) => handleChange('ticket_url', e.target.value)}
                 placeholder="https://..."
+                className="w-full h-10 text-sm"
+                style={{ fontSize: '16px' }}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Spotify URL</label>
+              <Input
+                type="url"
+                value={formData.spotify_url}
+                onChange={(e) => handleChange('spotify_url', e.target.value)}
+                placeholder="https://open.spotify.com/..."
+                className="w-full h-10 text-sm"
+                style={{ fontSize: '16px' }}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Apple Music URL</label>
+              <Input
+                type="url"
+                value={formData.apple_music_url}
+                onChange={(e) => handleChange('apple_music_url', e.target.value)}
+                placeholder="https://music.apple.com/..."
                 className="w-full h-10 text-sm"
                 style={{ fontSize: '16px' }}
               />
