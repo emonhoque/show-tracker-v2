@@ -13,9 +13,10 @@ interface EditShowModalProps {
   onOpenChange: (open: boolean) => void
   show: Show | null
   onShowUpdated: () => void
+  isPast?: boolean
 }
 
-export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditShowModalProps) {
+export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast = false }: EditShowModalProps) {
   const [formData, setFormData] = useState({
     title: '',
     date_local: '',
@@ -25,6 +26,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
     ticket_url: '',
     spotify_url: '',
     apple_music_url: '',
+    google_photos_url: '',
     notes: ''
   })
   const [saving, setSaving] = useState(false)
@@ -44,6 +46,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
         ticket_url: show.ticket_url || '',
         spotify_url: show.spotify_url || '',
         apple_music_url: show.apple_music_url || '',
+        google_photos_url: show.google_photos_url || '',
         notes: show.notes || ''
       })
     }
@@ -187,17 +190,33 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
               />
             </div>
             
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Ticket URL</label>
-              <Input
-                type="url"
-                value={formData.ticket_url}
-                onChange={(e) => handleChange('ticket_url', e.target.value)}
-                placeholder="https://..."
-                className="w-full h-10 text-sm"
-                style={{ fontSize: '16px' }}
-              />
-            </div>
+            {!isPast && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Ticket URL</label>
+                <Input
+                  type="url"
+                  value={formData.ticket_url}
+                  onChange={(e) => handleChange('ticket_url', e.target.value)}
+                  placeholder="https://..."
+                  className="w-full h-10 text-sm"
+                  style={{ fontSize: '16px' }}
+                />
+              </div>
+            )}
+            
+            {isPast && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Google Photos Invite</label>
+                <Input
+                  type="url"
+                  value={formData.google_photos_url}
+                  onChange={(e) => handleChange('google_photos_url', e.target.value)}
+                  placeholder="https://photos.app.goo.gl/..."
+                  className="w-full h-10 text-sm"
+                  style={{ fontSize: '16px' }}
+                />
+              </div>
+            )}
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Spotify URL</label>

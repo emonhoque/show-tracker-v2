@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS shows (
     ticket_url TEXT,
     spotify_url TEXT,
     apple_music_url TEXT,
+    google_photos_url TEXT,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );

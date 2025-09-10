@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /
+
+# Block all web crawlers and bots
+# This is a private application for EDM Adoption Clinic group
+# No public indexing or crawling allowed

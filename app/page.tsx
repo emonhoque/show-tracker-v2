@@ -43,6 +43,7 @@ export default function Home() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [isOffline, setIsOffline] = useState(false)
+  const [cacheVersion, setCacheVersion] = useState(0)
 
   // Check if component is mounted on client side
   useEffect(() => {
@@ -82,7 +83,11 @@ export default function Home() {
     try {
       // Fetch upcoming shows (now includes RSVPs) - only on initial load
       if (!isLoadMore) {
-        const upcomingResponse = await fetch('/api/shows/upcoming')
+        const upcomingResponse = await fetch(`/api/shows/upcoming?v=${cacheVersion}`, {
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
         if (upcomingResponse.ok) {
           const upcomingData = await upcomingResponse.json()
           if (Array.isArray(upcomingData)) {
@@ -107,7 +112,11 @@ export default function Home() {
       }
 
       // Fetch past shows with pagination
-      const pastResponse = await fetch(`/api/shows/past?page=${pastPage}&limit=20`)
+      const pastResponse = await fetch(`/api/shows/past?page=${pastPage}&limit=20&v=${cacheVersion}`, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       if (pastResponse.ok) {
         const pastData = await pastResponse.json()
         if (pastData && Array.isArray(pastData.shows)) {
@@ -168,6 +177,8 @@ export default function Home() {
   }
 
   const handleShowAdded = async () => {
+    // Invalidate cache and refresh data
+    setCacheVersion(prev => prev + 1)
     // Small delay to ensure database has been updated
     await new Promise(resolve => setTimeout(resolve, 100))
     // Fetch both upcoming and past shows to ensure new show appears
@@ -194,6 +205,8 @@ export default function Home() {
   }
 
   const handleShowUpdated = async () => {
+    // Invalidate cache and refresh data
+    setCacheVersion(prev => prev + 1)
     // Small delay to ensure database has been updated
     await new Promise(resolve => setTimeout(resolve, 100))
     // Fetch both upcoming and past shows to ensure updated show appears
@@ -204,7 +217,11 @@ export default function Home() {
 
   const updateRSVPs = async (showId: string) => {
     try {
-      const response = await fetch(`/api/rsvps/${showId}`)
+      const response = await fetch(`/api/rsvps/${showId}`, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setRsvpsData(prev => ({ ...prev, [showId]: data }))
@@ -237,7 +254,8 @@ export default function Home() {
         return
       }
 
-      // Refresh shows
+      // Invalidate cache and refresh shows
+      setCacheVersion(prev => prev + 1)
       await fetchShows(pastShowsPagination.page)
       setShowDeleteDialog(false)
       setDeletingShowId(null)
@@ -434,6 +452,7 @@ export default function Home() {
         onOpenChange={setShowEditModal}
         show={editingShow}
         onShowUpdated={handleShowUpdated}
+        isPast={editingShow ? new Date(editingShow.date_time) < new Date() : false}
       />
 
       {/* Delete Confirmation Dialog */}

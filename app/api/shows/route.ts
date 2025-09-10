@@ -14,7 +14,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { title, date_local, time_local, city, venue, ticket_url, spotify_url, apple_music_url, notes } = body
+    const { title, date_local, time_local, city, venue, ticket_url, spotify_url, apple_music_url, google_photos_url, notes } = body
 
     // Validate and sanitize all inputs
     const titleValidation = validateTitle(title)
@@ -57,6 +57,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: appleMusicUrlValidation.error }, { status: 400 })
     }
 
+    const googlePhotosUrlValidation = validateUrl(google_photos_url || '')
+    if (!googlePhotosUrlValidation.isValid) {
+      return NextResponse.json({ error: googlePhotosUrlValidation.error }, { status: 400 })
+    }
+
     const notesValidation = validateNotes(notes || '')
     if (!notesValidation.isValid) {
       return NextResponse.json({ error: notesValidation.error }, { status: 400 })
@@ -78,6 +83,7 @@ export async function POST(request: NextRequest) {
           ticket_url: ticketUrlValidation.sanitizedValue || null,
           spotify_url: spotifyUrlValidation.sanitizedValue || null,
           apple_music_url: appleMusicUrlValidation.sanitizedValue || null,
+          google_photos_url: googlePhotosUrlValidation.sanitizedValue || null,
           notes: notesValidation.sanitizedValue || null
         }
       ])

@@ -165,6 +165,19 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
               </a>
             </Button>
           )}
+          {show.google_photos_url && isPast && (
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-950/20"
+            >
+              <a href={show.google_photos_url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-4 h-4 mr-1" />
+                Photos
+              </a>
+            </Button>
+          )}
           {show.spotify_url && (
             <Button
               variant="outline"

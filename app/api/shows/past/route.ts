@@ -72,8 +72,9 @@ export async function GET(request: NextRequest) {
       }
     })
     
-    // Add caching headers for 5 minutes (past shows change less frequently)
-    response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+    // Add caching with revalidation for past shows
+    response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
+    response.headers.set('ETag', `"past-shows-${Math.floor(Date.now() / 60000)}"`)
     
     return response
   } catch (error) {
