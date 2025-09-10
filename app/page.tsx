@@ -13,9 +13,13 @@ import { PWAFeatures } from '@/components/PWAFeatures'
 import { Show, RSVPSummary } from '@/lib/types'
 import { formatNameForDisplay } from '@/lib/validation'
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
-import { Plus, LogOut } from 'lucide-react'
+import { Plus, LogOut, Menu } from 'lucide-react'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { useTheme } from '@/components/ThemeProvider'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 export default function Home() {
+  const { theme, setTheme } = useTheme()
   const [authenticated, setAuthenticated] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
   const [upcomingShows, setUpcomingShows] = useState<Show[]>([])
@@ -253,10 +257,10 @@ export default function Home() {
   // Show loading state until component is mounted
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading...</p>
         </div>
       </div>
     )
@@ -267,30 +271,74 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Show Tracker</h1>
+            <h1 className="text-2xl font-bold text-foreground">Show Tracker</h1>
             {userName && (
-              <p className="text-sm text-gray-600">Welcome, {formatNameForDisplay(userName)}</p>
+              <p className="text-sm text-muted-foreground">Welcome, {formatNameForDisplay(userName)}</p>
             )}
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setShowAddModal(true)} size="sm">
-              <Plus className="w-4 h-4 mr-1" />
-              Add
-            </Button>
-            <Button onClick={handleLogout} variant="outline" size="sm" className="sm:px-3 px-2">
-              <LogOut className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
+            {/* Desktop buttons */}
+            <div className="hidden sm:flex gap-2">
+              <ThemeToggle />
+              <Button onClick={() => setShowAddModal(true)} size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+              <Button onClick={handleLogout} variant="outline" size="sm">
+                <LogOut className="w-4 h-4 mr-1" />
+                Logout
+              </Button>
+            </div>
+            
+            {/* Mobile dropdown menu */}
+            <div className="sm:hidden flex gap-2">
+              <Button onClick={() => setShowAddModal(true)} size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                Add
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 p-2">
+                  <DropdownMenuItem onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className="py-3">
+                    <div className="flex items-center gap-3">
+                      {theme === 'dark' ? (
+                        <>
+                          <div className="h-4 w-4 rounded-full bg-yellow-500 flex items-center justify-center">
+                            <span className="text-xs">☀️</span>
+                          </div>
+                          Light Mode
+                        </>
+                      ) : (
+                        <>
+                          <div className="h-4 w-4 rounded-full bg-gray-800 flex items-center justify-center">
+                            <span className="text-xs">🌙</span>
+                          </div>
+                          Dark Mode
+                        </>
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 py-3">
+                    <LogOut className="mr-3 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
         {isOffline && (
-          <div className="bg-yellow-100 border-t border-yellow-200 px-4 py-2">
-            <p className="text-sm text-yellow-800 text-center">
+          <div className="bg-yellow-100 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800 px-4 py-2">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200 text-center">
               You&apos;re offline. Some features may not be available.
             </p>
           </div>
@@ -313,7 +361,7 @@ export default function Home() {
                 <ShowCardSkeleton />
               </>
             ) : upcomingShows.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No upcoming shows</p>
+              <p className="text-center text-muted-foreground py-8">No upcoming shows</p>
             ) : (
               upcomingShows.map((show) => (
                 <ShowCard 
@@ -337,7 +385,7 @@ export default function Home() {
                 <ShowCardSkeleton />
               </>
             ) : pastShows.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No past shows</p>
+              <p className="text-center text-muted-foreground py-8">No past shows</p>
             ) : (
               <>
                 {pastShows.map((show) => (
@@ -355,8 +403,8 @@ export default function Home() {
                 {/* Infinite scroll loading indicator */}
                 {loadingMore && (
                   <div className="flex justify-center py-4">
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted-foreground"></div>
                       <span>Loading more shows...</span>
                     </div>
                   </div>

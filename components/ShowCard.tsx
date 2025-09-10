@@ -111,7 +111,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
       <CardContent className="p-4 space-y-3">
         {/* Header with Date/Time and Actions */}
         <div className="flex justify-between items-start">
-          <div className="text-lg font-semibold text-gray-900">
+          <div className="text-lg font-semibold text-foreground">
             {formatUserTime(show.date_time, show.time_local)}
           </div>
           {(onEdit || (onDelete && !isPast)) && (
@@ -144,10 +144,10 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
 
         {/* Title, Venue, and Location */}
         <div>
-          <h3 className="text-xl font-bold">{show.title}</h3>
-          <p className="text-gray-600">{show.venue}, {show.city}</p>
+          <h3 className="text-xl font-bold text-foreground">{show.title}</h3>
+          <p className="text-muted-foreground">{show.venue}, {show.city}</p>
           {show.notes && (
-            <p className="text-sm text-gray-500 italic mt-1">{show.notes}</p>
+            <p className="text-sm text-muted-foreground italic mt-1">{show.notes}</p>
           )}
         </div>
 
@@ -194,7 +194,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
         </div>
 
         {/* RSVPs */}
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-sm text-foreground">
           {rsvps?.going?.length > 0 && (
             <div>
               <span className="font-semibold">{isPast ? 'Went:' : 'Going:'}</span> {rsvps.going.map(formatNameForDisplay).join(', ')}
@@ -214,8 +214,8 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
 
         {/* RSVP Buttons (only for upcoming shows) */}
         {!isPast && userName && (
-          <div className="pt-2 border-t">
-            <div className="text-sm text-gray-600 mb-2">Your RSVP:</div>
+          <div className="pt-2 border-t border-border">
+            <div className="text-sm text-muted-foreground mb-2">Your RSVP:</div>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
               <Button
                 size="sm"
@@ -261,7 +261,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
 
         {/* Attendance Button (only for past shows) */}
         {isPast && userName && (
-          <div className="pt-2 border-t">
+          <div className="pt-2 border-t border-border">
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
               <Button
                 size="sm"
