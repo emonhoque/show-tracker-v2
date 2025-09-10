@@ -284,11 +284,11 @@ export default function Home() {
           <div className="flex gap-2">
             {/* Desktop buttons */}
             <div className="hidden sm:flex gap-2">
-              <ThemeToggle />
               <Button onClick={() => setShowAddModal(true)} size="sm">
                 <Plus className="w-4 h-4 mr-1" />
                 Add
               </Button>
+              <ThemeToggle />
               <Button onClick={handleLogout} variant="outline" size="sm">
                 <LogOut className="w-4 h-4 mr-1" />
                 Logout
