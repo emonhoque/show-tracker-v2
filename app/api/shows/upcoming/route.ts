@@ -55,8 +55,8 @@ export async function GET() {
 
     const response = NextResponse.json(processedShows)
     
-    // Add caching headers for 1 minute
-    response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
+    // No caching for upcoming shows to ensure real-time updates
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
     
     return response
   } catch (error) {

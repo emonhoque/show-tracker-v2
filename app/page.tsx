@@ -167,8 +167,11 @@ export default function Home() {
     setAuthenticated(true)
   }
 
-  const handleShowAdded = () => {
-    fetchShows(pastShowsPagination.page)
+  const handleShowAdded = async () => {
+    // Small delay to ensure database has been updated
+    await new Promise(resolve => setTimeout(resolve, 100))
+    // Fetch both upcoming and past shows to ensure new show appears
+    await fetchShows(pastShowsPagination.page)
   }
 
   const handlePastShowsPageChange = (newPage: number) => {
@@ -193,8 +196,11 @@ export default function Home() {
     setShowEditModal(true)
   }
 
-  const handleShowUpdated = () => {
-    fetchShows(pastShowsPagination.page)
+  const handleShowUpdated = async () => {
+    // Small delay to ensure database has been updated
+    await new Promise(resolve => setTimeout(resolve, 100))
+    // Fetch both upcoming and past shows to ensure updated show appears
+    await fetchShows(pastShowsPagination.page)
     setShowEditModal(false)
     setEditingShow(null)
   }
