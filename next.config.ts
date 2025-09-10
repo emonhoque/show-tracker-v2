@@ -2,9 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Optimize for mobile and PWA
-  experimental: {
-    optimizeCss: true,
-  },
   
   // Better chunking strategy for mobile
   webpack: (config, { isServer }) => {
