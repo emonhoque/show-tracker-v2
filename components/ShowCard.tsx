@@ -98,7 +98,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
           <div className="text-lg font-semibold text-gray-900">
             {formatUserTime(show.date_time, show.time_local)}
           </div>
-          {(onEdit || onDelete) && !isPast && (
+          {(onEdit || (onDelete && !isPast)) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -112,7 +112,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
                     Edit
                   </DropdownMenuItem>
                 )}
-                {onDelete && (
+                {onDelete && !isPast && (
                   <DropdownMenuItem 
                     onClick={() => onDelete(show.id)}
                     className="text-red-600 focus:text-red-600"
