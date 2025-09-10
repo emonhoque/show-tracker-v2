@@ -110,8 +110,8 @@ export default function Home() {
           if (isLoadMore) {
             // Append new shows to existing ones, filtering out duplicates
             setPastShows(prev => {
-              const existingIds = new Set(prev.map(show => show.id))
-              const newShows = pastData.shows.filter(show => !existingIds.has(show.id))
+              const existingIds = new Set(prev.map((show: Show) => show.id))
+              const newShows = pastData.shows.filter((show: Show) => !existingIds.has(show.id))
               return [...prev, ...newShows]
             })
           } else {
