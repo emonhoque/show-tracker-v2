@@ -1,25 +1,80 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/db'
+import { RSVPSummary } from '@/lib/types'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get shows where date_time < Boston now, sorted descending, limit 200
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const offset = (page - 1) * limit
+
+    // Get shows where date_time < now, sorted descending with pagination
+    const { data: shows, error: showsError, count } = await supabase
       .from('shows')
-      .select('*')
+      .select(`
+        *,
+        rsvps!inner(name, status)
+      `, { count: 'exact' })
       .lt('date_time', new Date().toISOString())
       .order('date_time', { ascending: false })
-      .limit(200)
+      .range(offset, offset + limit - 1)
 
-    if (error) {
-      console.error('Database error:', error)
+    if (showsError) {
+      console.error('Database error:', showsError)
       return NextResponse.json(
         { error: 'Failed to fetch past shows' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json(data || [])
+    // Process shows and organize RSVPs
+    const processedShows = (shows || []).map(show => {
+      const rsvps: RSVPSummary = {
+        going: [],
+        maybe: [],
+        not_going: []
+      }
+
+      // Group RSVPs by status
+      if (show.rsvps) {
+        show.rsvps.forEach((rsvp: any) => {
+          if (rsvp.status === 'going') {
+            rsvps.going.push(rsvp.name)
+          } else if (rsvp.status === 'maybe') {
+            rsvps.maybe.push(rsvp.name)
+          } else if (rsvp.status === 'not_going') {
+            rsvps.not_going.push(rsvp.name)
+          }
+        })
+      }
+
+      // Remove rsvps from the show object and add processed rsvps
+      const { rsvps: _, ...showWithoutRsvps } = show
+      return {
+        ...showWithoutRsvps,
+        rsvps
+      }
+    })
+
+    const totalPages = Math.ceil((count || 0) / limit)
+
+    const response = NextResponse.json({
+      shows: processedShows,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    })
+    
+    // Add caching headers for 5 minutes (past shows change less frequently)
+    response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+    
+    return response
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(

@@ -20,6 +20,14 @@ export default function Home() {
   const [upcomingShows, setUpcomingShows] = useState<Show[]>([])
   const [pastShows, setPastShows] = useState<Show[]>([])
   const [rsvpsData, setRsvpsData] = useState<Record<string, RSVPSummary>>({})
+  const [pastShowsPagination, setPastShowsPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  })
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -57,53 +65,47 @@ export default function Home() {
     }
   }, [])
 
-  const fetchRSVPsForShows = useCallback(async (shows: Show[]) => {
-    const rsvpsPromises = shows.map(async (show) => {
-      try {
-        const response = await fetch(`/api/rsvps/${show.id}`)
-        if (response.ok) {
-          const data = await response.json()
-          return { showId: show.id, rsvps: data }
-        }
-      } catch (error) {
-        console.error(`Error fetching RSVPs for show ${show.id}:`, error)
-      }
-      return { showId: show.id, rsvps: { going: [], maybe: [], not_going: [] } }
-    })
-
-    const rsvpsResults = await Promise.all(rsvpsPromises)
-    const newRsvpsData = rsvpsResults.reduce((acc, { showId, rsvps }) => {
-      acc[showId] = rsvps
-      return acc
-    }, {} as Record<string, RSVPSummary>)
-
-    setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
-  }, [])
-
-  const fetchShows = useCallback(async () => {
+  const fetchShows = useCallback(async (pastPage: number = 1) => {
     setLoading(true)
     try {
-      // Fetch upcoming shows
+      // Fetch upcoming shows (now includes RSVPs)
       const upcomingResponse = await fetch('/api/shows/upcoming')
       if (upcomingResponse.ok) {
         const upcomingData = await upcomingResponse.json()
         setUpcomingShows(upcomingData)
-        await fetchRSVPsForShows(upcomingData)
+        
+        // Extract RSVPs from shows
+        const newRsvpsData: Record<string, RSVPSummary> = {}
+        upcomingData.forEach((show: any) => {
+          if (show.rsvps) {
+            newRsvpsData[show.id] = show.rsvps
+          }
+        })
+        setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
       }
 
-      // Fetch past shows
-      const pastResponse = await fetch('/api/shows/past')
+      // Fetch past shows with pagination
+      const pastResponse = await fetch(`/api/shows/past?page=${pastPage}&limit=20`)
       if (pastResponse.ok) {
         const pastData = await pastResponse.json()
-        setPastShows(pastData)
-        await fetchRSVPsForShows(pastData)
+        setPastShows(pastData.shows)
+        setPastShowsPagination(pastData.pagination)
+        
+        // Extract RSVPs from shows
+        const newRsvpsData: Record<string, RSVPSummary> = {}
+        pastData.shows.forEach((show: any) => {
+          if (show.rsvps) {
+            newRsvpsData[show.id] = show.rsvps
+          }
+        })
+        setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
       }
     } catch (error) {
       console.error('Error fetching shows:', error)
     } finally {
       setLoading(false)
     }
-  }, [fetchRSVPsForShows])
+  }, [])
 
   // Fetch shows when authenticated
   useEffect(() => {
@@ -118,7 +120,11 @@ export default function Home() {
   }
 
   const handleShowAdded = () => {
-    fetchShows()
+    fetchShows(pastShowsPagination.page)
+  }
+
+  const handlePastShowsPageChange = (newPage: number) => {
+    fetchShows(newPage)
   }
 
   const handleEditShow = (show: Show) => {
@@ -127,7 +133,7 @@ export default function Home() {
   }
 
   const handleShowUpdated = () => {
-    fetchShows()
+    fetchShows(pastShowsPagination.page)
     setShowEditModal(false)
     setEditingShow(null)
   }
@@ -168,7 +174,7 @@ export default function Home() {
       }
 
       // Refresh shows
-      await fetchShows()
+      await fetchShows(pastShowsPagination.page)
       setShowDeleteDialog(false)
       setDeletingShowId(null)
       setDeletingShowTitle('')
@@ -275,17 +281,51 @@ export default function Home() {
             ) : pastShows.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No past shows</p>
             ) : (
-              pastShows.map((show) => (
-                <ShowCard 
-                  key={show.id} 
-                  show={show} 
-                  isPast={true} 
-                  rsvps={rsvpsData[show.id] || { going: [], maybe: [], not_going: [] }}
-                  onEdit={handleEditShow}
-                  onDelete={handleDeleteShow}
-                  onRSVPUpdate={() => updateRSVPs(show.id)}
-                />
-              ))
+              <>
+                {pastShows.map((show) => (
+                  <ShowCard 
+                    key={show.id} 
+                    show={show} 
+                    isPast={true} 
+                    rsvps={rsvpsData[show.id] || { going: [], maybe: [], not_going: [] }}
+                    onEdit={handleEditShow}
+                    onDelete={handleDeleteShow}
+                    onRSVPUpdate={() => updateRSVPs(show.id)}
+                  />
+                ))}
+                
+                {/* Pagination Controls */}
+                {pastShowsPagination.totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-4 mt-6 py-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePastShowsPageChange(pastShowsPagination.page - 1)}
+                      disabled={!pastShowsPagination.hasPrev || loading}
+                    >
+                      Previous
+                    </Button>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">
+                        Page {pastShowsPagination.page} of {pastShowsPagination.totalPages}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        ({pastShowsPagination.total} total shows)
+                      </span>
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePastShowsPageChange(pastShowsPagination.page + 1)}
+                      disabled={!pastShowsPagination.hasNext || loading}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
         </Tabs>
