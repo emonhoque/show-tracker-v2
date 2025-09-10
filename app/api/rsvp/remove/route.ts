@@ -35,14 +35,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if show is in the past using the same time logic as RSVP
-    const { isShowPast } = await import('@/lib/time')
-    if (isShowPast(show.date_time)) {
-      return NextResponse.json(
-        { error: 'Cannot modify RSVP for past shows' },
-        { status: 409 }
-      )
-    }
+    // Allow RSVP removal for both past and future shows
+    // (Users should be able to clear their "I went!" status for past shows)
 
     // Delete the RSVP record with sanitized name
     const { error } = await supabase

@@ -164,7 +164,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
           )}
           {rsvps?.not_going?.length > 0 && (
             <div>
-              <span className="font-semibold">Not Going:</span> {rsvps.not_going.map(formatNameForDisplay).join(', ')}
+              <span className="font-semibold">{isPast ? "Didn't Go:" : 'Not Going:'}</span> {rsvps.not_going.map(formatNameForDisplay).join(', ')}
             </div>
           )}
         </div>
@@ -202,6 +202,34 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
                 Not Going
               </Button>
               {userStatus && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleRSVP(null)}
+                  disabled={loading}
+                  className="w-full sm:w-auto"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Attendance Button (only for past shows) */}
+        {isPast && userName && (
+          <div className="pt-2 border-t">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={userStatus === 'going' ? 'default' : 'outline'}
+                onClick={() => handleRSVP(userStatus === 'going' ? null : 'going')}
+                disabled={loading}
+                className="w-full sm:w-auto"
+              >
+                {userStatus === 'going' ? 'I was there!' : 'I was there!'}
+              </Button>
+              {userStatus === 'going' && (
                 <Button
                   size="sm"
                   variant="ghost"

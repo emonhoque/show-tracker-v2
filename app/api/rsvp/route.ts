@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (isShowPast(show.date_time)) {
+    // For past shows, only allow "going" status (for "I was there!" functionality)
+    if (isShowPast(show.date_time) && status !== 'going') {
       return NextResponse.json(
         { error: 'Cannot RSVP to past shows' },
         { status: 409 }
