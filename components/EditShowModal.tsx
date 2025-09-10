@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectTrigger, SelectContent, SelectOption } from '@/components/ui/select'
 import { Show } from '@/lib/types'
 import { formatInTimeZone } from 'date-fns-tz'
 
@@ -101,7 +102,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
           
           <div className="space-y-4 py-4 flex-1 overflow-y-auto overflow-x-hidden" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Title *</label>
+              <label className="text-sm font-medium text-foreground">Title *</label>
                 <Input
                   value={formData.title}
                   onChange={(e) => handleChange('title', e.target.value)}
@@ -114,7 +115,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
               <div className="space-y-2 min-w-0">
-                <label className="text-sm font-medium text-gray-700">Date *</label>
+                <label className="text-sm font-medium text-foreground">Date *</label>
                 <Input
                   type="date"
                   value={formData.date_local}
@@ -126,34 +127,44 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
               </div>
               
               <div className="space-y-2 min-w-0">
-                <label className="text-sm font-medium text-gray-700">Time *</label>
-                <select
+                <label className="text-sm font-medium text-foreground">Time *</label>
+                <Select
                   value={formData.time_local}
-                  onChange={(e) => handleChange('time_local', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border rounded-md h-10 bg-white"
-                  required
+                  onChange={(value) => handleChange('time_local', value)}
                 >
-                  <option value="">Select time</option>
-                  {Array.from({ length: 24 }, (_, index) => {
-                    const hour = (15 + index) % 24;
-                    const timeString = `${hour.toString().padStart(2, '0')}:00`;
-                    const displayTime = new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true
-                    });
-                    return (
-                      <option key={timeString} value={timeString}>
-                        {displayTime}
-                      </option>
-                    );
-                  })}
-                </select>
+                  <SelectTrigger>
+                    {formData.time_local ? 
+                      new Date(`2000-01-01T${formData.time_local}`).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      }) : 
+                      'Select time'
+                    }
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectOption value="">Select time</SelectOption>
+                    {Array.from({ length: 24 }, (_, index) => {
+                      const hour = (15 + index) % 24;
+                      const timeString = `${hour.toString().padStart(2, '0')}:00`;
+                      const displayTime = new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      });
+                      return (
+                        <SelectOption key={timeString} value={timeString}>
+                          {displayTime}
+                        </SelectOption>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Location *</label>
+              <label className="text-sm font-medium text-foreground">Location *</label>
               <Input
                 value={formData.city}
                 onChange={(e) => handleChange('city', e.target.value)}
@@ -165,7 +176,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Venue *</label>
+              <label className="text-sm font-medium text-foreground">Venue *</label>
               <Input
                 value={formData.venue}
                 onChange={(e) => handleChange('venue', e.target.value)}
@@ -177,7 +188,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Ticket URL</label>
+              <label className="text-sm font-medium text-foreground">Ticket URL</label>
               <Input
                 type="url"
                 value={formData.ticket_url}
@@ -189,7 +200,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Spotify URL</label>
+              <label className="text-sm font-medium text-foreground">Spotify URL</label>
               <Input
                 type="url"
                 value={formData.spotify_url}
@@ -201,7 +212,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Apple Music URL</label>
+              <label className="text-sm font-medium text-foreground">Apple Music URL</label>
               <Input
                 type="url"
                 value={formData.apple_music_url}
@@ -213,12 +224,12 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated }: EditS
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Notes</label>
+              <label className="text-sm font-medium text-foreground">Notes</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
                 placeholder="Additional information..."
-                className="w-full px-3 py-2 text-sm border rounded-md resize-none min-h-[60px]"
+                className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] dark:text-foreground resize-none min-h-[60px]"
                 rows={3}
               />
             </div>
