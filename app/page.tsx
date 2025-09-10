@@ -174,9 +174,6 @@ export default function Home() {
     await fetchShows(pastShowsPagination.page)
   }
 
-  const handlePastShowsPageChange = (newPage: number) => {
-    fetchShows(newPage)
-  }
 
   const loadMorePastShows = useCallback(() => {
     if (pastShowsPagination.hasNext && !loadingMore) {

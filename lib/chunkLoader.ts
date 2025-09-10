@@ -3,7 +3,7 @@ export class ChunkLoader {
   private static retryAttempts = 3;
   private static retryDelay = 1000;
 
-  static async loadChunk(chunkId: string, retryCount = 0): Promise<any> {
+  static async loadChunk(chunkId: string, retryCount = 0): Promise<unknown> {
     try {
       // Try to load the chunk
       const chunk = await import(/* webpackChunkName: "[request]" */ `../app/page`);
@@ -12,9 +12,9 @@ export class ChunkLoader {
       console.error(`Chunk load error for ${chunkId}, attempt ${retryCount + 1}:`, error);
       
       if (retryCount < this.retryAttempts) {
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, this.retryDelay * (retryCount + 1)));
-        return this.loadChunk(chunkId, retryCount + 1);
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, this.retryDelay * (retryCount + 1)));
+      return this.loadChunk('', retryCount + 1);
       }
       
       // If all retries failed, throw the error
@@ -22,7 +22,7 @@ export class ChunkLoader {
     }
   }
 
-  static handleChunkError(error: Error, chunkId?: string) {
+  static handleChunkError(error: Error) {
     console.error('Chunk load error:', error);
     
     // Check if it's a chunk loading error

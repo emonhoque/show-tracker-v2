@@ -14,7 +14,6 @@ export function useInfiniteScroll({
   threshold = 200
 }: UseInfiniteScrollOptions) {
   const [isNearBottom, setIsNearBottom] = useState(false)
-  const observerRef = useRef<IntersectionObserver | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {

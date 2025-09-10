@@ -29,7 +29,7 @@ const SelectContext = React.createContext<{
   setIsOpen: () => {}
 })
 
-export function Select({ value, onChange, children, className, required }: SelectProps) {
+export function Select({ value, onChange, children, className }: SelectProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const selectRef = React.useRef<HTMLDivElement>(null)
 
