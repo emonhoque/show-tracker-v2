@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       .from('shows')
       .select(`
         *,
-        rsvps!inner(name, status)
+        rsvps(name, status)
       `, { count: 'exact' })
       .lt('date_time', new Date().toISOString())
       .order('date_time', { ascending: false })
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Group RSVPs by status
-      if (show.rsvps) {
+      if (show.rsvps && Array.isArray(show.rsvps)) {
         show.rsvps.forEach((rsvp: { name: string; status: string }) => {
           if (rsvp.status === 'going') {
             rsvps.going.push(rsvp.name)
@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Remove rsvps from the show object and add processed rsvps
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { rsvps: _rsvps, ...showWithoutRsvps } = show
       return {
         ...showWithoutRsvps,

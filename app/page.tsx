@@ -72,33 +72,49 @@ export default function Home() {
       const upcomingResponse = await fetch('/api/shows/upcoming')
       if (upcomingResponse.ok) {
         const upcomingData = await upcomingResponse.json()
-        setUpcomingShows(upcomingData)
-        
-        // Extract RSVPs from shows
-        const newRsvpsData: Record<string, RSVPSummary> = {}
-        upcomingData.forEach((show: Show & { rsvps?: RSVPSummary }) => {
-          if (show.rsvps) {
-            newRsvpsData[show.id] = show.rsvps
-          }
-        })
-        setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+        if (Array.isArray(upcomingData)) {
+          setUpcomingShows(upcomingData)
+          
+          // Extract RSVPs from shows
+          const newRsvpsData: Record<string, RSVPSummary> = {}
+          upcomingData.forEach((show: Show & { rsvps?: RSVPSummary }) => {
+            if (show.rsvps) {
+              newRsvpsData[show.id] = show.rsvps
+            }
+          })
+          setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+        } else {
+          console.error('Invalid upcoming shows data format:', upcomingData)
+          setUpcomingShows([])
+        }
+      } else {
+        console.error('Failed to fetch upcoming shows:', upcomingResponse.status)
+        setUpcomingShows([])
       }
 
       // Fetch past shows with pagination
       const pastResponse = await fetch(`/api/shows/past?page=${pastPage}&limit=20`)
       if (pastResponse.ok) {
         const pastData = await pastResponse.json()
-        setPastShows(pastData.shows)
-        setPastShowsPagination(pastData.pagination)
-        
-        // Extract RSVPs from shows
-        const newRsvpsData: Record<string, RSVPSummary> = {}
-        pastData.shows.forEach((show: Show & { rsvps?: RSVPSummary }) => {
-          if (show.rsvps) {
-            newRsvpsData[show.id] = show.rsvps
-          }
-        })
-        setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+        if (pastData && Array.isArray(pastData.shows)) {
+          setPastShows(pastData.shows)
+          setPastShowsPagination(pastData.pagination)
+          
+          // Extract RSVPs from shows
+          const newRsvpsData: Record<string, RSVPSummary> = {}
+          pastData.shows.forEach((show: Show & { rsvps?: RSVPSummary }) => {
+            if (show.rsvps) {
+              newRsvpsData[show.id] = show.rsvps
+            }
+          })
+          setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+        } else {
+          console.error('Invalid past shows data format:', pastData)
+          setPastShows([])
+        }
+      } else {
+        console.error('Failed to fetch past shows:', pastResponse.status)
+        setPastShows([])
       }
     } catch (error) {
       console.error('Error fetching shows:', error)
