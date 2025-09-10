@@ -137,7 +137,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
-          {show.ticket_url && (
+          {show.ticket_url && !isPast && (
             <Button
               variant="outline"
               size="sm"
