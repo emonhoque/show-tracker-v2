@@ -324,7 +324,12 @@ export default function Home() {
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    aria-label="Open menu"
+                  >
                     <Menu className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>

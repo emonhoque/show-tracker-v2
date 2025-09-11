@@ -47,6 +47,7 @@ export function PWAFeatures({ onRefresh }: PWAFeaturesProps) {
         onClick={scrollToTop}
         className="fixed bottom-6 right-6 z-40 rounded-full w-12 h-12 p-0 shadow-lg"
         size="sm"
+        aria-label="Scroll to top"
       >
         <ArrowUp className="w-5 h-5" />
       </Button>
