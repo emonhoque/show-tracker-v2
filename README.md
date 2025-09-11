@@ -7,6 +7,7 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 - 🔐 **Password-protected access** - Simple shared password with show/hide toggle
 - 📅 **Show management** - Add, edit, and delete shows with intuitive time picker
 - ✅ **Smart RSVP system** - Going/Maybe/Not Going for upcoming, I was there!/Clear for past shows
+- 🔍 **Advanced filtering** - Filter shows by status and people with smart AND logic for multiple selections
 - 📱 **Progressive Web App** - Installable on mobile and desktop devices with scroll-to-top
 - 🕐 **Smart time picker** - Starts at 3 PM, cycles to 2 PM (realistic show times)
 - 📊 **Intelligent sorting** - Next show first (upcoming), newest first (past)
@@ -85,6 +86,25 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 - Shows start at 3:00 PM and cycle through to 2:00 PM the next day
 - Covers realistic show times from afternoon to late night
 - No more scrolling through 3 AM times for evening shows!
+
+### Filtering System
+The app includes a powerful filtering system to help you find specific shows:
+
+#### Status Filters
+- **All**: Shows all upcoming shows (default)
+- **Going**: Shows where people have RSVP'd as "Going"
+- **Maybe**: Shows where people have RSVP'd as "Maybe"
+- **Not Going**: Shows where people have RSVP'd as "Not Going"
+
+#### People Filters
+- **Everyone**: Shows all upcoming shows (default)
+- **Individual People**: Filter by specific attendees
+- **Smart Logic**: When multiple people are selected, shows only events where ALL selected people have the selected status
+
+#### Filter Examples
+- Select "John" + "Taylor" + "Going" = Shows where both John AND Taylor are going
+- Select "Going" only = Shows where anyone is going
+- Select "Sarah" + "Maybe" = Shows where Sarah is maybe attending
 
 ## Deployment
 
