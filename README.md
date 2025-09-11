@@ -17,6 +17,8 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 - 🎨 **Modern UI** - Clean, responsive design with smooth animations and dark/light theme support
 - 🎵 **Music integration** - Spotify and Apple Music links for shows
 - 📸 **Photo sharing** - Google Photos links for past shows
+- 🖼️ **Poster uploads** - Upload and display show posters with Vercel Blob storage
+- 📊 **Performance monitoring** - Vercel Speed Insights integration for performance tracking
 
 ## Quick Start
 
@@ -109,6 +111,8 @@ The easiest way to deploy is using [Vercel](https://vercel.com/new):
 - **Date Handling**: date-fns with timezone support
 - **UI Components**: Radix UI primitives
 - **Testing**: Jest with React Testing Library
+- **File Storage**: Vercel Blob for poster uploads
+- **Performance**: Vercel Speed Insights
 - **Deployment**: Vercel (recommended)
 
 ## Database Setup
@@ -116,7 +120,7 @@ The easiest way to deploy is using [Vercel](https://vercel.com/new):
 The app uses a single, comprehensive database setup file (`database-complete-setup.sql`) that includes:
 
 - **Tables**: `shows` and `rsvps` with proper relationships
-- **Show Fields**: title, date_time, time_local, city, venue, ticket_url, spotify_url, apple_music_url, google_photos_url, notes
+- **Show Fields**: title, date_time, time_local, city, venue, ticket_url, spotify_url, apple_music_url, google_photos_url, poster_url, notes
 - **Indexes**: Optimized for upcoming/past shows and RSVP joins
 - **RLS Policies**: Streamlined for performance and security
 - **Statistics**: Updated for optimal query planning
@@ -142,6 +146,8 @@ This app is a fully functional Progressive Web App with:
 - **Cross-platform**: Works on iOS, Android, Windows, macOS, Linux
 - **Theme support**: Dark and light mode with system preference detection
 - **Responsive design**: Optimized for all screen sizes
+- **Pull-to-refresh**: Native gesture support for refreshing content
+- **Chunk error recovery**: Automatic recovery from JavaScript chunk loading failures
 
 ## Performance Optimizations
 
@@ -186,6 +192,9 @@ This app is a fully functional Progressive Web App with:
 - **Service worker**: Advanced caching strategy for optimal performance
 - **Chunk optimization**: Webpack configuration optimized for mobile devices
 - **Database security**: Row Level Security (RLS) policies for data protection
+- **File upload security**: Type and size validation for poster uploads (JPEG, PNG, WebP, max 10MB)
+- **XSS protection**: HTML sanitization to prevent cross-site scripting attacks
+- **Performance monitoring**: Real-time performance tracking with Vercel Speed Insights
 
 ## License
 
