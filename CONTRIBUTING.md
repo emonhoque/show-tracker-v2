@@ -15,7 +15,7 @@ Thank you for your interest in contributing to Show Tracker! This document provi
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/your-username/show-tracker.git
+   git clone https://github.com/emonhoque/show-tracker.git
    cd show-tracker
    ```
 
