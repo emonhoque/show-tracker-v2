@@ -221,7 +221,7 @@ export function formatNameForDisplay(normalizedName: string): string {
       
       // Handle common prefixes that should keep the next letter capitalized
       // Only match if the prefix is followed by another character (not just the prefix alone)
-      const prefixes = ['mc', 'mac', 'o\'', 'd\'', 'de', 'da', 'di', 'du', 'del', 'della', 'delle', 'dello', 'degli', 'dei', 'dal', 'dalla', 'dalle', 'dallo', 'dalli', 'dalle', 'van', 'von', 'le', 'la']
+      const prefixes = ['mc']
       
       const lowerWord = word.toLowerCase()
       for (const prefix of prefixes) {
