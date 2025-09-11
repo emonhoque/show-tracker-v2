@@ -24,7 +24,7 @@ const AppleMusicIcon = ({ className }: { className?: string }) => (
     </g>
   </svg>
 )
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import * as DropdownMenu from '@/components/ui/dropdown-menu'
 
 interface ShowCardProps {
   show: Show
@@ -115,8 +115,8 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
         <div className="flex justify-between items-start">
           <h3 className="text-xl font-bold text-foreground">{show.title}</h3>
           {(onEdit || (onDelete && !isPast)) && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <DropdownMenu.DropdownMenu>
+              <DropdownMenu.DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -125,25 +125,25 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              </DropdownMenu.DropdownMenuTrigger>
+              <DropdownMenu.DropdownMenuContent align="end" className="w-48">
                 {onEdit && (
-                  <DropdownMenuItem onClick={() => onEdit(show)}>
+                  <DropdownMenu.DropdownMenuItem onClick={() => onEdit(show)}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
-                  </DropdownMenuItem>
+                  </DropdownMenu.DropdownMenuItem>
                 )}
                 {onDelete && !isPast && (
-                  <DropdownMenuItem 
+                  <DropdownMenu.DropdownMenuItem 
                     onClick={() => onDelete(show.id)}
                     className="text-red-600 focus:text-red-600"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
-                  </DropdownMenuItem>
+                  </DropdownMenu.DropdownMenuItem>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </DropdownMenu.DropdownMenuContent>
+            </DropdownMenu.DropdownMenu>
           )}
         </div>
 

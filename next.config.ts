@@ -21,8 +21,18 @@ const nextConfig: NextConfig = {
             priority: -10,
             chunks: 'all',
           },
+          // Keep Radix UI components together to avoid splitting issues
+          radix: {
+            test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+            name: 'radix',
+            priority: 10,
+            chunks: 'all',
+          },
         },
       };
+      
+      // Disable concatenateModules to avoid issues with Radix UI
+      config.optimization.concatenateModules = false;
     }
     return config;
   },

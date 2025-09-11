@@ -10,21 +10,27 @@ import { AddShowModal } from '@/components/AddShowModal'
 import { EditShowModal } from '@/components/EditShowModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
 import { PWAFeatures } from '@/components/PWAFeatures'
+import { RSVPFilter } from '@/components/RSVPFilter'
+import { RSVPFilterSkeleton } from '@/components/RSVPFilterSkeleton'
 import { Show, RSVPSummary } from '@/lib/types'
 import { formatNameForDisplay } from '@/lib/validation'
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
 import { Plus, LogOut, Menu } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { useTheme } from '@/components/ThemeProvider'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import * as DropdownMenu from '@/components/ui/dropdown-menu'
 
 export default function Home() {
-  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
   const [upcomingShows, setUpcomingShows] = useState<Show[]>([])
   const [pastShows, setPastShows] = useState<Show[]>([])
   const [rsvpsData, setRsvpsData] = useState<Record<string, RSVPSummary>>({})
+  const [selectedStatusFilters, setSelectedStatusFilters] = useState<Set<string>>(new Set(['all']))
+  const [selectedPeopleFilters, setSelectedPeopleFilters] = useState<Set<string>>(new Set(['all']))
+  const [availableAttendees, setAvailableAttendees] = useState<string[]>([])
+  const [filteredUpcomingShows, setFilteredUpcomingShows] = useState<Show[]>([])
   const [pastShowsPagination, setPastShowsPagination] = useState({
     page: 1,
     limit: 20,
@@ -41,7 +47,6 @@ export default function Home() {
   const [deletingShowTitle, setDeletingShowTitle] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const [isOffline, setIsOffline] = useState(false)
   const [cacheVersion, setCacheVersion] = useState(0)
 
@@ -55,6 +60,9 @@ export default function Home() {
     }
 
   }, [])
+
+  // Get theme - this will be handled by ThemeToggle component
+  const { theme, setTheme } = useTheme()
 
   // Monitor online/offline status
   useEffect(() => {
@@ -93,14 +101,23 @@ export default function Home() {
           if (Array.isArray(upcomingData)) {
             setUpcomingShows(upcomingData)
             
-            // Extract RSVPs from shows
+            // Extract RSVPs from shows and attendees
             const newRsvpsData: Record<string, RSVPSummary> = {}
+            const attendees = new Set<string>()
+            
             upcomingData.forEach((show: Show & { rsvps?: RSVPSummary }) => {
               if (show.rsvps) {
                 newRsvpsData[show.id] = show.rsvps
+                
+                // Extract attendees from RSVPs
+                show.rsvps.going?.forEach(name => attendees.add(name))
+                show.rsvps.maybe?.forEach(name => attendees.add(name))
+                show.rsvps.not_going?.forEach(name => attendees.add(name))
               }
             })
+            
             setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+            setAvailableAttendees(Array.from(attendees).sort())
           } else {
             console.error('Invalid upcoming shows data format:', upcomingData)
             setUpcomingShows([])
@@ -171,9 +188,119 @@ export default function Home() {
     }
   }, [authenticated, fetchShows])
 
+  // Apply filters to upcoming shows
+  useEffect(() => {
+    if (selectedStatusFilters.has('all') && selectedPeopleFilters.has('all')) {
+      setFilteredUpcomingShows(upcomingShows)
+      return
+    }
+
+    const filtered = upcomingShows.filter(show => {
+      const rsvps = rsvpsData[show.id]
+      if (!rsvps) return false
+
+      // If both groups have "all" selected, show all shows
+      if (selectedStatusFilters.has('all') && selectedPeopleFilters.has('all')) {
+        return true
+      }
+
+      // If only status has "all", check people filters
+      if (selectedStatusFilters.has('all')) {
+        return selectedPeopleFilters.has('all') ||
+          Array.from(selectedPeopleFilters).some(person => {
+            return rsvps.going?.includes(person) || 
+                   rsvps.maybe?.includes(person) ||
+                   rsvps.not_going?.includes(person)
+          })
+      }
+
+      // If only people has "all", check status filters
+      if (selectedPeopleFilters.has('all')) {
+        return Array.from(selectedStatusFilters).some(status => {
+          if (status === 'going') {
+            return rsvps.going && rsvps.going.length > 0
+          } else if (status === 'maybe') {
+            return rsvps.maybe && rsvps.maybe.length > 0
+          } else if (status === 'not_going') {
+            return rsvps.not_going && rsvps.not_going.length > 0
+          }
+          return false
+        })
+      }
+
+      // Both groups have specific selections - check if any person has any of the selected statuses
+      return Array.from(selectedPeopleFilters).some(person => {
+        return Array.from(selectedStatusFilters).some(status => {
+          if (status === 'going') {
+            return rsvps.going?.includes(person)
+          } else if (status === 'maybe') {
+            return rsvps.maybe?.includes(person)
+          } else if (status === 'not_going') {
+            return rsvps.not_going?.includes(person)
+          }
+          return false
+        })
+      })
+    })
+    
+    setFilteredUpcomingShows(filtered)
+  }, [selectedStatusFilters, selectedPeopleFilters, upcomingShows, rsvpsData])
+
   const handleAuthentication = (name: string) => {
     setUserName(name)
     setAuthenticated(true)
+  }
+
+  // Filter functions
+  const handleStatusFilterToggle = (filter: string) => {
+    setSelectedStatusFilters(prev => {
+      const newFilters = new Set(prev)
+      
+      if (filter === 'all') {
+        return new Set(['all'])
+      } else {
+        newFilters.delete('all')
+        
+        if (newFilters.has(filter)) {
+          newFilters.delete(filter)
+          if (newFilters.size === 0) {
+            return new Set(['all'])
+          }
+        } else {
+          newFilters.add(filter)
+        }
+      }
+      
+      return newFilters
+    })
+  }
+
+  const handlePeopleFilterToggle = (filter: string) => {
+    setSelectedPeopleFilters(prev => {
+      const newFilters = new Set(prev)
+      
+      if (filter === 'all') {
+        return new Set(['all'])
+      } else {
+        newFilters.delete('all')
+        
+        if (newFilters.has(filter)) {
+          newFilters.delete(filter)
+          if (newFilters.size === 0) {
+            return new Set(['all'])
+          }
+        } else {
+          newFilters.add(filter)
+        }
+      }
+      
+      return newFilters
+    })
+  }
+
+  const handleClearAllFilters = () => {
+    setSelectedStatusFilters(new Set(['all']))
+    setSelectedPeopleFilters(new Set(['all']))
   }
 
   const handleShowAdded = async () => {
@@ -322,8 +449,8 @@ export default function Home() {
                 <Plus className="w-4 h-4 mr-1" />
                 Add
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <DropdownMenu.DropdownMenu>
+                <DropdownMenu.DropdownMenuTrigger asChild>
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -332,9 +459,9 @@ export default function Home() {
                   >
                     <Menu className="h-4 w-4" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 p-2">
-                  <DropdownMenuItem onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className="py-3">
+                </DropdownMenu.DropdownMenuTrigger>
+                <DropdownMenu.DropdownMenuContent align="end" className="w-48 p-2">
+                  <DropdownMenu.DropdownMenuItem onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className="py-3">
                     <div className="flex items-center gap-3">
                       {theme === 'dark' ? (
                         <>
@@ -352,13 +479,13 @@ export default function Home() {
                         </>
                       )}
                     </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 py-3">
+                  </DropdownMenu.DropdownMenuItem>
+                  <DropdownMenu.DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 py-3">
                     <LogOut className="mr-3 h-4 w-4" />
                     Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenu.DropdownMenuItem>
+                </DropdownMenu.DropdownMenuContent>
+              </DropdownMenu.DropdownMenu>
             </div>
           </div>
         </div>
@@ -379,18 +506,39 @@ export default function Home() {
             <TabsTrigger value="past">Past</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="upcoming" className="space-y-4">
+          <TabsContent value="upcoming" className="space-y-6">
             <h2 className="sr-only">Upcoming Shows</h2>
+            
+            {/* RSVP Filter */}
+            {loading ? (
+              <RSVPFilterSkeleton />
+            ) : (
+              <RSVPFilter
+                selectedStatusFilters={selectedStatusFilters}
+                selectedPeopleFilters={selectedPeopleFilters}
+                availableAttendees={availableAttendees}
+                onStatusFilterToggle={handleStatusFilterToggle}
+                onPeopleFilterToggle={handlePeopleFilterToggle}
+                filteredShowsCount={filteredUpcomingShows.length}
+                onClearAllFilters={handleClearAllFilters}
+              />
+            )}
+            
             {loading ? (
               <>
                 <ShowCardSkeleton />
                 <ShowCardSkeleton />
                 <ShowCardSkeleton />
               </>
-            ) : upcomingShows.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No upcoming shows</p>
+            ) : filteredUpcomingShows.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                {upcomingShows.length === 0 
+                  ? 'No upcoming shows' 
+                  : 'No shows match the selected filters'
+                }
+              </p>
             ) : (
-              upcomingShows.map((show) => (
+              filteredUpcomingShows.map((show) => (
                 <ShowCard 
                   key={show.id} 
                   show={show} 
