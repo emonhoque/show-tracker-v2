@@ -7,6 +7,7 @@ import { Show, RSVPSummary } from '@/lib/types'
 import { formatUserTime } from '@/lib/time'
 import { formatNameForDisplay } from '@/lib/validation'
 import { ExternalLink, MoreVertical, Edit, Trash2 } from 'lucide-react'
+import { ImageModal } from '@/components/ImageModal'
 
 // Spotify and Apple Music icons as SVG components
 const SpotifyIcon = ({ className }: { className?: string }) => (
@@ -37,6 +38,7 @@ interface ShowCardProps {
 export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }: ShowCardProps) {
   const [loading, setLoading] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
+  const [imageModalOpen, setImageModalOpen] = useState(false)
 
   // Get userName from localStorage on client side
   useEffect(() => {
@@ -109,11 +111,9 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
   return (
     <Card className="w-full mb-4">
       <CardContent className="p-4 space-y-3">
-        {/* Header with Date/Time and Actions */}
+        {/* Header with Title and Actions */}
         <div className="flex justify-between items-start">
-          <div className="text-lg font-semibold text-foreground">
-            {formatUserTime(show.date_time, show.time_local)}
-          </div>
+          <h3 className="text-xl font-bold text-foreground">{show.title}</h3>
           {(onEdit || (onDelete && !isPast)) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -147,9 +147,23 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
           )}
         </div>
 
-        {/* Title, Venue, and Location */}
+        {/* Poster Image */}
+        {show.poster_url && (
+          <div className="w-full">
+            <img
+              src={show.poster_url}
+              alt={`${show.title} poster`}
+              className="w-full max-h-80 object-contain rounded-lg bg-gray-50 dark:bg-gray-800 cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => setImageModalOpen(true)}
+            />
+          </div>
+        )}
+
+        {/* Date/Time, Venue, and Location */}
         <div>
-          <h3 className="text-xl font-bold text-foreground">{show.title}</h3>
+          <div className="text-lg font-semibold text-foreground">
+            {formatUserTime(show.date_time, show.time_local)}
+          </div>
           <p className="text-muted-foreground">{show.venue}, {show.city}</p>
           {show.notes && (
             <p className="text-sm text-muted-foreground italic mt-1">{show.notes}</p>
@@ -305,6 +319,16 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
           </div>
         )}
       </CardContent>
+      
+      {/* Image Modal */}
+      {show.poster_url && (
+        <ImageModal
+          open={imageModalOpen}
+          onOpenChange={setImageModalOpen}
+          src={show.poster_url}
+          alt={`${show.title} poster`}
+        />
+      )}
     </Card>
   )
 }

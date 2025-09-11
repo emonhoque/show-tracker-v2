@@ -27,10 +27,14 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
     spotify_url: '',
     apple_music_url: '',
     google_photos_url: '',
+    poster_url: '',
     notes: ''
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   // Populate form when show changes
   useEffect(() => {
@@ -47,8 +51,11 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
         spotify_url: show.spotify_url || '',
         apple_music_url: show.apple_music_url || '',
         google_photos_url: show.google_photos_url || '',
+        poster_url: show.poster_url || '',
         notes: show.notes || ''
       })
+      setSelectedFile(null)
+      setPreviewUrl(show.poster_url || null)
     }
   }, [show])
 
@@ -66,10 +73,32 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
 
     setSaving(true)
     try {
+      // Upload poster if file is selected
+      let posterUrl = formData.poster_url
+      if (selectedFile) {
+        setUploading(true)
+        const uploadFormData = new FormData()
+        uploadFormData.append('file', selectedFile)
+        
+        const uploadResponse = await fetch('/api/upload-poster', {
+          method: 'POST',
+          body: uploadFormData
+        })
+        
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json()
+          throw new Error(errorData.error || 'Failed to upload poster')
+        }
+        
+        const uploadData = await uploadResponse.json()
+        posterUrl = uploadData.url
+        setUploading(false)
+      }
+
       const response = await fetch(`/api/shows/${show.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, poster_url: posterUrl })
       })
 
       if (!response.ok) {
@@ -92,6 +121,88 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        setError('Invalid file type. Only JPEG, PNG, and WebP images are allowed.')
+        return
+      }
+
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSize) {
+        setError('File too large. Maximum size is 10MB.')
+        return
+      }
+
+      setSelectedFile(file)
+      setError('')
+      
+      // Create preview URL
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+    }
+  }
+
+  const removeFile = () => {
+    setSelectedFile(null)
+    if (previewUrl && !show?.poster_url) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    setPreviewUrl(show?.poster_url || null)
+    setFormData(prev => ({ ...prev, poster_url: '' }))
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      const file = files[0]
+      if (file) {
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+        if (!allowedTypes.includes(file.type)) {
+          setError('Invalid file type. Only JPEG, PNG, and WebP images are allowed.')
+          return
+        }
+
+        // Validate file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024 // 10MB
+        if (file.size > maxSize) {
+          setError('File too large. Maximum size is 10MB.')
+          return
+        }
+
+        setSelectedFile(file)
+        setError('')
+        
+        // Create preview URL
+        const url = URL.createObjectURL(file)
+        setPreviewUrl(url)
+      }
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-md mx-auto h-[85vh] sm:h-[90vh] flex flex-col rounded-lg">
@@ -103,7 +214,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4 flex-1 overflow-y-auto overflow-x-hidden" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
+          <div className="space-y-4 py-4 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Title *</label>
                 <Input
@@ -242,6 +353,76 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
               />
             </div>
             
+            {!isPast && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Poster Image</label>
+                {!selectedFile && !previewUrl ? (
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById('poster-upload-edit')?.click()}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="poster-upload-edit"
+                    />
+                    <div className="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100">
+                      Click to upload or drag and drop poster image
+                      <br />
+                      <span className="text-xs text-gray-400 dark:text-gray-400">JPEG, PNG, WebP (max 10MB)</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {previewUrl && (
+                      <div className="relative">
+                        <img
+                          src={previewUrl}
+                          alt="Poster preview"
+                          className="w-full max-h-32 object-contain rounded-lg bg-gray-50 dark:bg-gray-800"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeFile}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="poster-upload-edit-new"
+                      />
+                      <label
+                        htmlFor="poster-upload-edit-new"
+                        className="flex-1 text-center py-2 px-3 bg-gray-100 hover:bg-gray-200 rounded text-sm cursor-pointer"
+                      >
+                        Change Image
+                      </label>
+                      <button
+                        type="button"
+                        onClick={removeFile}
+                        className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Notes</label>
               <textarea
@@ -268,8 +449,8 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving} className="w-full sm:w-auto">
-              {saving ? 'Saving...' : 'Update Show'}
+            <Button type="submit" disabled={saving || uploading} className="w-full sm:w-auto">
+              {uploading ? 'Uploading...' : saving ? 'Saving...' : 'Update Show'}
             </Button>
           </DialogFooter>
         </form>
