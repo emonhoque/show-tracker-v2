@@ -228,8 +228,8 @@ export default function Home() {
         })
       }
 
-      // Both groups have specific selections - check if any person has any of the selected statuses
-      return Array.from(selectedPeopleFilters).some(person => {
+      // Both groups have specific selections - check if ALL selected people have the selected statuses
+      return Array.from(selectedPeopleFilters).every(person => {
         return Array.from(selectedStatusFilters).some(status => {
           if (status === 'going') {
             return rsvps.going?.includes(person)
