@@ -406,7 +406,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
                       />
                       <label
                         htmlFor="poster-upload-edit-new"
-                        className="flex-1 text-center py-2 px-3 bg-gray-100 hover:bg-gray-200 rounded text-sm cursor-pointer"
+                        className="flex-1 text-center py-2 px-3 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded text-sm cursor-pointer transition-colors"
                       >
                         Change Image
                       </label>
