@@ -9,6 +9,7 @@ export interface Show {
   spotify_url?: string | null
   apple_music_url?: string | null
   google_photos_url?: string | null
+  poster_url?: string | null
   notes?: string | null
   created_at: string
 }
