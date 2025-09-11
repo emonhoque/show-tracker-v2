@@ -86,12 +86,6 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 - Covers realistic show times from afternoon to late night
 - No more scrolling through 3 AM times for evening shows!
 
-## Testing
-
-```bash
-npm test
-```
-
 ## Deployment
 
 The easiest way to deploy is using [Vercel](https://vercel.com/new):
