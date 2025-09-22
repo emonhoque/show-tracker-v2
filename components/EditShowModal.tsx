@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectTrigger, SelectContent, SelectOption } from '@/components/ui/select'
-import { Show } from '@/lib/types'
+import { Show, ShowCategory } from '@/lib/types'
 import { formatInTimeZone } from 'date-fns-tz'
+import { getAllCategories, getCategoryInfo } from '@/lib/categories'
+import { createClient } from '@/lib/supabase'
 
 interface EditShowModalProps {
   open: boolean
@@ -23,6 +26,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
     time_local: '',
     city: 'Boston',
     venue: '',
+    category: 'general',
     ticket_url: '',
     spotify_url: '',
     apple_music_url: '',
@@ -36,6 +40,25 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
+  // Helper function for authenticated requests
+  const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session?.access_token) {
+      throw new Error('No session token available')
+    }
+    
+    return fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+  }
+
   // Populate form when show changes
   useEffect(() => {
     if (show) {
@@ -47,6 +70,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
         time_local: show.time_local, // Use the stored time_local directly
         city: show.city,
         venue: show.venue,
+        category: show.category || 'general',
         ticket_url: show.ticket_url || '',
         spotify_url: show.spotify_url || '',
         apple_music_url: show.apple_music_url || '',
@@ -95,9 +119,8 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
         setUploading(false)
       }
 
-      const response = await fetch(`/api/shows/${show.id}`, {
+      const response = await authenticatedFetch(`/api/shows/${show.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, poster_url: posterUrl })
       })
 
@@ -301,6 +324,28 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
               />
             </div>
             
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Category</label>
+              <Select
+                value={formData.category}
+                onChange={(value) => handleChange('category', value)}
+              >
+                <SelectTrigger>
+                  {getCategoryInfo(formData.category as ShowCategory).label}
+                </SelectTrigger>
+                <SelectContent>
+                  {getAllCategories().map((category) => (
+                    <SelectOption key={category.value} value={category.value}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{category.label}</span>
+                        <span className="text-xs text-muted-foreground">{category.description}</span>
+                      </div>
+                    </SelectOption>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             {!isPast && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Ticket URL</label>
@@ -382,9 +427,11 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
                   <div className="space-y-2">
                     {previewUrl && (
                       <div className="relative">
-                        <img
+                        <Image
                           src={previewUrl}
                           alt="Poster preview"
+                          width={400}
+                          height={128}
                           className="w-full max-h-32 object-contain rounded-lg bg-gray-50 dark:bg-gray-800"
                         />
                         <button

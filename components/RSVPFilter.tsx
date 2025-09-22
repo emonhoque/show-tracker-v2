@@ -3,27 +3,29 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Filter, ChevronDown, ChevronUp } from 'lucide-react'
-import { formatNameForDisplay } from '@/lib/validation'
+import { Filter, ChevronDown, Users, Plus } from 'lucide-react'
+import { CategoryFilter } from '@/components/CategoryFilter'
 
 interface RSVPFilterProps {
   selectedStatusFilters: Set<string>
-  selectedPeopleFilters: Set<string>
-  availableAttendees: string[]
+  selectedCategoryFilters: Set<string>
   onStatusFilterToggle: (filter: string) => void
-  onPeopleFilterToggle: (filter: string) => void
+  onCategoryFilterToggle: (category: string) => void
   filteredShowsCount: number
   onClearAllFilters: () => void
+  categoryStats?: Array<{ category: string; count: number }>
+  hasCommunities?: boolean
 }
 
 export function RSVPFilter({
   selectedStatusFilters,
-  selectedPeopleFilters,
-  availableAttendees,
+  selectedCategoryFilters,
   onStatusFilterToggle,
-  onPeopleFilterToggle,
+  onCategoryFilterToggle,
   filteredShowsCount,
-  onClearAllFilters
+  onClearAllFilters,
+  categoryStats = [],
+  hasCommunities = true
 }: RSVPFilterProps) {
   const [filtersCollapsed, setFiltersCollapsed] = useState(true)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -36,7 +38,7 @@ export function RSVPFilter({
       const height = contentRef.current.scrollHeight
       setContentHeight(height)
     }
-  }, [selectedStatusFilters, selectedPeopleFilters, availableAttendees])
+  }, [selectedStatusFilters, selectedCategoryFilters])
 
   const handleToggle = () => {
     if (isAnimating) return
@@ -48,6 +50,43 @@ export function RSVPFilter({
     setTimeout(() => {
       setIsAnimating(false)
     }, 300)
+  }
+
+  // If user has no communities, show community action buttons instead of filters
+  if (!hasCommunities) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center space-y-4">
+            <div className="space-y-2">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto" />
+              <h2 className="text-lg font-semibold text-foreground">No Communities Yet</h2>
+              <p className="text-sm text-muted-foreground">
+                Join a community to start tracking shows, or create your own to get started.
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button 
+                onClick={() => window.location.href = '/communities'}
+                className="flex items-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                Browse Communities
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => window.location.href = '/communities/create'}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Community
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -87,6 +126,26 @@ export function RSVPFilter({
             }}
           >
             <div className="space-y-2 sm:space-y-3 pt-2">
+              {/* Category Filter */}
+              <div className="space-y-1 sm:space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-medium text-foreground">Categories:</span>
+                  {!selectedCategoryFilters.has('all') && selectedCategoryFilters.size > 0 && (
+                    <span className="text-xs text-primary">
+                      ({selectedCategoryFilters.size})
+                    </span>
+                  )}
+                </div>
+                
+                <CategoryFilter
+                  selectedCategories={selectedCategoryFilters}
+                  onCategoryToggle={onCategoryFilterToggle}
+                  onClearAllCategories={() => onCategoryFilterToggle('all')}
+                  filteredShowsCount={filteredShowsCount}
+                  categoryStats={categoryStats}
+                />
+              </div>
+
               {/* RSVP Status Filters */}
               <div className="space-y-1 sm:space-y-2">
                 <div className="flex items-center gap-2">
@@ -137,41 +196,6 @@ export function RSVPFilter({
                 </div>
               </div>
 
-              {/* People Filters */}
-              <div className="space-y-1 sm:space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-medium text-foreground">People:</span>
-                  {!selectedPeopleFilters.has('all') && selectedPeopleFilters.size > 0 && (
-                    <span className="text-xs text-primary">
-                      ({selectedPeopleFilters.size})
-                    </span>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1 sm:gap-2">
-                  <Button
-                    variant={selectedPeopleFilters.has('all') ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => onPeopleFilterToggle('all')}
-                    className="h-7 sm:h-9 text-xs sm:text-sm px-2 transition-all duration-200 hover:scale-105"
-                  >
-                    Everyone
-                  </Button>
-                  
-                  {/* Individual Attendee Filters */}
-                  {availableAttendees.map(attendee => (
-                    <Button
-                      key={attendee}
-                      variant={selectedPeopleFilters.has(attendee) ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => onPeopleFilterToggle(attendee)}
-                      className="h-7 sm:h-9 text-xs sm:text-sm px-2 transition-all duration-200 hover:scale-105"
-                    >
-                      {formatNameForDisplay(attendee)}
-                    </Button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
           
@@ -179,15 +203,15 @@ export function RSVPFilter({
             <div className="text-xs sm:text-sm text-muted-foreground flex items-center justify-between">
               <span>
                 {filteredShowsCount} show{filteredShowsCount !== 1 ? 's' : ''} found
-                {(!selectedStatusFilters.has('all') || !selectedPeopleFilters.has('all')) && (
+                {(!selectedStatusFilters.has('all') || !selectedCategoryFilters.has('all')) && (
                   <span className="ml-1 text-primary">
-                    <span className="hidden sm:inline">(Status: {selectedStatusFilters.has('all') ? 'All' : selectedStatusFilters.size} | People: {selectedPeopleFilters.has('all') ? 'All' : selectedPeopleFilters.size})</span>
-                    <span className="sm:hidden">(S:{selectedStatusFilters.has('all') ? 'All' : selectedStatusFilters.size} P:{selectedPeopleFilters.has('all') ? 'All' : selectedPeopleFilters.size})</span>
+                    <span className="hidden sm:inline">(Categories: {selectedCategoryFilters.has('all') ? 'All' : selectedCategoryFilters.size} | Status: {selectedStatusFilters.has('all') ? 'All' : selectedStatusFilters.size})</span>
+                    <span className="sm:hidden">(C:{selectedCategoryFilters.has('all') ? 'All' : selectedCategoryFilters.size} S:{selectedStatusFilters.has('all') ? 'All' : selectedStatusFilters.size})</span>
                   </span>
                 )}
               </span>
               
-              {(!selectedStatusFilters.has('all') || !selectedPeopleFilters.has('all')) && (
+              {(!selectedStatusFilters.has('all') || !selectedCategoryFilters.has('all')) && (
                 <Button
                   variant="ghost"
                   size="sm"

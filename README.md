@@ -1,4 +1,4 @@
-# EDM Adoption Clinic Show Tracker
+# Show Tracker
 
 A modern, password-protected Progressive Web App (PWA) for groups to track shows and manage RSVPs. Built with Next.js 15.5.2 and Supabase, featuring offline capabilities and native app-like experience.
 
@@ -19,6 +19,8 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 - 🎵 **Music integration** - Spotify and Apple Music links for shows
 - 📸 **Photo sharing** - Google Photos links for past shows
 - 🖼️ **Poster uploads** - Upload and display show posters with Vercel Blob storage
+- 🎶 **Community Release Radar** - Track new releases from any artist the community adds
+- 🔍 **Artist Search** - Search and add artists to the community pool via Spotify API
 - 📊 **Performance monitoring** - Vercel Speed Insights integration for performance tracking
 
 ## Quick Start
@@ -26,6 +28,7 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 ### Prerequisites
 - Node.js 18+
 - A Supabase account
+- A Spotify Developer account (for Release Radar feature)
 
 ### Setup
 
@@ -42,8 +45,8 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 
 3. **Set up the database**
    - Create a new project in Supabase
-   - Go to SQL Editor and run the contents of `database-complete-setup.sql`
-   - This single file sets up tables, indexes, and optimized RLS policies
+   - Go to SQL Editor and run the database migration scripts
+   - This will set up tables, indexes, and optimized RLS policies
 
 4. **Configure environment variables**
    Create a `.env.local` file in the root directory:
@@ -60,6 +63,13 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
    
    # Vercel Storage Blob (optional)
    BLOB_READ_WRITE_TOKEN=blob
+   
+   # Spotify API (for Release Radar feature)
+   SPOTIFY_CLIENT_ID=your_spotify_client_id
+   SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+   
+   # Cron job security (optional)
+   CRON_SECRET=your_secure_random_string
    ```
 
 5. **Run the application**
@@ -75,7 +85,9 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 1. Enter the shared password and your name
 2. Add shows with the "Add" button
 3. RSVP to upcoming shows
-4. Past shows are automatically moved to the Past tab
+4. Export shows to your calendar using the "Add to Calendar" button
+5. Past shows are automatically moved to the Past tab
+6. Check the "Music" tab to see new music from tracked artists
 
 ### PWA Installation
 - **Mobile**: Tap "Add to Home Screen" in your browser menu
@@ -86,6 +98,12 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 - Shows start at 3:00 PM and cycle through to 2:00 PM the next day
 - Covers realistic show times from afternoon to late night
 - No more scrolling through 3 AM times for evening shows!
+
+### Calendar Export
+- Export shows to Google Calendar with one click
+- Download ICS files for Apple Calendar, Outlook, and other calendar apps
+- Automatic timezone conversion for accurate show times
+- Includes all show details: title, venue, time, notes, and links
 
 ### Filtering System
 The app includes a powerful filtering system to help you find specific shows:
@@ -105,6 +123,26 @@ The app includes a powerful filtering system to help you find specific shows:
 - Select "John" + "Taylor" + "Going" = Shows where both John AND Taylor are going
 - Select "Going" only = Shows where anyone is going
 - Select "Sarah" + "Maybe" = Shows where Sarah is maybe attending
+
+### Release Radar Feature
+The app now includes a community-driven Release Radar tracking system:
+
+#### Adding Artists
+1. Go to the "Music" tab
+2. Click "Add Artist" to search for artists via Spotify
+3. Once added, the artist's releases will be visible to all users
+4. Artists are shared across the entire community
+
+#### Viewing Releases
+- New releases from all tracked artists appear in the Music tab
+- Shows releases from the last 12 weeks by default
+- Each release shows artist name, release type (album/single/EP), release date, and Spotify link
+- Releases are automatically fetched and updated
+
+#### Automatic Updates
+- Set up a cron job to call `/api/cron/check-releases` periodically
+- This checks all tracked artists for new releases
+- New releases are automatically added to the database
 
 ## Deployment
 
@@ -131,9 +169,9 @@ The easiest way to deploy is using [Vercel](https://vercel.com/new):
 
 ## Database Setup
 
-The app uses a single, comprehensive database setup file (`database-complete-setup.sql`) that includes:
+The app uses comprehensive database migration scripts that include:
 
-- **Tables**: `shows` and `rsvps` with proper relationships
+- **Tables**: `shows`, `rsvps`, `artists`, `releases`, and `user_artists` with proper relationships
 - **Show Fields**: title, date_time, time_local, city, venue, ticket_url, spotify_url, apple_music_url, google_photos_url, poster_url, notes
 - **Indexes**: Optimized for upcoming/past shows and RSVP joins
 - **RLS Policies**: Streamlined for performance and security
@@ -190,7 +228,7 @@ This app is a fully functional Progressive Web App with:
 
 ### Show Management
 - **Rich show data**: Support for ticket URLs, Spotify/Apple Music links, Google Photos, and notes
-- **Smart time handling**: Boston timezone support with proper UTC conversion
+- **Smart time handling**: America/New_York timezone support with proper UTC conversion
 - **Validation**: Comprehensive input validation and sanitization
 - **Edit/Delete**: Full CRUD operations with confirmation dialogs
 

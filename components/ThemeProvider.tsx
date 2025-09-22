@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 
 type Theme = 'dark' | 'light'
 
@@ -17,7 +17,7 @@ type ThemeProviderState = {
 
 const initialState: ThemeProviderState = {
   theme: 'light',
-  setTheme: () => null,
+  setTheme: () => {},
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
@@ -26,36 +26,66 @@ export function ThemeProvider({
   children,
   defaultTheme = 'light',
   storageKey = 'show-tracker-theme',
-  ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme)
+  // Initialize theme from DOM class (set by the blocking script) or default
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== 'undefined') {
+      const root = window.document.documentElement
+      if (root.classList.contains('dark')) return 'dark'
+      if (root.classList.contains('light')) return 'light'
+    }
+    return defaultTheme
+  })
+  const [mounted, setMounted] = useState(false)
 
+  // Initialize theme from localStorage on mount
   useEffect(() => {
-    const storedTheme = localStorage.getItem(storageKey) as Theme
-    if (storedTheme && (storedTheme === 'light' || storedTheme === 'dark')) {
-      setTheme(storedTheme)
+    setMounted(true)
+    
+    try {
+      const storedTheme = localStorage.getItem(storageKey) as Theme
+      if (storedTheme && (storedTheme === 'light' || storedTheme === 'dark')) {
+        setThemeState(storedTheme)
+      }
+    } catch (error) {
+      console.warn('Failed to read theme from localStorage:', error)
     }
   }, [storageKey])
 
+  // Update DOM classes when theme changes
   useEffect(() => {
-    const root = window.document.documentElement
+    if (!mounted) return
+    
+    try {
+      const root = window.document.documentElement
+      root.classList.remove('light', 'dark')
+      root.classList.add(theme)
+    } catch (error) {
+      console.warn('Failed to update theme classes:', error)
+    }
+  }, [theme, mounted])
 
-    root.classList.remove('light', 'dark')
-    root.classList.add(theme)
-  }, [theme])
+  // Memoized setTheme function to prevent unnecessary re-renders
+  const setTheme = useCallback((newTheme: Theme) => {
+    setThemeState(newTheme)
+    if (mounted) {
+      try {
+        localStorage.setItem(storageKey, newTheme)
+      } catch (error) {
+        console.warn('Failed to save theme to localStorage:', error)
+      }
+    }
+  }, [mounted, storageKey])
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
-    },
+    setTheme,
   }
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext value={value}>
       {children}
-    </ThemeProviderContext.Provider>
+    </ThemeProviderContext>
   )
 }
 

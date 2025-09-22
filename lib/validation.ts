@@ -149,10 +149,7 @@ export function validateUserName(name: string): ValidationResult {
     return { isValid: false, error: 'Full name can only contain letters, numbers, spaces, hyphens, and apostrophes' }
   }
   
-  // Normalize to lowercase for consistent storage and comparison
-  const normalized = sanitized.toLowerCase()
-  
-  return { isValid: true, sanitizedValue: normalized }
+  return { isValid: true, sanitizedValue: sanitized }
 }
 
 // Validate date format

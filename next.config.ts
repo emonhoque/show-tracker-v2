@@ -1,12 +1,57 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Optimize for mobile and PWA
+  // Disable compression to fix ERR_CONTENT_DECODING_FAILED
+  compress: false,
   
-  // Better chunking strategy for mobile
+  // Enable experimental features for better performance
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+  },
+  
+  // External packages for server components (moved from experimental)
+  serverExternalPackages: ['@supabase/supabase-js'],
+  
+  // Configure allowed image domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'dorosdstv5ifoevu.public.blob.vercel-storage.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'l96lqirnhnpnghk1.public.blob.vercel-storage.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.scdn.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
+  
+  // Optimized webpack config to fix cache serialization issues
   webpack: (config, { isServer }) => {
+    // Use memory cache to avoid large string serialization issues
+    config.cache = {
+      type: 'memory',
+    };
+
     if (!isServer) {
-      // Optimize chunk loading for mobile
+      // Optimize chunk splitting for better performance
       config.optimization.splitChunks = {
         chunks: 'all',
         cacheGroups: {
@@ -21,18 +66,21 @@ const nextConfig: NextConfig = {
             priority: -10,
             chunks: 'all',
           },
-          // Keep Radix UI components together to avoid splitting issues
-          radix: {
-            test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
-            name: 'radix',
-            priority: 10,
+          // Separate CSS chunks to reduce serialization overhead
+          styles: {
+            name: 'styles',
+            test: /\.(css|scss|sass)$/,
             chunks: 'all',
+            enforce: true,
           },
         },
       };
       
-      // Disable concatenateModules to avoid issues with Radix UI
-      config.optimization.concatenateModules = false;
+      // Optimize module resolution
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@': require('path').resolve(__dirname, '.'),
+      };
     }
     return config;
   },
@@ -50,11 +98,11 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: '/sw.js',
+        source: '/api/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate',
+            value: 'no-cache, no-store, must-revalidate',
           },
         ],
       },
