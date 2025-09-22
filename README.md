@@ -45,8 +45,8 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 
 3. **Set up the database**
    - Create a new project in Supabase
-   - Go to SQL Editor and run the contents of `database-complete-setup.sql`
-   - This single file sets up tables, indexes, and optimized RLS policies
+   - Go to SQL Editor and run the database migration scripts
+   - This will set up tables, indexes, and optimized RLS policies
 
 4. **Configure environment variables**
    Create a `.env.local` file in the root directory:
@@ -169,7 +169,7 @@ The easiest way to deploy is using [Vercel](https://vercel.com/new):
 
 ## Database Setup
 
-The app uses a single, comprehensive database setup file (`database-complete-setup.sql`) that includes:
+The app uses comprehensive database migration scripts that include:
 
 - **Tables**: `shows`, `rsvps`, `artists`, `releases`, and `user_artists` with proper relationships
 - **Show Fields**: title, date_time, time_local, city, venue, ticket_url, spotify_url, apple_music_url, google_photos_url, poster_url, notes
