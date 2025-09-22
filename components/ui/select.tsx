@@ -45,11 +45,11 @@ export function Select({ value, onChange, children, className }: SelectProps) {
   }, [])
 
   return (
-    <SelectContext.Provider value={{ value, onChange, isOpen, setIsOpen }}>
+    <SelectContext value={{ value, onChange, isOpen, setIsOpen }}>
       <div ref={selectRef} className={cn("relative", className)}>
         {children}
       </div>
-    </SelectContext.Provider>
+    </SelectContext>
   )
 }
 
@@ -92,6 +92,40 @@ export function SelectContent({ className, children, ...props }: React.HTMLAttri
   )
 }
 
+export function SelectValue({ placeholder, ...props }: { placeholder?: string } & React.HTMLAttributes<HTMLSpanElement>) {
+  const { value } = React.useContext(SelectContext)
+  
+  return (
+    <span {...props}>
+      {value || placeholder}
+    </span>
+  )
+}
+
+export function SelectItem({ value, children, ...props }: SelectOptionProps & React.HTMLAttributes<HTMLDivElement>) {
+  const { value: selectedValue, onChange, setIsOpen } = React.useContext(SelectContext)
+  const isSelected = value === selectedValue
+  
+  return (
+    <div
+      className={cn(
+        "px-3 py-2 text-sm cursor-pointer transition-colors",
+        isSelected 
+          ? "bg-accent text-accent-foreground" 
+          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+      )}
+      onClick={() => {
+        onChange(value)
+        setIsOpen(false)
+      }}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+
+// Keep the old SelectOption for backward compatibility
 export function SelectOption({ value, children, ...props }: SelectOptionProps & React.HTMLAttributes<HTMLDivElement>) {
   const { value: selectedValue, onChange, setIsOpen } = React.useContext(SelectContext)
   const isSelected = value === selectedValue

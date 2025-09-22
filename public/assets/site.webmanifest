@@ -1,19 +1,26 @@
 {
+  "id": "/",
   "name": "EDM Adoption Clinic Show Tracker",
   "short_name": "Show Tracker",
-  "description": "Track shows and manage RSVPs for the EDM Adoption Clinic group",
+  "description": "Track shows and manage RSVPs for your group",
   "icons": [
     {
       "src": "/assets/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/assets/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "theme_color": "#1f2937",

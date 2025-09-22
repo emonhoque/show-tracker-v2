@@ -9,10 +9,14 @@ export async function GET(
   try {
     const { show_id } = await params
 
-    // Fetch all RSVPs for this show
+    // Fetch all RSVPs for this show with profile names
     const { data, error } = await supabase
       .from('rsvps')
-      .select('name, status')
+      .select(`
+        status,
+        user_id,
+        profiles!inner(name)
+      `)
       .eq('show_id', show_id)
 
     if (error) {
@@ -32,12 +36,13 @@ export async function GET(
 
     if (data) {
       data.forEach((rsvp) => {
+        const name = (rsvp.profiles as any)?.name || 'Unknown User'
         if (rsvp.status === 'going') {
-          summary.going.push(rsvp.name)
+          summary.going.push(name)
         } else if (rsvp.status === 'maybe') {
-          summary.maybe.push(rsvp.name)
+          summary.maybe.push(name)
         } else if (rsvp.status === 'not_going') {
-          summary.not_going.push(rsvp.name)
+          summary.not_going.push(name)
         }
       })
     }

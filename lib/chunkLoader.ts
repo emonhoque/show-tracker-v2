@@ -27,15 +27,6 @@ export class ChunkLoader {
     
     // Check if it's a chunk loading error
     if (error.message.includes('Loading chunk') || error.message.includes('ChunkLoadError')) {
-      // Clear service worker cache and reload
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          registrations.forEach(registration => {
-            registration.unregister();
-          });
-        });
-      }
-      
       // Clear all caches
       if ('caches' in window) {
         caches.keys().then(cacheNames => {

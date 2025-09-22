@@ -1,13 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Show, RSVPSummary } from '@/lib/types'
+import { Show, RSVPSummary, ShowCategory } from '@/lib/types'
 import { formatUserTime } from '@/lib/time'
-import { formatNameForDisplay } from '@/lib/validation'
-import { ExternalLink, MoreVertical, Edit, Trash2 } from 'lucide-react'
+import { getCategoryInfo, getCategoryColor, getCategoryIcon } from '@/lib/categories'
+import { ExternalLink, MoreVertical, Edit, Trash2, Share2, Check } from 'lucide-react'
 import { ImageModal } from '@/components/ImageModal'
+import { CalendarExportButton } from '@/components/CalendarExportButton'
+import { createClient } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth-context'
 
 // Spotify and Apple Music icons as SVG components
 const SpotifyIcon = ({ className }: { className?: string }) => (
@@ -33,17 +37,54 @@ interface ShowCardProps {
   onEdit?: (show: Show) => void
   onDelete?: (showId: string) => void
   onRSVPUpdate?: () => void
+  communitySlug?: string
 }
 
-export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }: ShowCardProps) {
+export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, communitySlug }: ShowCardProps) {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
   const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [shareLoading, setShareLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
 
-  // Get userName from localStorage on client side
+  // Helper function for authenticated requests
+  const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session?.access_token) {
+      throw new Error('No session token available')
+    }
+    
+    return fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+  }
+
+  // Get userName from user profile
   useEffect(() => {
-    setUserName(localStorage.getItem('userName'))
-  }, [])
+    const fetchUserName = async () => {
+      if (!user) return
+      
+      try {
+        const response = await fetch('/api/profile')
+        if (response.ok) {
+          const profileData = await response.json()
+          setUserName(profileData.name)
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error)
+      }
+    }
+
+    fetchUserName()
+  }, [user])
 
   const handleRSVP = async (status: 'going' | 'maybe' | 'not_going' | null) => {
     if (!userName || loading) return
@@ -53,12 +94,10 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
     try {
       if (status) {
         // Add or update RSVP
-        const response = await fetch('/api/rsvp', {
+        const response = await authenticatedFetch('/api/rsvp', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             show_id: show.id,
-            name: userName,
             status
           })
         })
@@ -68,14 +107,19 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
           alert(error.error || 'Failed to save RSVP')
           return
         }
+
+        // Refresh user status after successful RSVP
+        const statusResponse = await authenticatedFetch(`/api/rsvps/${show.id}/user`)
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json()
+          setUserStatus(statusData.status)
+        }
       } else {
         // Remove RSVP completely
-        const response = await fetch('/api/rsvp/remove', {
+        const response = await authenticatedFetch('/api/rsvp/remove', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            show_id: show.id,
-            name: userName
+            show_id: show.id
           })
         })
 
@@ -84,6 +128,9 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
           alert(error.error || 'Failed to remove RSVP')
           return
         }
+
+        // Clear user status after successful removal
+        setUserStatus(null)
       }
 
       // Update RSVPs after successful API call
@@ -98,22 +145,132 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
     }
   }
 
-  const userStatus = userName && rsvps
-    ? rsvps.going?.includes(userName.toLowerCase())
-      ? 'going'
-      : rsvps.maybe?.includes(userName.toLowerCase())
-      ? 'maybe'
-      : rsvps.not_going?.includes(userName.toLowerCase())
-      ? 'not_going'
-      : null
-    : null
+  // Get current user's RSVP status
+  const [userStatus, setUserStatus] = useState<'going' | 'maybe' | 'not_going' | null>(null)
+
+  useEffect(() => {
+    const fetchUserRSVPStatus = async () => {
+      if (!user || !show.id) return
+
+      try {
+        const response = await authenticatedFetch(`/api/rsvps/${show.id}/user`)
+        if (response.ok) {
+          const rsvpData = await response.json()
+          setUserStatus(rsvpData.status)
+        }
+      } catch (error) {
+        console.error('Error fetching user RSVP status:', error)
+      }
+    }
+
+    fetchUserRSVPStatus()
+  }, [user, show.id])
+
+  const handleShare = async () => {
+    setShareLoading(true)
+    try {
+      // Try native sharing first
+      if (navigator.share) {
+        try {
+          const shareUrl = show.shareable_url || 
+            (show.public_id ? 
+              `${window.location.origin}${communitySlug ? `/c/${communitySlug}/e/${show.public_id}` : `/share/${show.public_id}`}` : 
+              null
+            )
+          
+          if (shareUrl) {
+            await navigator.share({
+              title: show.title,
+              text: `${show.title} at ${show.venue}`,
+              url: shareUrl
+            })
+            return
+          }
+        } catch {
+          // User cancelled or error occurred, fall back to copy
+        }
+      }
+      
+      // Generate shareable URL if not exists
+      if (!show.shareable_url && !show.public_id) {
+        const response = await authenticatedFetch(`/api/shows/${show.id}/share`, {
+          method: 'POST'
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.shareableUrl) {
+            // Try native sharing with new URL
+            if (navigator.share) {
+              try {
+                await navigator.share({
+                  title: show.title,
+                  text: `${show.title} at ${show.venue}`,
+                  url: data.shareableUrl
+                })
+                return
+              } catch {
+                // User cancelled or error occurred, fall back to copy
+              }
+            }
+            // Fall back to copying
+            try {
+              await navigator.clipboard.writeText(data.shareableUrl)
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
+            } catch (error) {
+              console.error('Failed to copy URL:', error)
+              alert('Failed to copy URL to clipboard')
+            }
+          } else {
+            alert(data.error || 'Failed to generate shareable URL')
+          }
+        } else {
+          alert('Failed to generate shareable URL')
+        }
+      } else {
+        // Use existing shareable URL
+        const shareUrl = show.shareable_url || 
+          (show.public_id ? 
+            `${window.location.origin}${communitySlug ? `/c/${communitySlug}/e/${show.public_id}` : `/share/${show.public_id}`}` : 
+            null
+          )
+        
+        if (shareUrl) {
+          try {
+            await navigator.clipboard.writeText(shareUrl)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          } catch (error) {
+            console.error('Failed to copy URL:', error)
+            alert('Failed to copy URL to clipboard')
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing:', error)
+      alert('Failed to share show')
+    } finally {
+      setShareLoading(false)
+    }
+  }
 
   return (
     <Card className="w-full mb-4">
       <CardContent className="p-4 space-y-3">
         {/* Header with Title and Actions */}
         <div className="flex justify-between items-start">
-          <h3 className="text-xl font-bold text-foreground">{show.title}</h3>
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground">{show.title}</h3>
+            {show.category && show.category !== 'general' && (
+              <div className="mt-1">
+                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(show.category as ShowCategory)}`}>                   
+                  <span>{getCategoryIcon(show.category as ShowCategory)}</span>
+                  {getCategoryInfo(show.category as ShowCategory).label}
+                </span>
+              </div>
+            )}
+          </div>
           {(onEdit || (onDelete && !isPast)) && (
             <DropdownMenu.DropdownMenu>
               <DropdownMenu.DropdownMenuTrigger asChild>
@@ -150,9 +307,11 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
         {/* Poster Image */}
         {show.poster_url && (
           <div className="w-full">
-            <img
+            <Image
               src={show.poster_url}
               alt={`${show.title} poster`}
+              width={400}
+              height={320}
               className="w-full max-h-80 object-contain rounded-lg bg-gray-50 dark:bg-gray-800 cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => setImageModalOpen(true)}
             />
@@ -172,6 +331,22 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={handleShare}
+            disabled={shareLoading}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            {shareLoading ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : copied ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Share2 className="w-4 h-4" />
+            )}
+            {copied ? 'Copied!' : 'Share'}
+          </Button>
           {show.ticket_url && !isPast && (
             <Button
               variant="outline"
@@ -223,23 +398,24 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate }
               </a>
             </Button>
           )}
+          <CalendarExportButton show={show} />
         </div>
 
         {/* RSVPs */}
         <div className="space-y-2 text-sm text-foreground">
           {rsvps?.going?.length > 0 && (
             <div>
-              <span className="font-semibold">{isPast ? 'Went:' : 'Going:'}</span> {rsvps.going.map(formatNameForDisplay).join(', ')}
+              <span className="font-semibold">{isPast ? 'Went:' : 'Going:'}</span> {rsvps.going.join(', ')}
             </div>
           )}
           {rsvps?.maybe?.length > 0 && (
             <div>
-              <span className="font-semibold">Maybe:</span> {rsvps.maybe.map(formatNameForDisplay).join(', ')}
+              <span className="font-semibold">Maybe:</span> {rsvps.maybe.join(', ')}
             </div>
           )}
           {rsvps?.not_going?.length > 0 && (
             <div>
-              <span className="font-semibold">{isPast ? "Didn't Go:" : 'Not Going:'}</span> {rsvps.not_going.map(formatNameForDisplay).join(', ')}
+              <span className="font-semibold">{isPast ? "Didn't Go:" : 'Not Going:'}</span> {rsvps.not_going.join(', ')}
             </div>
           )}
         </div>

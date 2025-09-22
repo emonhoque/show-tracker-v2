@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { 
   validateTitle, 
   validateVenue, 
@@ -10,6 +11,9 @@ import {
   validateDate, 
   validateTime 
 } from '@/lib/validation'
+import { getAllCategories, getCategoryInfo } from '@/lib/categories'
+import { createClient } from '@/lib/supabase'
+import { ShowCategory } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -19,15 +23,17 @@ interface AddShowModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onShowAdded: () => void
+  communityId?: string | null
 }
 
-export function AddShowModal({ open, onOpenChange, onShowAdded }: AddShowModalProps) {
+export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: AddShowModalProps) {
   const [formData, setFormData] = useState({
     title: '',
     date_local: '',
     time_local: '',
     city: 'Boston',
     venue: '',
+    category: 'general',
     ticket_url: '',
     spotify_url: '',
     apple_music_url: '',
@@ -39,6 +45,25 @@ export function AddShowModal({ open, onOpenChange, onShowAdded }: AddShowModalPr
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  // Helper function for authenticated requests
+  const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session?.access_token) {
+      throw new Error('No session token available')
+    }
+    
+    return fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,10 +136,10 @@ export function AddShowModal({ open, onOpenChange, onShowAdded }: AddShowModalPr
         setUploading(false)
       }
 
-      const response = await fetch('/api/shows', {
+      console.log('Submitting show with community_id:', communityId)
+      const response = await authenticatedFetch('/api/shows', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, poster_url: posterUrl })
+        body: JSON.stringify({ ...formData, poster_url: posterUrl, community_id: communityId })
       })
 
       if (!response.ok) {
@@ -129,6 +154,7 @@ export function AddShowModal({ open, onOpenChange, onShowAdded }: AddShowModalPr
         time_local: '',
         city: 'Boston',
         venue: '',
+        category: 'general',
         ticket_url: '',
         spotify_url: '',
         apple_music_url: '',
@@ -332,6 +358,28 @@ export function AddShowModal({ open, onOpenChange, onShowAdded }: AddShowModalPr
             </div>
             
             <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Category</label>
+              <Select
+                value={formData.category}
+                onChange={(value) => handleChange('category', value)}
+              >
+                <SelectTrigger>
+                  {getCategoryInfo(formData.category as ShowCategory).label}
+                </SelectTrigger>
+                <SelectContent>
+                  {getAllCategories().map((category) => (
+                    <SelectOption key={category.value} value={category.value}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{category.label}</span>
+                        <span className="text-xs text-muted-foreground">{category.description}</span>
+                      </div>
+                    </SelectOption>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Ticket URL</label>
               <Input
                 type="url"
@@ -395,9 +443,11 @@ export function AddShowModal({ open, onOpenChange, onShowAdded }: AddShowModalPr
                 <div className="space-y-2">
                   {previewUrl && (
                     <div className="relative">
-                      <img
+                      <Image
                         src={previewUrl}
                         alt="Poster preview"
+                        width={400}
+                        height={128}
                         className="w-full max-h-32 object-contain rounded-lg bg-gray-50 dark:bg-gray-800"
                       />
                       <button
