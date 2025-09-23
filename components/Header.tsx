@@ -45,19 +45,12 @@ export function Header({
     setMounted(true)
   }, [])
 
-  // Load profile data if not already loaded
+  // Load profile data if not already loaded (only once)
   useEffect(() => {
     if (user && !profileData && refreshProfile) {
       refreshProfile()
     }
   }, [user, profileData, refreshProfile])
-
-  // Force refresh profile data when component mounts if user exists
-  useEffect(() => {
-    if (user && refreshProfile) {
-      refreshProfile()
-    }
-  }, [user, refreshProfile]) // Run when user or refreshProfile changes
 
   // Update userName when user or profileData changes
   useEffect(() => {

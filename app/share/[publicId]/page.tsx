@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getShowByPublicId } from '@/lib/shareable-urls'
 import { ShowDetail } from '@/components/ShowDetail'
-import { Layout } from '@/components/Layout'
+import { ShareableLayout } from '@/components/ShareableLayout'
 
 interface SharePageProps {
   params: Promise<{
@@ -27,14 +27,14 @@ export default async function SharePage({ params }: SharePageProps) {
     }
 
     return (
-      <Layout>
+      <ShareableLayout>
         <div className="container mx-auto px-4 py-8">
           <ShowDetail 
             show={result.show} 
             rsvps={result.rsvps}
           />
         </div>
-      </Layout>
+      </ShareableLayout>
     )
   } catch (error) {
     console.error('Error loading show:', error)

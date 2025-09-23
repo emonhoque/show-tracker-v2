@@ -207,7 +207,7 @@ export async function getShowByPublicId(
 
     if (rsvps) {
       rsvps.forEach((rsvp) => {
-        const name = (rsvp.profiles as { name: string }[])?.[0]?.name || 'Unknown User'
+        const name = (rsvp.profiles as { name: string })?.name || 'Unknown User'
         if (rsvp.status === 'going') {
           rsvpSummary.going.push(name)
         } else if (rsvp.status === 'maybe') {

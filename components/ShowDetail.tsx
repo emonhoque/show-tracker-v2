@@ -18,7 +18,8 @@ import {
   Calendar,
   MapPin,
   Clock,
-  Users
+  Users,
+  Copy
 } from 'lucide-react'
 import { ImageModal } from '@/components/ImageModal'
 import { CalendarExportButton } from '@/components/CalendarExportButton'
@@ -53,13 +54,46 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [shareLoading, setShareLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
 
-  // Get userName from user profile
+  // Get userName from user profile or session data
   useEffect(() => {
     if (profileData?.name) {
       setUserName(profileData.name)
+    } else if (user?.user_metadata?.full_name) {
+      // Use display name from session as fallback
+      setUserName(user.user_metadata.full_name)
     }
-  }, [profileData])
+  }, [profileData, user])
+
+  // Format show data as text for copying
+  const formatShowAsText = (show: Show): string => {
+    const dateTime = formatUserTime(show.date_time, show.time_local)
+    let text = `${show.title}\n\n${dateTime}\n${show.venue}\n${show.city}`
+    
+    if (show.notes) {
+      text += `\nNotes: ${show.notes}`
+    }
+    
+    if (show.ticket_url) {
+      text += `\n\nTickets: ${show.ticket_url}`
+    }
+    
+    return text
+  }
+
+  // Handle copying show info to clipboard
+  const handleCopyShowInfo = async () => {
+    try {
+      const showText = formatShowAsText(show)
+      await navigator.clipboard.writeText(showText)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy show info:', error)
+      alert('Failed to copy show info to clipboard')
+    }
+  }
 
   // Get shareable URL if not already available
   useEffect(() => {
@@ -216,15 +250,20 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
     }
   }
 
-  const userStatus = userName && rsvps
-    ? rsvps.going?.includes(userName.toLowerCase())
+  // Get the current user's name for status checking (use session data as fallback)
+  const currentUserName = userName || user?.user_metadata?.full_name || user?.user_metadata?.name
+  
+  
+  const userStatus = currentUserName && rsvps
+    ? rsvps.going?.includes(currentUserName.toLowerCase()) || rsvps.going?.includes(currentUserName)
       ? 'going'
-      : rsvps.maybe?.includes(userName.toLowerCase())
+      : rsvps.maybe?.includes(currentUserName.toLowerCase()) || rsvps.maybe?.includes(currentUserName)
       ? 'maybe'
-      : rsvps.not_going?.includes(userName.toLowerCase())
+      : rsvps.not_going?.includes(currentUserName.toLowerCase()) || rsvps.not_going?.includes(currentUserName)
       ? 'not_going'
       : null
     : null
+    
 
   const isPast = new Date(show.date_time) < new Date()
 
@@ -233,11 +272,11 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
       {/* Back Button */}
       <div className="mb-6">
         <Link 
-          href={communityId ? `/c/${communityId}` : '/'}
+          href="/"
           className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to {communityId ? 'Community' : 'Shows'}
+          Back to Shows
         </Link>
       </div>
 
@@ -368,6 +407,19 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
               </Button>
             )}
             <CalendarExportButton show={show} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyShowInfo}
+              className="flex items-center gap-2"
+            >
+              {copySuccess ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+              {copySuccess ? 'Copied!' : 'Copy Details'}
+            </Button>
           </div>
 
           {/* RSVPs */}
@@ -398,7 +450,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
           )}
 
           {/* RSVP Buttons (only for upcoming shows) */}
-          {!isPast && user && userName && (
+          {!isPast && user && (
             <div className="pt-4 border-t border-border">
               <div className="text-sm text-muted-foreground mb-3">Your RSVP:</div>
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
@@ -445,7 +497,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
           )}
 
           {/* Attendance Button (only for past shows) */}
-          {isPast && user && userName && (
+          {isPast && user && (
             <div className="pt-4 border-t border-border">
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                 <Button

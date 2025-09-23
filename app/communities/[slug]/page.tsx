@@ -77,7 +77,6 @@ export default function CommunityPage() {
           setCommunity({
             id: foundCommunity.community_id,
             name: foundCommunity.community_name,
-            slug: foundCommunity.community_numeric_id,
             numeric_id: foundCommunity.community_numeric_id,
             created_by: '',
             created_at: '',

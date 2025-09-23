@@ -41,20 +41,9 @@ export async function GET(request: NextRequest) {
       console.log('Fetching current community for user:', user.id)
       
       // Get user's communities using direct query (using admin client to bypass RLS)
-      const { data: communities, error } = await supabase
+      const { data: communityMembers, error } = await supabase
         .from('community_members')
-        .select(`
-          community_id,
-          role,
-          communities!inner(
-            id,
-            name,
-            description,
-            numeric_id,
-            created_at,
-            music_enabled
-          )
-        `)
+        .select('community_id, role')
         .eq('user_id', user.id)
         .order('joined_at', { ascending: true })
         .limit(1)
@@ -67,32 +56,27 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      if (!communities || communities.length === 0) {
+      if (!communityMembers || communityMembers.length === 0) {
         return NextResponse.json(
           { error: 'No communities found' },
           { status: 404 }
         )
       }
       
-      // Return the first community
-      const member = communities[0] as {
-        community_id: string
-        role: string
-        communities: {
-          id: string
-          name: string
-          description: string | null
-          numeric_id: string
-          created_at: string
-          music_enabled: boolean
-        }[]
-      }
-      const community = {
-        id: member.communities[0].id,
-        name: member.communities[0].name,
-        description: member.communities[0].description,
-        numeric_id: member.communities[0].numeric_id,
-        created_at: member.communities[0].created_at
+      // Get the community details
+      const member = communityMembers[0]
+      const { data: community, error: communityError } = await supabase
+        .from('communities')
+        .select('id, name, description, numeric_id, created_at, music_enabled')
+        .eq('id', member.community_id)
+        .single()
+      
+      if (communityError) {
+        console.error('Failed to fetch community details:', communityError)
+        return NextResponse.json(
+          { error: 'Failed to fetch community details' },
+          { status: 500 }
+        )
       }
       
       return NextResponse.json({
@@ -148,45 +132,47 @@ export async function GET(request: NextRequest) {
     } else {
       // Get all user's communities
       console.log('Fetching communities for user:', user.id)
+      console.log('User email:', user.email)
+      console.log('User metadata:', user.user_metadata)
 
       // Get user's communities using direct query (using admin client to bypass RLS)
-      const { data: communities, error } = await supabase
+      const { data: communityMembers, error } = await supabase
         .from('community_members')
-        .select(`
-          community_id,
-          role,
-          communities!inner(
-            id,
-            name,
-            numeric_id,
-            created_at,
-            music_enabled
-          )
-        `)
+        .select('community_id, role')
         .eq('user_id', user.id)
       
       if (error) {
-        console.error('Failed to fetch communities:', error)
+        console.error('Failed to fetch community members:', error)
         console.error('Error details:', JSON.stringify(error, null, 2))
+        console.error('User ID:', user.id)
         return NextResponse.json(
           { error: 'Failed to fetch communities', details: error.message },
           { status: 500 }
         )
       }
       
-      // Transform the data to match the expected format and calculate member counts
+      if (!communityMembers || communityMembers.length === 0) {
+        return NextResponse.json({
+          success: true,
+          communities: []
+        })
+      }
+      
+      // Get community details for each community
       const transformedCommunities = await Promise.all(
-        (communities || []).map(async (member: {
-          community_id: string
-          role: string
-          communities: {
-            id: string
-            name: string
-            numeric_id: string
-            created_at: string
-            music_enabled: boolean
-          }[]
-        }) => {
+        communityMembers.map(async (member: { community_id: string; role: string }) => {
+          // Get community details
+          const { data: community, error: communityError } = await supabase
+            .from('communities')
+            .select('id, name, numeric_id, created_at, music_enabled')
+            .eq('id', member.community_id)
+            .single()
+          
+          if (communityError) {
+            console.error(`Failed to fetch community ${member.community_id}:`, communityError)
+            return null
+          }
+          
           // Get actual member count for this community
           const { count: memberCount } = await supabase
             .from('community_members')
@@ -195,17 +181,20 @@ export async function GET(request: NextRequest) {
           
           return {
             community_id: member.community_id,
-            community_name: member.communities[0].name,
-            community_numeric_id: member.communities[0].numeric_id,
+            community_name: community.name,
+            community_numeric_id: community.numeric_id,
             user_role: member.role,
             member_count: memberCount || 0
           }
         })
       )
+      
+      // Filter out any null results
+      const validCommunities = transformedCommunities.filter(community => community !== null)
 
       return NextResponse.json({
         success: true,
-        communities: transformedCommunities
+        communities: validCommunities
       })
     }
 

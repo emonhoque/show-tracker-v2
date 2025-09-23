@@ -122,7 +122,6 @@ export interface Community {
   created_at: string
   updated_at: string
   is_default: boolean
-  slug?: string
   music_enabled?: boolean
 }
 

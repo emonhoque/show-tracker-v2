@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { getShowByPublicId } from '@/lib/shareable-urls'
 import { ShowDetail } from '@/components/ShowDetail'
-import { Layout } from '@/components/Layout'
+import { ShareableLayout } from '@/components/ShareableLayout'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 interface ShowPageProps {
@@ -72,15 +72,15 @@ export default async function ShowPage({ params }: ShowPageProps) {
     }
 
     return (
-      <Layout>
+      <ShareableLayout>
         <div className="container mx-auto px-4 py-8">
-        <ShowDetail 
-          show={result.show} 
-          rsvps={result.rsvps}
-          communityId={communityId}
-        />
+          <ShowDetail 
+            show={result.show} 
+            rsvps={result.rsvps}
+            communityId={communityId}
+          />
         </div>
-      </Layout>
+      </ShareableLayout>
     )
   } catch (error) {
     // Check if this is a Next.js redirect (which throws an error internally)
