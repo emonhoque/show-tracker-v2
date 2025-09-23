@@ -1,45 +1,77 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { signInWithGoogle } from '@/lib/auth'
-import { useAuth } from '@/lib/auth-context'
 import { Loader2 } from 'lucide-react'
 
 export function GoogleAuthGate() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   
-  // Get auth context with React 19 compatibility
-  const authContext = useAuth()
-  const { user, loading } = authContext || { user: null, loading: true, signOut: async () => {} }
+  // Get return URL from search params
+  const returnUrl = searchParams.get('returnUrl')
+  
+  // Simple auth state without using the context to avoid circular imports
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // Redirect if already authenticated
+  // Check auth status on mount
   useEffect(() => {
-    if (!loading && user) {
-      router.replace('/')
+    const checkAuth = async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase')
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session?.user) {
+          setUser(session.user)
+          // Redirect to return URL if provided, otherwise go home
+          const redirectTo = returnUrl || '/'
+          router.replace(redirectTo)
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [user, loading, router])
+    
+    checkAuth()
+  }, [router, returnUrl])
 
   const handleGoogleSignIn = useCallback(async () => {
     setIsLoading(true)
     setError('')
 
     try {
-      const { error } = await signInWithGoogle()
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      const callbackUrl = returnUrl 
+        ? `${siteUrl}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`
+        : `${siteUrl}/auth/callback`
+      
+      const { createClient } = await import('@/lib/supabase')
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: callbackUrl,
+        }
+      })
       
       if (error) {
-        setError(error)
+        setError(error.message)
         setIsLoading(false)
       }
     } catch (error) {
+      console.error('Google sign-in error:', error)
       setError('Failed to sign in with Google. Please try again.')
       setIsLoading(false)
     }
-  }, [])
+  }, [returnUrl])
 
   if (loading) {
     return (

@@ -163,14 +163,24 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      // Transform the data to match the expected format
-      const transformedCommunities = (communities || []).map((member: any) => ({
-        community_id: member.community_id,
-        community_name: member.communities.name,
-        community_numeric_id: member.communities.numeric_id,
-        user_role: member.role,
-        member_count: 1 // We'll calculate this separately if needed
-      }))
+      // Transform the data to match the expected format and calculate member counts
+      const transformedCommunities = await Promise.all(
+        (communities || []).map(async (member: any) => {
+          // Get actual member count for this community
+          const { count: memberCount } = await supabase
+            .from('community_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('community_id', member.community_id)
+          
+          return {
+            community_id: member.community_id,
+            community_name: member.communities.name,
+            community_numeric_id: member.communities.numeric_id,
+            user_role: member.role,
+            member_count: memberCount || 0
+          }
+        })
+      )
 
       return NextResponse.json({
         success: true,

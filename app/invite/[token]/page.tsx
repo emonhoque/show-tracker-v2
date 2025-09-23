@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { acceptInvite } from '@/lib/community'
+import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Layout } from '@/components/Layout'
 import { CheckCircle, XCircle, Loader2, Users } from 'lucide-react'
 
 export default function InvitePage() {
@@ -14,30 +15,70 @@ export default function InvitePage() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [communityName, setCommunityName] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const router = useRouter()
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        setIsAuthenticated(!!session?.user)
+      } catch (error) {
+        console.error('Auth check error:', error)
+        setIsAuthenticated(false)
+      }
+    }
+    
+    checkAuth()
+  }, [])
 
   const handleAcceptInvite = async () => {
     try {
       setLoading(true)
       setError(null)
       
-      const response = await acceptInvite({ token })
+      // Get authentication token
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
       
-      if (response.success && response.community) {
+      if (!session?.access_token) {
+        setError('Please sign in to accept this invitation')
+        // Redirect to sign in with return URL
+        const returnUrl = encodeURIComponent(window.location.href)
+        router.push(`/signin?returnUrl=${returnUrl}`)
+        return
+      }
+      
+      // Call the API endpoint
+      const response = await fetch('/api/communities/invite/accept', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ token })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success && data.community) {
         setSuccess(true)
-        setCommunityName(response.community.name)
+        setCommunityName(data.community.name)
         
         // Store the community as selected
-        localStorage.setItem('selectedCommunityId', response.community.id)
+        localStorage.setItem('selectedCommunityId', data.community.id)
         
         // Redirect to home page after a short delay
         setTimeout(() => {
           router.push('/')
         }, 2000)
       } else {
-        setError(response.error || 'Failed to join community')
+        setError(data.error || 'Failed to join community')
       }
-    } catch {
+    } catch (error) {
+      console.error('Error accepting invite:', error)
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
@@ -46,8 +87,9 @@ export default function InvitePage() {
 
   if (success) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <Card>
+      <Layout>
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <Card>
           <CardHeader className="text-center">
             <div className="mx-auto mb-4">
               <CheckCircle className="h-16 w-16 text-green-500" />
@@ -66,14 +108,16 @@ export default function InvitePage() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </Layout>
     )
   }
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <Card>
+      <Layout>
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <Card>
           <CardHeader className="text-center">
             <div className="mx-auto mb-4">
               <XCircle className="h-16 w-16 text-red-500" />
@@ -101,13 +145,64 @@ export default function InvitePage() {
             </div>
           </CardContent>
         </Card>
+        </div>
+      </Layout>
+    )
+  }
+
+  // Show loading state while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
       </div>
     )
   }
 
+  // Show sign-in prompt for unauthenticated users
+  if (isAuthenticated === false) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8 max-w-md">
+          <Card>
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4">
+              <Users className="h-16 w-16 text-blue-500" />
+            </div>
+            <CardTitle className="text-2xl">Join Community</CardTitle>
+            <CardDescription>
+              You&apos;ve been invited to join a community
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600 mb-6">
+              Please sign in with your Google account to accept this invitation.
+            </p>
+            
+            <Button 
+              onClick={() => {
+                const returnUrl = encodeURIComponent(window.location.href)
+                router.push(`/signin?returnUrl=${returnUrl}`)
+              }}
+              className="w-full"
+            >
+              Sign In to Accept Invitation
+            </Button>
+            
+            <p className="text-xs text-gray-500 mt-4">
+              By accepting this invitation, you agree to join the community and follow its guidelines.
+            </p>
+          </CardContent>
+        </Card>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-md">
-      <Card>
+    <Layout>
+      <div className="container mx-auto px-4 py-8 max-w-md">
+        <Card>
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
             <Users className="h-16 w-16 text-blue-500" />
@@ -141,7 +236,8 @@ export default function InvitePage() {
             By accepting this invitation, you agree to join the community and follow its guidelines.
           </p>
         </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </Layout>
   )
 }

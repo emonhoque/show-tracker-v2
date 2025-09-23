@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Show, RSVPSummary, ShowCategory } from '@/lib/types'
 import { formatUserTime } from '@/lib/time'
 import { getCategoryInfo, getCategoryColor, getCategoryIcon } from '@/lib/categories'
-import { ExternalLink, MoreVertical, Edit, Trash2, Share2, Check } from 'lucide-react'
+import { ExternalLink, MoreVertical, Edit, Trash2, Share2, Check, Copy } from 'lucide-react'
 import { ImageModal } from '@/components/ImageModal'
 import { CalendarExportButton } from '@/components/CalendarExportButton'
 import { createClient } from '@/lib/supabase'
@@ -41,12 +41,41 @@ interface ShowCardProps {
 }
 
 export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, communitySlug }: ShowCardProps) {
-  const { user } = useAuth()
+  const { user, profileData } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [userName, setUserName] = useState<string | null>(null)
   const [imageModalOpen, setImageModalOpen] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
+
+  // Format show data as text for copying
+  const formatShowAsText = (show: Show): string => {
+    const dateTime = formatUserTime(show.date_time, show.time_local)
+    let text = `${show.title}\n\n${dateTime}\n${show.venue}\n${show.city}`
+    
+    if (show.notes) {
+      text += `\nNotes: ${show.notes}`
+    }
+    
+    if (show.ticket_url) {
+      text += `\n\nTickets: ${show.ticket_url}`
+    }
+    
+    return text
+  }
+
+  // Handle copying show info to clipboard
+  const handleCopyShowInfo = async () => {
+    try {
+      const showText = formatShowAsText(show)
+      await navigator.clipboard.writeText(showText)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy show info:', error)
+      alert('Failed to copy show info to clipboard')
+    }
+  }
 
   // Helper function for authenticated requests
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
@@ -67,24 +96,8 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, 
     })
   }
 
-  // Get userName from user profile
-  useEffect(() => {
-    const fetchUserName = async () => {
-      if (!user) return
-      
-      try {
-        const response = await fetch('/api/profile')
-        if (response.ok) {
-          const profileData = await response.json()
-          setUserName(profileData.name)
-        }
-      } catch (error) {
-        console.error('Error fetching user profile:', error)
-      }
-    }
-
-    fetchUserName()
-  }, [user])
+  // Get userName from profileData
+  const userName = profileData?.name || null
 
   const handleRSVP = async (status: 'going' | 'maybe' | 'not_going' | null) => {
     if (!userName || loading) return
@@ -346,6 +359,19 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, 
               <Share2 className="w-4 h-4" />
             )}
             {copied ? 'Copied!' : 'Share'}
+          </Button>
+          <Button
+            onClick={handleCopyShowInfo}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            {copySuccess ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+            {copySuccess ? 'Copied!' : 'Copy'}
           </Button>
           {show.ticket_url && !isPast && (
             <Button

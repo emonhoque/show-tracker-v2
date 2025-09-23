@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/db'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createSupabaseAdmin } from '@/lib/supabase-server'
 import { isShowPast } from '@/lib/time'
 import { validateUserName, validateRsvpStatus } from '@/lib/validation'
 
@@ -52,9 +52,10 @@ export async function POST(request: NextRequest) {
 
     // If show has a community, verify user is a member
     if (show.community_id) {
-      const { data: membership, error: membershipError } = await supabaseClient
+      const supabaseAdmin = createSupabaseAdmin()
+      const { data: membership, error: membershipError } = await supabaseAdmin
         .from('community_members')
-        .select('id')
+        .select('role')
         .eq('community_id', show.community_id)
         .eq('user_id', user.id)
         .single()

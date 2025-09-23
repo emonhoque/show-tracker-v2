@@ -108,6 +108,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Add rewrites to redirect favicon requests to assets directory
+  async rewrites() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/assets/favicon.ico',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

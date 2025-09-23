@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Community, UserCommunity } from '@/lib/types'
-// import { getCommunities, getCommunityMembers } from '@/lib/community'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Layout } from '@/components/Layout'
 import { ArrowLeft, Users, Settings, Crown, Mail, UserPlus, Share2, Copy, Check } from 'lucide-react'
 
 export default function CommunityPage() {
@@ -19,6 +19,30 @@ export default function CommunityPage() {
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [isCreatingInvite, setIsCreatingInvite] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  const loadCommunityMembers = useCallback(async (communityId: string, accessToken: string) => {
+    try {
+      const response = await fetch(`/api/communities/${communityId}/members`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success && data.members) {
+        setMembers(data.members)
+      } else {
+        console.error('Failed to load community members:', data.error)
+        // Set empty array on error to avoid breaking the UI
+        setMembers([])
+      }
+    } catch (error) {
+      console.error('Error loading community members:', error)
+      setMembers([])
+    }
+  }, [])
 
   const loadCommunityData = useCallback(async () => {
     try {
@@ -62,9 +86,8 @@ export default function CommunityPage() {
           })
           setIsAdmin(foundCommunity.user_role === 'admin')
           
-          // Load community members - we'll implement this later
-          // For now, just set empty members
-          setMembers([])
+          // Load community members
+          await loadCommunityMembers(foundCommunity.community_id, session.access_token)
         } else {
           setError('Community not found')
         }
@@ -138,64 +161,71 @@ export default function CommunityPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4" />
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8" />
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="h-32 bg-gray-200 rounded" />
-            <div className="h-32 bg-gray-200 rounded" />
+      <Layout>
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/3 mb-4" />
+            <div className="h-4 bg-gray-200 rounded w-1/2 mb-8" />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="h-32 bg-gray-200 rounded" />
+              <div className="h-32 bg-gray-200 rounded" />
+            </div>
           </div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <div className="text-red-600 mb-4">
-            <Users className="h-12 w-12 mx-auto mb-2" />
-            <h2 className="text-xl font-semibold">Error Loading Community</h2>
-            <p className="text-gray-600">{error}</p>
+      <Layout>
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="text-center py-12">
+            <div className="text-red-600 mb-4">
+              <Users className="h-12 w-12 mx-auto mb-2" />
+              <h2 className="text-xl font-semibold">Error Loading Community</h2>
+              <p className="text-gray-600">{error}</p>
+            </div>
+            <Button onClick={() => router.back()} variant="outline">
+              Go Back
+            </Button>
           </div>
-          <Button onClick={() => router.back()} variant="outline">
-            Go Back
-          </Button>
         </div>
-      </div>
+      </Layout>
     )
   }
 
   if (!community) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-          <h2 className="text-xl font-semibold mb-2">Community Not Found</h2>
-          <p className="text-gray-600 mb-6">
-            The community you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
-          </p>
-          <Button onClick={() => router.push('/communities')} variant="outline">
-            View All Communities
-          </Button>
+      <Layout>
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <h2 className="text-xl font-semibold mb-2">Community Not Found</h2>
+            <p className="text-gray-600 mb-6">
+              The community you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
+            </p>
+            <Button onClick={() => router.push('/communities')} variant="outline">
+              View All Communities
+            </Button>
+          </div>
         </div>
-      </div>
+      </Layout>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <Button 
-          variant="outline" 
-          onClick={() => router.back()}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+    <Layout>
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="mb-8">
+          <Button 
+            variant="ghost" 
+            onClick={() => router.back()}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
         
         <div className="flex items-center justify-between">
           <div>
@@ -343,6 +373,7 @@ export default function CommunityPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </Layout>
   )
 }

@@ -130,9 +130,6 @@ export async function getShowByPublicId(
   publicId: string, 
   communityId?: string
 ): Promise<ShowDetailResponse> {
-  console.log('=== getShowByPublicId called ===')
-  console.log('publicId:', publicId)
-  console.log('communityId:', communityId)
   
   if (!isShareableUrlsEnabled()) {
     console.log('Shareable URLs feature is disabled')
@@ -140,7 +137,6 @@ export async function getShowByPublicId(
   }
 
   try {
-    console.log('Querying shows table for public_id:', publicId)
     // Get show by public ID directly
     const { data: show, error } = await supabase
       .from('shows')
@@ -148,18 +144,13 @@ export async function getShowByPublicId(
       .eq('public_id', publicId)
       .single()
 
-    console.log('Show query result:', { show, error })
-
     if (error || !show) {
-      console.log('Show not found in database')
       return { 
         success: false, 
         error: 'Show not found',
         accessRequired: true
       }
     }
-
-    console.log('Found show:', show.id, 'community_id:', show.community_id)
 
     // If communityId is provided, verify the show belongs to that community
     if (communityId) {
@@ -168,7 +159,6 @@ export async function getShowByPublicId(
       
       // If it looks like a numeric_id (all digits), look up the actual community_id
       if (/^\d+$/.test(communityId)) {
-        console.log('CommunityId looks like numeric_id, looking up actual community_id')
         const { data: community, error: communityError } = await supabase
           .from('communities')
           .select('id')
@@ -176,7 +166,6 @@ export async function getShowByPublicId(
           .single()
         
         if (communityError || !community) {
-          console.log('Community not found for numeric_id:', communityId)
           return { 
             success: false, 
             error: 'Show not found',
@@ -185,11 +174,9 @@ export async function getShowByPublicId(
         }
         
         actualCommunityId = community.id
-        console.log('Found actual community_id:', actualCommunityId)
       }
       
       if (show.community_id !== actualCommunityId) {
-        console.log('Show community mismatch. Expected:', actualCommunityId, 'Found:', show.community_id)
         return { 
           success: false, 
           error: 'Show not found',
@@ -198,10 +185,14 @@ export async function getShowByPublicId(
       }
     }
 
-    // Get RSVPs for the show
+    // Get RSVPs for the show with profile names
     const { data: rsvps, error: rsvpError } = await supabase
       .from('rsvps')
-      .select('name, status')
+      .select(`
+        status,
+        user_id,
+        profiles!inner(name)
+      `)
       .eq('show_id', show.id)
 
     if (rsvpError) {
@@ -216,8 +207,15 @@ export async function getShowByPublicId(
     }
 
     if (rsvps) {
-      rsvps.forEach(rsvp => {
-        rsvpSummary[rsvp.status as keyof RSVPSummary].push(rsvp.name)
+      rsvps.forEach((rsvp) => {
+        const name = (rsvp.profiles as any)?.name || 'Unknown User'
+        if (rsvp.status === 'going') {
+          rsvpSummary.going.push(name)
+        } else if (rsvp.status === 'maybe') {
+          rsvpSummary.maybe.push(name)
+        } else if (rsvp.status === 'not_going') {
+          rsvpSummary.not_going.push(name)
+        }
       })
     }
 

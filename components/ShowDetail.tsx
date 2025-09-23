@@ -8,6 +8,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Show, RSVPSummary } from '@/lib/types'
 import { formatUserTime } from '@/lib/time'
 import { formatNameForDisplay } from '@/lib/validation'
+import { useAuth } from '@/lib/auth-context'
+import { createClient } from '@/lib/supabase'
 import { 
   ExternalLink, 
   ArrowLeft, 
@@ -44,6 +46,7 @@ interface ShowDetailProps {
 }
 
 export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
+  const { user, profileData } = useAuth()
   const [loading, setLoading] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
   const [imageModalOpen, setImageModalOpen] = useState(false)
@@ -51,10 +54,12 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
   const [shareLoading, setShareLoading] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // Get userName from localStorage on client side
+  // Get userName from user profile
   useEffect(() => {
-    setUserName(localStorage.getItem('userName'))
-  }, [])
+    if (profileData?.name) {
+      setUserName(profileData.name)
+    }
+  }, [profileData])
 
   // Get shareable URL if not already available
   useEffect(() => {
@@ -71,24 +76,41 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
     }
   }, [show.shareable_url, show.public_id, communityId])
 
+  // Helper function for authenticated requests
+  const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (!session?.access_token) {
+      throw new Error('No session token available')
+    }
+    
+    return fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+  }
+
   const handleRSVP = async (status: 'going' | 'maybe' | 'not_going' | null) => {
-    if (!userName || loading) return
+    if (!user || loading) return
 
     setLoading(true)
     
     try {
       if (status) {
         // Add or update RSVP
-        const response = await fetch('/api/rsvp', {
+        const response = await authenticatedFetch('/api/rsvp', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             show_id: show.id,
-            name: userName,
             status
           })
         })
-
+        
         if (!response.ok) {
           const error = await response.json()
           alert(error.error || 'Failed to save RSVP')
@@ -96,12 +118,10 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
         }
       } else {
         // Remove RSVP completely
-        const response = await fetch('/api/rsvp/remove', {
+        const response = await authenticatedFetch('/api/rsvp/remove', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            show_id: show.id,
-            name: userName
+            show_id: show.id
           })
         })
 
@@ -378,7 +398,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
           )}
 
           {/* RSVP Buttons (only for upcoming shows) */}
-          {!isPast && userName && (
+          {!isPast && user && userName && (
             <div className="pt-4 border-t border-border">
               <div className="text-sm text-muted-foreground mb-3">Your RSVP:</div>
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
@@ -425,7 +445,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
           )}
 
           {/* Attendance Button (only for past shows) */}
-          {isPast && userName && (
+          {isPast && user && userName && (
             <div className="pt-4 border-t border-border">
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                 <Button

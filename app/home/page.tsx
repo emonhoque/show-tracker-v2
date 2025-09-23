@@ -444,6 +444,7 @@ export default function Home() {
         currentCommunity={currentCommunity}
         onCommunityChange={setCurrentCommunity}
         showAddButton={false}
+        showBreadcrumbs={false}
       >
         <div className="max-w-4xl mx-auto p-4">
           <Tabs defaultValue="upcoming" className="w-full">
@@ -472,7 +473,7 @@ export default function Home() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <Music className="h-6 w-6" />
+                      <span className="h-6 w-6">🎵</span>
                       Recent Releases
                     </h2>
                   </div>
@@ -500,6 +501,7 @@ export default function Home() {
         currentCommunity={currentCommunity}
         onCommunityChange={setCurrentCommunity}
         showAddButton={false}
+        showBreadcrumbs={false}
       >
         <div className="max-w-4xl mx-auto p-4">
           <div className="text-center py-12">
@@ -532,6 +534,7 @@ export default function Home() {
       onCommunityChange={setCurrentCommunity}
       showAddButton={true}
       onAddClick={() => setShowAddModal(true)}
+      showBreadcrumbs={false}
     >
       {isOffline && (
         <div className="bg-yellow-100 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800 px-4 py-2">

@@ -43,6 +43,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signOut = useCallback(async () => {
     try {
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.error('Supabase environment variables not available for sign out')
+        return
+      }
       const supabase = createClient()
       await supabase.auth.signOut()
       setUser(null)
@@ -53,6 +57,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshUser = useCallback(async () => {
     try {
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.error('Supabase environment variables not available for refresh user')
+        return
+      }
       const supabase = createClient()
       const { data: { user: refreshedUser } } = await supabase.auth.getUser()
       setUser(refreshedUser)
@@ -80,6 +88,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const initializeAuth = async () => {
       try {
+        // Check if environment variables are available
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          console.error('Supabase environment variables not available')
+          if (mounted) {
+            setLoading(false)
+          }
+          return
+        }
+
         const supabase = createClient()
 
         // Get initial session
