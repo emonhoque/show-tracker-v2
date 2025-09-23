@@ -359,10 +359,10 @@ export default function OptimizedHomePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild>
-                <a href="/communities">Browse Communities</a>
+                <a href="/groups">Browse Groups</a>
               </Button>
               <Button variant="outline" asChild>
-                <a href="/communities/create">Create Community</a>
+                <a href="/groups/create">Create Group</a>
               </Button>
             </div>
           </div>

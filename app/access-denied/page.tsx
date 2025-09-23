@@ -32,7 +32,7 @@ export default async function AccessDeniedPage({ searchParams }: AccessDeniedPag
             ? `You need to be a member of "${communityName}" to view this content.`
             : 'You need to be a member of this community to view this content.',
           action: 'Join Community',
-          actionHref: '/communities',
+          actionHref: '/groups',
           icon: Users
         }
       case 'community':
@@ -40,7 +40,7 @@ export default async function AccessDeniedPage({ searchParams }: AccessDeniedPag
           title: 'Community Not Found',
           description: 'This community either doesn\'t exist or you don\'t have access to it.',
           action: 'Browse Communities',
-          actionHref: '/communities',
+          actionHref: '/groups',
           icon: Shield
         }
       default:

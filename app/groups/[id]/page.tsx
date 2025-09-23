@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Community, UserCommunity } from '@/lib/types'
+import { Community, UserCommunity, Show, RSVPSummary } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Layout } from '@/components/Layout'
-import { ArrowLeft, Users, Settings, Crown, UserPlus, Share2, Copy, Check } from 'lucide-react'
+import { ShowCard } from '@/components/ShowCard'
+import { ArrowLeft, Users, Settings, Crown, UserPlus, Share2, Copy, Check, Calendar } from 'lucide-react'
 
 export default function GroupPage() {
   const params = useParams()
@@ -19,6 +20,12 @@ export default function GroupPage() {
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [isCreatingInvite, setIsCreatingInvite] = useState(false)
   const [copied, setCopied] = useState(false)
+  
+  // Events state
+  const [upcomingShows, setUpcomingShows] = useState<Show[]>([])
+  const [pastShows, setPastShows] = useState<Show[]>([])
+  const [eventsLoading, setEventsLoading] = useState(false)
+  const [eventsError, setEventsError] = useState<string | null>(null)
 
   const loadCommunityMembers = useCallback(async (communityId: string, accessToken: string) => {
     try {
@@ -41,6 +48,52 @@ export default function GroupPage() {
     } catch (error) {
       console.error('Error loading group members:', error)
       setMembers([])
+    }
+  }, [])
+
+  const loadCommunityEvents = useCallback(async (communityId: string, accessToken: string) => {
+    try {
+      setEventsLoading(true)
+      setEventsError(null)
+      
+      // Fetch upcoming shows
+      const upcomingResponse = await fetch(`/api/shows/upcoming?community_id=${communityId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      })
+      
+      // Fetch past shows
+      const pastResponse = await fetch(`/api/shows/past?community_id=${communityId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      })
+      
+      if (upcomingResponse.ok) {
+        const upcomingData = await upcomingResponse.json()
+        setUpcomingShows(upcomingData || [])
+      } else {
+        console.error('Failed to load upcoming shows')
+        setUpcomingShows([])
+      }
+      
+      if (pastResponse.ok) {
+        const pastData = await pastResponse.json()
+        setPastShows(pastData || [])
+      } else {
+        console.error('Failed to load past shows')
+        setPastShows([])
+      }
+    } catch (error) {
+      console.error('Error loading community events:', error)
+      setEventsError('Failed to load events')
+      setUpcomingShows([])
+      setPastShows([])
+    } finally {
+      setEventsLoading(false)
     }
   }, [])
 
@@ -85,8 +138,9 @@ export default function GroupPage() {
           })
           setIsAdmin(foundCommunity.user_role === 'admin')
           
-          // Load community members
+          // Load community members and events
           await loadCommunityMembers(foundCommunity.community_id, session.access_token)
+          await loadCommunityEvents(foundCommunity.community_id, session.access_token)
         } else {
           setError('Group not found')
         }
@@ -98,7 +152,7 @@ export default function GroupPage() {
     } finally {
       setLoading(false)
     }
-  }, [params['id'], loadCommunityMembers])
+  }, [params['id'], loadCommunityMembers, loadCommunityEvents])
 
   useEffect(() => {
     loadCommunityData()
@@ -326,6 +380,94 @@ export default function GroupPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Events Section */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold flex items-center space-x-2">
+            <Calendar className="h-6 w-6" />
+            <span>Events</span>
+          </h2>
+        </div>
+
+        {eventsLoading ? (
+          <div className="space-y-4">
+            <div className="animate-pulse">
+              <div className="h-32 bg-gray-200 rounded mb-4" />
+              <div className="h-32 bg-gray-200 rounded mb-4" />
+              <div className="h-32 bg-gray-200 rounded mb-4" />
+            </div>
+          </div>
+        ) : eventsError ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="text-red-600 mb-2">
+                <Calendar className="h-8 w-8 mx-auto mb-2" />
+                <h3 className="text-lg font-semibold">Error Loading Events</h3>
+                <p className="text-gray-600">{eventsError}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-8">
+            {/* Upcoming Events */}
+            {upcomingShows.length > 0 && (
+              <div>
+                <h3 className="text-xl font-semibold mb-4 text-green-600">Upcoming Events</h3>
+                <div className="space-y-4">
+                  {upcomingShows.map((show) => (
+                    <ShowCard
+                      key={show.id}
+                      show={show}
+                      isPast={false}
+                      rsvps={{ going: [], maybe: [], not_going: [] }}
+                      userRsvpStatus={null}
+                      communitySlug={String(params['id'])}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Past Events */}
+            {pastShows.length > 0 && (
+              <div>
+                <h3 className="text-xl font-semibold mb-4 text-gray-600">Past Events</h3>
+                <div className="space-y-4">
+                  {pastShows.slice(0, 5).map((show) => (
+                    <ShowCard
+                      key={show.id}
+                      show={show}
+                      isPast={true}
+                      rsvps={{ going: [], maybe: [], not_going: [] }}
+                      userRsvpStatus={null}
+                      communitySlug={String(params['id'])}
+                    />
+                  ))}
+                </div>
+                {pastShows.length > 5 && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Showing 5 of {pastShows.length} past events
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* No Events */}
+            {upcomingShows.length === 0 && pastShows.length === 0 && (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-semibold mb-2">No Events Yet</h3>
+                  <p className="text-gray-600">
+                    This group doesn't have any events yet. Check back later or create the first event!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Invite Link Section */}

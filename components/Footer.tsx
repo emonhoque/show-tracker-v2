@@ -51,7 +51,7 @@ export function Footer({ variant = 'default' }: FooterProps) {
               Profile
             </Link>
             <Link 
-              href="/communities" 
+              href="/groups" 
               className="hover:text-foreground transition-colors"
             >
               Communities

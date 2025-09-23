@@ -68,7 +68,7 @@ export function RSVPFilter({
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button 
-                onClick={() => window.location.href = '/communities'}
+                onClick={() => window.location.href = '/groups'}
                 className="flex items-center gap-2"
               >
                 <Users className="w-4 h-4" />
@@ -76,7 +76,7 @@ export function RSVPFilter({
               </Button>
               <Button 
                 variant="outline"
-                onClick={() => window.location.href = '/communities/create'}
+                onClick={() => window.location.href = '/groups/create'}
                 className="flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
