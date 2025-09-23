@@ -452,7 +452,7 @@ BEGIN
         
         -- Generate shareable URL
         IF show_record.community_slug IS NOT NULL THEN
-            new_shareable_url := '/c/' || show_record.community_slug || '/e/' || new_public_id;
+            new_shareable_url := '/comm/' || show_record.community_slug || '/event/' || new_public_id;
         ELSE
             new_shareable_url := '/share/' || new_public_id;
         END IF;
@@ -1002,7 +1002,7 @@ BEGIN
         
         -- Generate shareable URL
         IF show_record.community_slug IS NOT NULL THEN
-            new_shareable_url := '/c/' || show_record.community_slug || '/e/' || new_public_id;
+            new_shareable_url := '/comm/' || show_record.community_slug || '/event/' || new_public_id;
         ELSE
             new_shareable_url := '/share/' || new_public_id;
         END IF;

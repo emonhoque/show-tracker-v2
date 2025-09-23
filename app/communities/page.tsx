@@ -59,7 +59,7 @@ export default function CommunitiesPage() {
   }
 
   const handleCommunityClick = (numericId: string) => {
-    router.push(`/communities/${numericId}`)
+    router.push(`/comm/${numericId}`)
   }
 
   if (loading) {
@@ -178,7 +178,7 @@ export default function CommunitiesPage() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        router.push(`/communities/${community.community_numeric_id}/settings`)
+                        router.push(`/comm/${community.community_numeric_id}/settings`)
                       }}
                     >
                       <Settings className="h-4 w-4" />

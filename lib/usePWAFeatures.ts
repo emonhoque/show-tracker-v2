@@ -39,14 +39,14 @@ export function usePWAFeatures() {
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isPWA || window.scrollY > 0) return
     
-    touchStartY.current = e.touches[0].clientY
+    touchStartY.current = e.touches[0]?.clientY || 0
     setPullToRefreshState(prev => ({ ...prev, isPulling: true }))
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isPWA || !pullToRefreshState.isPulling || window.scrollY > 0) return
 
-    touchCurrentY.current = e.touches[0].clientY
+    touchCurrentY.current = e.touches[0]?.clientY || 0
     const pullDistance = Math.max(0, touchCurrentY.current - touchStartY.current)
     const limitedDistance = Math.min(pullDistance, maxPullDistance)
     

@@ -34,14 +34,15 @@ interface ShowCardProps {
   show: Show
   isPast: boolean
   rsvps: RSVPSummary
+  userRsvpStatus?: string | null
   onEdit?: (show: Show) => void
   onDelete?: (showId: string) => void
   onRSVPUpdate?: () => void
   communitySlug?: string
 }
 
-export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, communitySlug }: ShowCardProps) {
-  const { user, profileData } = useAuth()
+export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete, onRSVPUpdate, communitySlug }: ShowCardProps) {
+  const { profileData } = useAuth()
   const [loading, setLoading] = useState(false)
   const [imageModalOpen, setImageModalOpen] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
@@ -158,26 +159,15 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, 
     }
   }
 
-  // Get current user's RSVP status
-  const [userStatus, setUserStatus] = useState<'going' | 'maybe' | 'not_going' | null>(null)
+  // Get current user's RSVP status from props
+  const [userStatus, setUserStatus] = useState<'going' | 'maybe' | 'not_going' | null>(
+    (userRsvpStatus as 'going' | 'maybe' | 'not_going' | null) || null
+  )
 
+  // Update userStatus when userRsvpStatus prop changes
   useEffect(() => {
-    const fetchUserRSVPStatus = async () => {
-      if (!user || !show.id) return
-
-      try {
-        const response = await authenticatedFetch(`/api/rsvps/${show.id}/user`)
-        if (response.ok) {
-          const rsvpData = await response.json()
-          setUserStatus(rsvpData.status)
-        }
-      } catch (error) {
-        console.error('Error fetching user RSVP status:', error)
-      }
-    }
-
-    fetchUserRSVPStatus()
-  }, [user, show.id])
+    setUserStatus((userRsvpStatus as 'going' | 'maybe' | 'not_going' | null) || null)
+  }, [userRsvpStatus])
 
   const handleShare = async () => {
     setShareLoading(true)
@@ -187,7 +177,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, 
         try {
           const shareUrl = show.shareable_url || 
             (show.public_id ? 
-              `${window.location.origin}${communitySlug ? `/c/${communitySlug}/e/${show.public_id}` : `/share/${show.public_id}`}` : 
+              `${window.location.origin}${communitySlug ? `/comm/${communitySlug}/event/${show.public_id}` : `/share/${show.public_id}`}` : 
               null
             )
           
@@ -245,7 +235,7 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, 
         // Use existing shareable URL
         const shareUrl = show.shareable_url || 
           (show.public_id ? 
-            `${window.location.origin}${communitySlug ? `/c/${communitySlug}/e/${show.public_id}` : `/share/${show.public_id}`}` : 
+            `${window.location.origin}${communitySlug ? `/comm/${communitySlug}/event/${show.public_id}` : `/share/${show.public_id}`}` : 
             null
           )
         

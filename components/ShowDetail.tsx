@@ -60,9 +60,9 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
   useEffect(() => {
     if (profileData?.name) {
       setUserName(profileData.name)
-    } else if (user?.user_metadata?.full_name) {
+    } else if (user?.user_metadata?.['full_name']) {
       // Use display name from session as fallback
-      setUserName(user.user_metadata.full_name)
+      setUserName(user.user_metadata['full_name'])
     }
   }, [profileData, user])
 
@@ -103,7 +103,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
       // Construct URL from public ID
       const baseUrl = window.location.origin
       if (communityId) {
-        setShareUrl(`${baseUrl}/c/${communityId}/e/${show.public_id}`)
+        setShareUrl(`${baseUrl}/comm/${communityId}/event/${show.public_id}`)
       } else {
         setShareUrl(`${baseUrl}/share/${show.public_id}`)
       }
@@ -251,7 +251,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
   }
 
   // Get the current user's name for status checking (use session data as fallback)
-  const currentUserName = userName || user?.user_metadata?.full_name || user?.user_metadata?.name
+  const currentUserName = userName || user?.user_metadata?.['full_name'] || user?.user_metadata?.['name']
   
   
   const userStatus = currentUserName && rsvps
@@ -272,7 +272,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
       {/* Back Button */}
       <div className="mb-6">
         <Link 
-          href="/"
+          href="/home"
           className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />

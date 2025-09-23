@@ -39,21 +39,22 @@ export const metadata: Metadata = {
       { url: '/assets/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
     ]
   },
-  manifest: '/assets/site.webmanifest',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'EDM Adoption Clinic Show Tracker' // change to your own title
-  },
-  other: {
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'default',
-    'apple-mobile-web-app-title': 'EDM Adoption Clinic Show Tracker', // change to your own title
-    'application-name': 'EDM Adoption Clinic Show Tracker', // change to your own title
-    'msapplication-TileColor': '#1f2937',
-    'msapplication-config': '/browserconfig.xml'
-  }
+  // PWA features disabled for development
+  // manifest: '/assets/site.webmanifest',
+  // appleWebApp: {
+  //   capable: true,
+  //   statusBarStyle: 'default',
+  //   title: 'EDM Adoption Clinic Show Tracker' // change to your own title
+  // },
+  // other: {
+  //   'mobile-web-app-capable': 'yes',
+  //   'apple-mobile-web-app-capable': 'yes',
+  //   'apple-mobile-web-app-status-bar-style': 'default',
+  //   'apple-mobile-web-app-title': 'EDM Adoption Clinic Show Tracker', // change to your own title
+  //   'application-name': 'EDM Adoption Clinic Show Tracker', // change to your own title
+  //   'msapplication-TileColor': '#1f2937',
+  //   'msapplication-config': '/browserconfig.xml'
+  // }
 };
 
 export const viewport: Viewport = {

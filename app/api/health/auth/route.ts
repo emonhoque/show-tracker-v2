@@ -15,11 +15,11 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       googleAuth: {
         enabled: true, // Always enabled now
-        configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+        configured: !!(process.env['GOOGLE_CLIENT_ID'] && process.env['GOOGLE_CLIENT_SECRET'])
       },
       supabaseAuth: {
         enabled: true, // Always enabled now
-        configured: !!(process.env.SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+        configured: !!(process.env['SUPABASE_URL'] && process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'])
       },
       passwordAuth: {
         enabled: false, // Removed

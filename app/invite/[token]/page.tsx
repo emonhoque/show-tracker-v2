@@ -10,7 +10,7 @@ import { CheckCircle, XCircle, Loader2, Users } from 'lucide-react'
 
 export default function InvitePage() {
   const params = useParams()
-  const token = params.token as string
+  const token = params['token'] as string
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)

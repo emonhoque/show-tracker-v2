@@ -199,10 +199,12 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
       
       const weekKey = weekStart.toISOString().split('T')[0]
       
-      if (!groups[weekKey]) {
+      if (weekKey && !groups[weekKey]) {
         groups[weekKey] = []
       }
-      groups[weekKey].push(release)
+      if (weekKey) {
+        groups[weekKey]?.push(release)
+      }
     })
     
     // Sort weeks by date (newest first)
@@ -262,7 +264,10 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
       const weekGroups = groupReleasesByWeek(releases)
       if (weekGroups.length > 0) {
         // Only expand the first (newest) week
-        setExpandedWeeks(new Set([weekGroups[0].weekStart]))
+        const firstWeekStart = weekGroups[0]?.weekStart
+        if (firstWeekStart) {
+          setExpandedWeeks(new Set([firstWeekStart]))
+        }
       }
     }
   }, [releases, weeks])
@@ -358,7 +363,7 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
                           <ChevronRight className="h-4 w-4" />
                         )}
                         <span className="text-lg font-semibold text-foreground">
-                          {formatWeekLabel(weekGroup.weekStart, weekGroup.weekEnd)}
+                          {formatWeekLabel(weekGroup.weekStart, weekGroup.weekEnd || weekGroup.weekStart)}
                         </span>
                       </div>
                       <span className="text-sm font-normal text-muted-foreground">
@@ -426,3 +431,5 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
     </div>
   )
 }
+
+export default ReleasesFeed

@@ -51,8 +51,13 @@ export default function ProfilePage() {
       }
     }
 
-    fetchProfile()
-  }, [user])
+    // Only fetch if we don't already have profile data
+    if (user && !profile) {
+      fetchProfile()
+    } else if (!user) {
+      setLoadingProfile(false)
+    }
+  }, [user, profile]) // Add profile dependency to prevent refetching
 
   const handleSaveName = async () => {
     if (!displayName.trim()) {
@@ -94,7 +99,7 @@ export default function ProfilePage() {
   }
 
   const handleCancelEdit = () => {
-    setDisplayName(profile?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '')
+    setDisplayName(profile?.name || user?.user_metadata?.['full_name'] || user?.email?.split('@')[0] || '')
     setError('')
     setIsEditingName(false)
   }
@@ -132,9 +137,9 @@ export default function ProfilePage() {
               {/* Profile Picture */}
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {profile?.avatar_url || user?.user_metadata?.avatar_url ? (
+                  {profile?.avatar_url || user?.user_metadata?.['avatar_url'] ? (
                     <Image
-                      src={profile?.avatar_url || user?.user_metadata?.avatar_url || ''}
+                      src={profile?.avatar_url || user?.user_metadata?.['avatar_url'] || ''}
                       alt="Profile"
                       width={64}
                       height={64}
@@ -145,7 +150,7 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div>
-                  <p className="font-medium">{profile?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0]}</p>
+                  <p className="font-medium">{profile?.name || user?.user_metadata?.['full_name'] || user?.email?.split('@')[0]}</p>
                   <p className="text-sm text-muted-foreground">{profile?.email || user?.email}</p>
                 </div>
               </div>

@@ -19,6 +19,10 @@ interface CommunityMemberWithProfile extends CommunityMember {
   }
 }
 
+// interface CommunitySettingsPageProps {
+//   params: Promise<{ id: string }>  // id is the community numeric_id
+// } // Unused interface
+
 export default function CommunitySettingsPage() {
   const params = useParams()
   const router = useRouter()
@@ -60,7 +64,7 @@ export default function CommunitySettingsPage() {
         return
       }
       
-      // First, get user's communities to find the community ID by slug
+      // First, get user's communities to find the community ID by numeric_id
       const communitiesResponse = await fetch('/api/communities', {
         method: 'GET',
         headers: {
@@ -76,7 +80,7 @@ export default function CommunitySettingsPage() {
       }
       
       const foundCommunity = communitiesData.communities.find(
-        (c: { community_numeric_id: string }) => c.community_numeric_id === params.slug
+        (c: { community_numeric_id: string }) => c.community_numeric_id === params['id']
       )
       
       if (!foundCommunity) {
@@ -116,7 +120,7 @@ export default function CommunitySettingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [params.slug])
+  }, [params['id']])
 
   const loadCommunityMembers = async (communityId: string, accessToken: string) => {
     try {
@@ -166,7 +170,7 @@ export default function CommunitySettingsPage() {
 
   useEffect(() => {
     loadCommunityData()
-  }, [params.slug, loadCommunityData])
+  }, [params['id'], loadCommunityData])
 
   const handleSaveSettings = async () => {
     if (!community || !isAdmin) return

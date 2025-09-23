@@ -46,8 +46,8 @@ export function formatUserTime(utcDate: string | Date, userTimeInput: string): s
     }
     
     const [hours, minutes] = userTimeInput.split(':')
-    const hour = parseInt(hours, 10)
-    const minute = parseInt(minutes, 10)
+    const hour = parseInt(hours || '0', 10)
+    const minute = parseInt(minutes || '0', 10)
     
     // Validate parsed values
     if (isNaN(hour) || isNaN(minute)) {

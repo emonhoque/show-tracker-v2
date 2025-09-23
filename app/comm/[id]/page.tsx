@@ -8,6 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Layout } from '@/components/Layout'
 import { ArrowLeft, Users, Settings, Crown, UserPlus, Share2, Copy, Check } from 'lucide-react'
 
+// interface CommunityPageProps {
+//   params: Promise<{ id: string }>  // id is the community numeric_id
+// } // Unused interface
+
 export default function CommunityPage() {
   const params = useParams()
   const router = useRouter()
@@ -58,7 +62,7 @@ export default function CommunityPage() {
         return
       }
       
-      // Get user's communities to find the one with matching slug
+      // Get user's communities to find the one with matching numeric_id
       const response = await fetch('/api/communities', {
         method: 'GET',
         headers: {
@@ -70,7 +74,7 @@ export default function CommunityPage() {
       
       if (response.ok && data.success && data.communities) {
         const foundCommunity = data.communities.find(
-          (c: UserCommunity) => c.community_numeric_id === params.slug
+          (c: UserCommunity) => c.community_numeric_id === params['id']
         )
         
         if (foundCommunity) {
@@ -98,11 +102,11 @@ export default function CommunityPage() {
     } finally {
       setLoading(false)
     }
-  }, [params.slug, loadCommunityMembers])
+  }, [params['id'], loadCommunityMembers])
 
   useEffect(() => {
     loadCommunityData()
-  }, [params.slug, loadCommunityData])
+  }, [params['id'], loadCommunityData])
 
   const handleCreateInviteLink = async () => {
     if (!community) return
@@ -155,7 +159,7 @@ export default function CommunityPage() {
   }
 
   const handleManageSettings = () => {
-    router.push(`/communities/${params.slug}/settings`)
+    router.push(`/comm/${params['id']}/settings`)
   }
 
   if (loading) {
@@ -276,8 +280,8 @@ export default function CommunityPage() {
                 <p className="text-lg">{community.name}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Slug</label>
-                <p className="text-lg font-mono">{community.slug}</p>
+                <label className="text-sm font-medium text-gray-500">ID</label>
+                <p className="text-lg font-mono">{community.numeric_id}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Members</label>

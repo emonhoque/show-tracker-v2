@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { supabase } from '@/lib/db'
 import { randomBytes } from 'crypto'
+import { env } from '@/lib/env'
 
 export async function POST(
   request: NextRequest,
@@ -79,7 +80,7 @@ export async function POST(
     }
 
     // Generate invite URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const inviteUrl = `${baseUrl}/invite/${token}`
 
     return NextResponse.json({

@@ -21,7 +21,7 @@ class DiscordNotificationService {
   private timeout: number = 5000 // 5 seconds timeout
 
   constructor() {
-    this.baseUrl = process.env.DISCORD_BOT_API_URL
+    this.baseUrl = process.env['DISCORD_BOT_API_URL']
   }
 
   /**

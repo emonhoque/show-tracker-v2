@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // Enable experimental features for better performance
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
   },
   
   // External packages for server components (moved from experimental)
@@ -70,6 +70,8 @@ const nextConfig: NextConfig = {
       // Optimize chunk splitting for better performance
       config.optimization.splitChunks = {
         chunks: 'all',
+        minSize: 20000,
+        maxSize: 244000,
         cacheGroups: {
           default: {
             minChunks: 2,
@@ -80,6 +82,27 @@ const nextConfig: NextConfig = {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
             priority: -10,
+            chunks: 'all',
+          },
+          // Separate Supabase chunks
+          supabase: {
+            test: /[\\/]node_modules[\\/]@supabase[\\/]/,
+            name: 'supabase',
+            priority: 20,
+            chunks: 'all',
+          },
+          // Separate Radix UI chunks
+          radix: {
+            test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+            name: 'radix',
+            priority: 15,
+            chunks: 'all',
+          },
+          // Separate Lucide React chunks
+          lucide: {
+            test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
+            name: 'lucide',
+            priority: 10,
             chunks: 'all',
           },
           // Separate CSS chunks to reduce serialization overhead
@@ -106,6 +129,15 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/_next/static/chunks/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/css/:path*',
         headers: [
           {
             key: 'Cache-Control',

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { createClient } from './supabase'
 import type { User } from '@supabase/supabase-js'
+import { env } from './env'
 
 interface AuthContextType {
   user: User | null
@@ -53,7 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signOut = useCallback(async () => {
     try {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         console.error('Supabase environment variables not available for sign out')
         return
       }
@@ -67,7 +68,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshUser = useCallback(async () => {
     try {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         console.error('Supabase environment variables not available for refresh user')
         return
       }
@@ -96,10 +97,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true
 
-    const initializeAuth = async () => {
+    const initializeAuth = async (): Promise<void> => {
       try {
         // Check if environment variables are available
-        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
           console.error('Supabase environment variables not available')
           if (mounted) {
             setLoading(false)
@@ -131,13 +132,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (_event, session) => {
+          async (event, session) => {
             if (mounted) {
               setUser(session?.user ?? null)
               setLoading(false)
               
-              // Load profile data if user is authenticated
-              if (session?.user) {
+              // Only load profile data on sign in, not on every auth change
+              if (session?.user && event === 'SIGNED_IN') {
                 try {
                   const response = await fetch('/api/profile')
                   if (response.ok) {
@@ -147,16 +148,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 } catch (error) {
                   console.error('Error loading profile on auth change:', error)
                 }
-              } else {
+              } else if (!session?.user) {
                 setProfileData(null)
               }
             }
           }
         )
 
-        return () => {
-          subscription.unsubscribe()
-        }
+        // Store subscription for cleanup
+        subscription.unsubscribe()
       } catch (error) {
         console.error('Error initializing auth:', error)
         if (mounted) {
@@ -165,11 +165,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     }
 
-    const cleanup = initializeAuth()
+    initializeAuth()
 
     return () => {
       mounted = false
-      cleanup.then(cleanupFn => cleanupFn?.())
     }
   }, [])
 

@@ -6,13 +6,13 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 interface ShowPageProps {
   params: Promise<{
-    communityId: string
-    publicId: string
+    id: string        // community numeric_id
+    publicId: string  // event public_id
   }>
 }
 
 export default async function ShowPage({ params }: ShowPageProps) {
-  const { communityId, publicId } = await params
+  const { id, publicId } = await params
 
   try {
     // Check authentication first
@@ -21,12 +21,12 @@ export default async function ShowPage({ params }: ShowPageProps) {
     
     if (authError || !user) {
       // Redirect to access denied page for authentication
-      const returnUrl = `/c/${communityId}/e/${publicId}`
+      const returnUrl = `/comm/${id}/event/${publicId}`
       redirect(`/access-denied?reason=auth&returnUrl=${encodeURIComponent(returnUrl)}`)
     }
 
     // Get the show data
-    const result = await getShowByPublicId(publicId, communityId)
+    const result = await getShowByPublicId(publicId, id)
 
     if (!result.success || !result.show) {
       notFound()
@@ -77,7 +77,7 @@ export default async function ShowPage({ params }: ShowPageProps) {
           <ShowDetail 
             show={result.show} 
             rsvps={result.rsvps}
-            communityId={communityId}
+            communityId={id}
           />
         </div>
       </ShareableLayout>
@@ -96,7 +96,7 @@ export default async function ShowPage({ params }: ShowPageProps) {
 
 // Generate metadata for the page
 export async function generateMetadata({ params }: ShowPageProps) {
-  const { communityId, publicId } = await params
+  const { id, publicId } = await params
 
   try {
     // Check authentication for metadata generation
@@ -110,7 +110,7 @@ export async function generateMetadata({ params }: ShowPageProps) {
       }
     }
 
-    const result = await getShowByPublicId(publicId, communityId)
+    const result = await getShowByPublicId(publicId, id)
 
     if (!result.success || !result.show) {
       return {

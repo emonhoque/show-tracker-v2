@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GoogleAuthGate } from '@/components/GoogleAuthGate'
@@ -12,7 +12,7 @@ import { ShowCardSkeleton } from '@/components/ShowCardSkeleton'
 import { AddShowModal } from '@/components/AddShowModal'
 import { EditShowModal } from '@/components/EditShowModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
-import { PWAFeatures } from '@/components/PWAFeatures'
+// import { PWAFeatures } from '@/components/PWAFeatures' // Unused import
 import { RSVPFilter } from '@/components/RSVPFilter'
 import { RSVPFilterSkeleton } from '@/components/RSVPFilterSkeleton'
 import { ReleasesFeed } from '@/components/ReleasesFeed'
@@ -35,6 +35,7 @@ export default function Home() {
   const [upcomingShows, setUpcomingShows] = useState<Show[]>([])
   const [pastShows, setPastShows] = useState<Show[]>([])
   const [rsvpsData, setRsvpsData] = useState<Record<string, RSVPSummary>>({})
+  const [userRsvpStatuses, setUserRsvpStatuses] = useState<Record<string, string | null>>({})
   const [selectedStatusFilters, setSelectedStatusFilters] = useState<Set<string>>(new Set(['all']))
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState<Set<string>>(new Set(['all']))
   const [filteredUpcomingShows, setFilteredUpcomingShows] = useState<Show[]>([])
@@ -58,31 +59,53 @@ export default function Home() {
   const [loadingCommunities, setLoadingCommunities] = useState(true)
   const [isOffline, setIsOffline] = useState(false)
   const [cacheVersion, setCacheVersion] = useState(0)
+  // const hasLoadedData = useRef(false) // Unused variable
+  const isLoadingData = useRef(false)
+  const lastLoadTime = useRef(0)
+  const hasLoadedCommunities = useRef(false)
+  const activeRequests = useRef(new Set<string>())
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null)
+  const rsvpDebounceTimeouts = useRef<Record<string, NodeJS.Timeout>>({})
 
-  // Helper function for authenticated requests
+  // Helper function for authenticated requests with deduplication
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+    // Check if this request is already in progress
+    if (activeRequests.current.has(url)) {
+      console.log(`Request already in progress for ${url}, skipping duplicate`)
+      return new Response(null, { status: 200, statusText: 'Duplicate request skipped' })
+    }
+
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session?.access_token) {
       throw new Error('No session token available')
     }
+
+    // Mark request as active
+    activeRequests.current.add(url)
     
-    return fetch(url, {
-      ...options,
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
-        ...options.headers,
-      },
-    })
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+          ...options.headers,
+        },
+      })
+      return response
+    } finally {
+      // Remove from active requests when done
+      activeRequests.current.delete(url)
+    }
   }
 
   // Update userName when user changes
   useEffect(() => {
     if (user) {
-      setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'User')
+      setUserName(user.user_metadata?.['full_name'] || user.email?.split('@')[0] || 'User')
     } else {
       setUserName(null)
     }
@@ -133,6 +156,21 @@ export default function Home() {
     }
   }, [currentCommunity])
 
+  const fetchUserRsvpStatuses = useCallback(async (showIds: string[]) => {
+    if (showIds.length === 0) return
+    
+    try {
+      // Fetch all user RSVP statuses in a single request
+      const response = await authenticatedFetch(`/api/rsvps/bulk?show_ids=${showIds.join(',')}`)
+      if (response.ok) {
+        const data = await response.json()
+        setUserRsvpStatuses(data.statuses || {})
+      }
+    } catch (error) {
+      console.error('Error fetching user RSVP statuses:', error)
+    }
+  }, [])
+
   const fetchShows = useCallback(async (pastPage: number = 1, isLoadMore: boolean = false) => {
     if (isLoadMore) {
       setLoadingMore(true)
@@ -162,6 +200,10 @@ export default function Home() {
             })
             
             setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+            
+            // Fetch user RSVP statuses for all upcoming shows
+            const upcomingShowIds = upcomingData.map((show: Show) => show.id)
+            fetchUserRsvpStatuses(upcomingShowIds)
           } else {
             console.error('Invalid upcoming shows data format:', upcomingData)
             setUpcomingShows([])
@@ -201,6 +243,10 @@ export default function Home() {
             }
           })
           setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+          
+          // Fetch user RSVP statuses for past shows
+          const pastShowIds = pastData.shows.map((show: Show) => show.id)
+          fetchUserRsvpStatuses(pastShowIds)
         } else {
           console.error('Invalid past shows data format:', pastData)
           console.error('Expected: { shows: Array, pagination: Object }')
@@ -224,11 +270,12 @@ export default function Home() {
         setLoading(false)
       }
     }
-  }, [cacheVersion, selectedCategoryFilters, currentCommunity])
+  }, [cacheVersion, selectedCategoryFilters, currentCommunity, fetchUserRsvpStatuses])
 
   // Load user communities when authenticated
   useEffect(() => {
-    if (user) {
+    if (user && !hasLoadedCommunities.current) {
+      hasLoadedCommunities.current = true
       const loadUserCommunities = async () => {
         setLoadingCommunities(true)
         try {
@@ -247,17 +294,12 @@ export default function Home() {
             if (!currentCommunity && data.communities.length > 0) {
               const storedCommunityId = localStorage.getItem('selectedCommunityId')
               const selectedCommunity = storedCommunityId 
-                ? data.communities.find((c: { community_id: string }) => c.community_id === storedCommunityId)
+                ? data.communities.find((c: { community_id: string; community?: Community }) => c.community_id === storedCommunityId)
                 : data.communities[0]
               
-              if (selectedCommunity) {
-                // Get full community details
-                const communityResponse = await authenticatedFetch(`/api/communities?id=${selectedCommunity.community_id}`)
-                const communityData = await communityResponse.json()
-                
-                if (communityResponse.ok && communityData.success && communityData.community) {
-                  setCurrentCommunity(communityData.community)
-                }
+              if (selectedCommunity && selectedCommunity.community) {
+                // Use the community data from the bulk call - no additional API call needed!
+                setCurrentCommunity(selectedCommunity.community)
               }
             }
           }
@@ -268,18 +310,53 @@ export default function Home() {
         }
       }
       loadUserCommunities()
-    } else {
+    } else if (!user) {
       setLoadingCommunities(false)
+      hasLoadedCommunities.current = false
     }
-  }, [user, currentCommunity])
+  }, [user, currentCommunity]) // Include currentCommunity dependency
 
   // Fetch shows and category stats when authenticated
   useEffect(() => {
-    if (user) {
-      fetchShows()
-      fetchCategoryStats()
+    // Clear any existing debounce timeout
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current)
     }
-  }, [user, fetchShows, fetchCategoryStats, currentCommunity])
+
+    // Debounce the data loading to prevent rapid successive calls
+    debounceTimeout.current = setTimeout(() => {
+      const now = Date.now()
+      const timeSinceLastLoad = now - lastLoadTime.current
+      
+      if (user && currentCommunity && !isLoadingData.current && timeSinceLastLoad > 1000) {
+        isLoadingData.current = true
+        lastLoadTime.current = now
+        console.log('Loading data for community:', currentCommunity.id)
+        
+        const loadData = async () => {
+          try {
+            await Promise.all([
+              fetchShows(),
+              fetchCategoryStats()
+            ])
+          } catch (error) {
+            console.error('Error loading data:', error)
+          } finally {
+            isLoadingData.current = false
+          }
+        }
+        
+        loadData()
+      }
+    }, 300) // 300ms debounce
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current)
+      }
+    }
+  }, [user, currentCommunity?.id, fetchShows, fetchCategoryStats, currentCommunity]) // Include function dependencies
 
   // Apply filters to upcoming shows
   useEffect(() => {
@@ -402,13 +479,42 @@ export default function Home() {
   }
 
   const updateRSVPs = async (showId: string) => {
-    try {
-      const response = await authenticatedFetch(`/api/rsvps/${showId}`)
-      const data = await response.json()
-      setRsvpsData(prev => ({ ...prev, [showId]: data }))
-    } catch (error) {
-      console.error(`Error updating RSVPs for show ${showId}:`, error)
+    // Clear any existing debounce timeout for this show
+    if (rsvpDebounceTimeouts.current[showId]) {
+      clearTimeout(rsvpDebounceTimeouts.current[showId])
     }
+
+    // Debounce RSVP updates to prevent rapid successive calls
+    rsvpDebounceTimeouts.current[showId] = setTimeout(async () => {
+      // Check if this RSVP update is already in progress
+      const rsvpKey = `rsvp-${showId}`
+      if (activeRequests.current.has(rsvpKey)) {
+        console.log(`RSVP update already in progress for show ${showId}, skipping duplicate`)
+        return
+      }
+
+      try {
+        // Mark RSVP update as active
+        activeRequests.current.add(rsvpKey)
+        
+        // Update RSVPs data
+        const response = await authenticatedFetch(`/api/rsvps/${showId}`)
+        const data = await response.json()
+        setRsvpsData(prev => ({ ...prev, [showId]: data }))
+        
+        // Update user RSVP status
+        const userResponse = await authenticatedFetch(`/api/rsvps/${showId}/user`)
+        if (userResponse.ok) {
+          const userData = await userResponse.json()
+          setUserRsvpStatuses(prev => ({ ...prev, [showId]: userData.status }))
+        }
+      } catch (error) {
+        console.error(`Error updating RSVPs for show ${showId}:`, error)
+      } finally {
+        // Remove from active requests when done
+        activeRequests.current.delete(rsvpKey)
+      }
+    }, 200) // 200ms debounce for RSVP updates
   }
 
   const handleDeleteShow = (showId: string) => {
@@ -600,6 +706,7 @@ export default function Home() {
                   show={show} 
                   isPast={false} 
                   rsvps={rsvpsData[show.id] || { going: [], maybe: [], not_going: [] }}
+                  userRsvpStatus={userRsvpStatuses[show.id] || null}
                   onEdit={handleEditShow}
                   onDelete={handleDeleteShow}
                   onRSVPUpdate={() => updateRSVPs(show.id)}
@@ -642,6 +749,7 @@ export default function Home() {
                     show={show} 
                     isPast={true} 
                     rsvps={rsvpsData[show.id] || { going: [], maybe: [], not_going: [] }}
+                    userRsvpStatus={userRsvpStatuses[show.id] || null}
                     onEdit={handleEditShow}
                     onDelete={handleDeleteShow}
                     onRSVPUpdate={() => updateRSVPs(show.id)}
@@ -698,7 +806,8 @@ export default function Home() {
       />
 
       {/* PWA Features */}
-      <PWAFeatures onRefresh={fetchShows} />
+      {/* PWA features disabled in development */}
+      {/* <PWAFeatures onRefresh={fetchShows} /> */}
     </Layout>
   )
 }

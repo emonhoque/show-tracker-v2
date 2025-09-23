@@ -11,7 +11,7 @@ import {
 
 // Feature flag check
 function isShareableUrlsEnabled(): boolean {
-  return process.env.ENABLE_SHAREABLE_URLS === 'true' || process.env.NODE_ENV === 'development'
+  return process.env['ENABLE_SHAREABLE_URLS'] === 'true' || process.env.NODE_ENV === 'development'
 }
 
 // Generate a unique public ID
@@ -94,7 +94,7 @@ export async function generateShareableUrl(showId: string): Promise<ShareableUrl
     const publicId = generatePublicId()
     const slug = createSlug(show.title)
     const shareableUrl = communityNumericId 
-      ? `/c/${communityNumericId}/e/${publicId}`
+      ? `/comm/${communityNumericId}/event/${publicId}`
       : `/share/${publicId}`
 
     // Update the show with the new shareable URL
@@ -207,7 +207,7 @@ export async function getShowByPublicId(
 
     if (rsvps) {
       rsvps.forEach((rsvp) => {
-        const name = (rsvp.profiles as { name: string })?.name || 'Unknown User'
+        const name = (rsvp.profiles as { name: string }[])?.[0]?.name || 'Unknown User'
         if (rsvp.status === 'going') {
           rsvpSummary.going.push(name)
         } else if (rsvp.status === 'maybe') {

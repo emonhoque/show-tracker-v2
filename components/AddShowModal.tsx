@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectTrigger, SelectContent, SelectOption } from '@/components/ui/select'
+import { clientLogger } from '@/lib/client-logger'
 
 interface AddShowModalProps {
   open: boolean
@@ -136,7 +137,7 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
         setUploading(false)
       }
 
-      console.log('Submitting show with community_id:', communityId)
+      clientLogger.debug('Submitting show', { communityId })
       const response = await authenticatedFetch('/api/shows', {
         method: 'POST',
         body: JSON.stringify({ ...formData, poster_url: posterUrl, community_id: communityId })
@@ -166,7 +167,7 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
       onOpenChange(false)
       onShowAdded()
     } catch (error) {
-      console.error('Error creating show:', error)
+      clientLogger.error('Error creating show', { error })
       setError(error instanceof Error ? error.message : 'Failed to create show')
     } finally {
       setSaving(false)
@@ -272,37 +273,43 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
           
           <div className="space-y-4 py-4 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Title *</label>
+              <label htmlFor="show-title" className="text-sm font-medium text-foreground">Title *</label>
                 <Input
+                  id="show-title"
                   value={formData.title}
                   onChange={(e) => handleChange('title', e.target.value)}
                   placeholder="Show title"
                   className="w-full h-10 text-sm"
                   style={{ fontSize: '16px' }}
                   required
+                  aria-describedby="title-required"
                 />
+                <div id="title-required" className="sr-only">Title is required</div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
               <div className="space-y-2 min-w-0">
-                <label className="text-sm font-medium text-foreground">Date *</label>
+                <label htmlFor="show-date" className="text-sm font-medium text-foreground">Date *</label>
                 <Input
+                  id="show-date"
                   type="date"
                   value={formData.date_local}
                   onChange={(e) => handleChange('date_local', e.target.value)}
                   className="w-full h-10 text-sm"
                   style={{ fontSize: '16px' }}
                   required
+                  aria-describedby="date-required"
                 />
+                <div id="date-required" className="sr-only">Date is required</div>
               </div>
               
               <div className="space-y-2 min-w-0">
-                <label className="text-sm font-medium text-foreground">Time *</label>
+                <label htmlFor="show-time" className="text-sm font-medium text-foreground">Time *</label>
                 <Select
                   value={formData.time_local}
                   onChange={(value) => handleChange('time_local', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="show-time" aria-describedby="time-required">
                     {formData.time_local ? 
                       new Date(`2000-01-01T${formData.time_local}`).toLocaleTimeString('en-US', {
                         hour: 'numeric',
@@ -312,6 +319,7 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
                       'Select time'
                     }
                   </SelectTrigger>
+                  <div id="time-required" className="sr-only">Time is required</div>
                   <SelectContent>
                     <SelectOption value="">Select time</SelectOption>
                     {Array.from({ length: 24 }, (_, index) => {
@@ -334,36 +342,42 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Location *</label>
+              <label htmlFor="show-location" className="text-sm font-medium text-foreground">Location *</label>
               <Input
+                id="show-location"
                 value={formData.city}
                 onChange={(e) => handleChange('city', e.target.value)}
                 placeholder="Location name"
                 className="w-full h-10 text-sm"
                 style={{ fontSize: '16px' }}
                 required
+                aria-describedby="location-required"
               />
+              <div id="location-required" className="sr-only">Location is required</div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Venue *</label>
+              <label htmlFor="show-venue" className="text-sm font-medium text-foreground">Venue *</label>
               <Input
+                id="show-venue"
                 value={formData.venue}
                 onChange={(e) => handleChange('venue', e.target.value)}
                 placeholder="Venue name"
                 className="w-full h-10 text-sm"
                 style={{ fontSize: '16px' }}
                 required
+                aria-describedby="venue-required"
               />
+              <div id="venue-required" className="sr-only">Venue is required</div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Category</label>
+              <label htmlFor="show-category" className="text-sm font-medium text-foreground">Category</label>
               <Select
                 value={formData.category}
                 onChange={(value) => handleChange('category', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="show-category" aria-label="Select category">
                   {getCategoryInfo(formData.category as ShowCategory).label}
                 </SelectTrigger>
                 <SelectContent>
@@ -380,43 +394,52 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Ticket URL</label>
+              <label htmlFor="show-ticket-url" className="text-sm font-medium text-foreground">Ticket URL</label>
               <Input
+                id="show-ticket-url"
                 type="url"
                 value={formData.ticket_url}
                 onChange={(e) => handleChange('ticket_url', e.target.value)}
                 placeholder="https://..."
                 className="w-full h-10 text-sm"
                 style={{ fontSize: '16px' }}
+                aria-describedby="ticket-url-help"
               />
+              <div id="ticket-url-help" className="sr-only">Optional ticket purchase URL</div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Spotify URL</label>
+              <label htmlFor="show-spotify-url" className="text-sm font-medium text-foreground">Spotify URL</label>
               <Input
+                id="show-spotify-url"
                 type="url"
                 value={formData.spotify_url}
                 onChange={(e) => handleChange('spotify_url', e.target.value)}
                 placeholder="https://open.spotify.com/..."
                 className="w-full h-10 text-sm"
                 style={{ fontSize: '16px' }}
+                aria-describedby="spotify-url-help"
               />
+              <div id="spotify-url-help" className="sr-only">Optional Spotify URL for the artist</div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Apple Music URL</label>
+              <label htmlFor="show-apple-music-url" className="text-sm font-medium text-foreground">Apple Music URL</label>
               <Input
+                id="show-apple-music-url"
                 type="url"
                 value={formData.apple_music_url}
                 onChange={(e) => handleChange('apple_music_url', e.target.value)}
                 placeholder="https://music.apple.com/..."
                 className="w-full h-10 text-sm"
                 style={{ fontSize: '16px' }}
+                aria-describedby="apple-music-url-help"
               />
+              <div id="apple-music-url-help" className="sr-only">Optional Apple Music URL for the artist</div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Poster Image</label>
+              <label htmlFor="poster-upload" className="text-sm font-medium text-foreground">Poster Image</label>
               {!selectedFile && !previewUrl ? (
                 <div 
                   className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -425,6 +448,15 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() => document.getElementById('poster-upload')?.click()}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Upload poster image"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      document.getElementById('poster-upload')?.click()
+                    }
+                  }}
                 >
                   <input
                     type="file"
@@ -432,12 +464,14 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
                     onChange={handleFileSelect}
                     className="hidden"
                     id="poster-upload"
+                    aria-describedby="poster-upload-help"
                   />
                   <div className="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100">
                     Click to upload or drag and drop poster image
                     <br />
                     <span className="text-xs text-gray-400 dark:text-gray-400">JPEG, PNG, WebP (max 10MB)</span>
                   </div>
+                  <div id="poster-upload-help" className="sr-only">Upload a poster image for the show. Supported formats: JPEG, PNG, WebP. Maximum size: 10MB.</div>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -486,18 +520,21 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Notes</label>
+              <label htmlFor="show-notes" className="text-sm font-medium text-foreground">Notes</label>
               <textarea
+                id="show-notes"
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
                 placeholder="Additional information..."
                 className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] dark:text-foreground resize-none min-h-[60px]"
                 rows={3}
+                aria-describedby="notes-help"
               />
+              <div id="notes-help" className="sr-only">Optional additional information about the show</div>
             </div>
             
             {error && (
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-600" role="alert" aria-live="polite">{error}</p>
             )}
           </div>
           
@@ -508,10 +545,16 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
               onClick={() => onOpenChange(false)}
               disabled={saving}
               className="w-full sm:w-auto"
+              aria-label="Cancel and close dialog"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving || uploading} className="w-full sm:w-auto">
+            <Button 
+              type="submit" 
+              disabled={saving || uploading} 
+              className="w-full sm:w-auto"
+              aria-label={uploading ? 'Uploading poster image' : saving ? 'Saving show' : 'Add new show'}
+            >
               {uploading ? 'Uploading...' : saving ? 'Saving...' : 'Add Show'}
             </Button>
           </DialogFooter>

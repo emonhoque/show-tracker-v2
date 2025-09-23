@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from '@/lib/supabase-server'
+import { env } from '@/lib/env'
 
 export async function GET() {
   try {
@@ -33,19 +34,19 @@ export async function GET() {
         googleAuth: true, // Always enabled now
         supabaseAuth: true, // Always enabled now
         passwordAuth: false, // Removed
-        calendarExport: process.env.ENABLE_CALENDAR_EXPORT === 'true',
-        googleCalendarLinks: process.env.ENABLE_GOOGLE_CALENDAR_LINKS === 'true',
-        icsDownload: process.env.ENABLE_ICS_DOWNLOAD === 'true',
-        shareableUrls: process.env.ENABLE_SHAREABLE_URLS === 'true',
-        nativeSharing: process.env.ENABLE_NATIVE_SHARING === 'true',
-        communityMembershipRequired: process.env.REQUIRE_COMMUNITY_MEMBERSHIP === 'true',
-        publicShareEnabled: process.env.PUBLIC_SHARE_ENABLED === 'true'
+        calendarExport: env.ENABLE_CALENDAR_EXPORT,
+        googleCalendarLinks: env.ENABLE_GOOGLE_CALENDAR_LINKS,
+        icsDownload: env.ENABLE_ICS_DOWNLOAD,
+        shareableUrls: env.ENABLE_SHAREABLE_URLS,
+        nativeSharing: env.ENABLE_NATIVE_SHARING,
+        communityMembershipRequired: env.REQUIRE_COMMUNITY_MEMBERSHIP,
+        publicShareEnabled: env.PUBLIC_SHARE_ENABLED
       },
       environment: {
         nodeEnv: process.env.NODE_ENV,
-        supabaseUrl: !!process.env.SUPABASE_URL,
-        supabaseAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        googleClientId: !!process.env.GOOGLE_CLIENT_ID
+        supabaseUrl: !!env.SUPABASE_URL,
+        supabaseAnonKey: !!env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        googleClientId: !!env.GOOGLE_CLIENT_ID
       }
     }
 
@@ -86,7 +87,7 @@ export async function GET() {
 
         // Get shareable URL statistics if feature is enabled
         let shareableUrlStats = {}
-        if (process.env.ENABLE_SHAREABLE_URLS === 'true') {
+        if (env.ENABLE_SHAREABLE_URLS) {
           try {
             const { count: showsWithPublicId } = await supabaseAdmin
               .from('shows')

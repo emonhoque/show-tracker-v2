@@ -39,7 +39,7 @@ async function getShowById(showId: string): Promise<Show | null> {
 export async function generateGoogleCalendarUrlAction(showId: string, shareableUrl?: string, duration?: number): Promise<CalendarExportResult> {
   try {
     // Check if calendar export is enabled
-    if (process.env.ENABLE_CALENDAR_EXPORT !== 'true') {
+    if (process.env['ENABLE_CALENDAR_EXPORT'] !== 'true') {
       return {
         success: false,
         error: 'Calendar export is not enabled'
@@ -84,7 +84,7 @@ export async function generateGoogleCalendarUrlAction(showId: string, shareableU
 export async function generateICSFileAction(showId: string, shareableUrl?: string, duration?: number): Promise<CalendarExportResult> {
   try {
     // Check if calendar export is enabled
-    if (process.env.ENABLE_CALENDAR_EXPORT !== 'true') {
+    if (process.env['ENABLE_CALENDAR_EXPORT'] !== 'true') {
       return {
         success: false,
         error: 'Calendar export is not enabled'

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createSupabaseAdmin } from '@/lib/supabase-server'
 import { supabase } from '@/lib/db'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     if (isCurrent) {
       // Get user's first community (current/default)
-      console.log('Fetching current community for user:', user.id)
+      logger.debug('Fetching current community for user', { userId: user.id })
       
       // Get user's communities using direct query (using admin client to bypass RLS)
       const { data: communityMembers, error } = await supabase
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
         .limit(1)
       
       if (error) {
-        console.error('Failed to fetch current community:', error)
+        logger.error('Failed to fetch current community', { error, userId: user.id })
         return NextResponse.json(
           { error: 'Failed to fetch current community' },
           { status: 500 }
@@ -65,6 +66,13 @@ export async function GET(request: NextRequest) {
       
       // Get the community details
       const member = communityMembers[0]
+      if (!member) {
+        return NextResponse.json(
+          { error: 'No community membership found' },
+          { status: 404 }
+        )
+      }
+      
       const { data: community, error: communityError } = await supabase
         .from('communities')
         .select('id, name, description, numeric_id, created_at, music_enabled')
@@ -72,7 +80,7 @@ export async function GET(request: NextRequest) {
         .single()
       
       if (communityError) {
-        console.error('Failed to fetch community details:', communityError)
+        logger.error('Failed to fetch community details', { error: communityError, communityId: member.community_id })
         return NextResponse.json(
           { error: 'Failed to fetch community details' },
           { status: 500 }
@@ -85,7 +93,7 @@ export async function GET(request: NextRequest) {
       })
     } else if (communityId) {
       // Get specific community
-      console.log('Fetching specific community:', communityId, 'for user:', user.id)
+      logger.debug('Fetching specific community', { communityId, userId: user.id })
       
       // Get user's communities first to verify access (using admin client to bypass RLS)
       const { data: userCommunities, error: communitiesError } = await supabase
@@ -94,7 +102,7 @@ export async function GET(request: NextRequest) {
         .eq('user_id', user.id)
       
       if (communitiesError) {
-        console.error('Failed to fetch user communities:', communitiesError)
+        logger.error('Failed to fetch user communities:', { error: communitiesError })
         return NextResponse.json(
           { error: 'Failed to verify community access' },
           { status: 500 }
@@ -118,7 +126,7 @@ export async function GET(request: NextRequest) {
         .single()
       
       if (communityError) {
-        console.error('Failed to fetch community details:', communityError)
+        logger.error('Failed to fetch community details:', { error: communityError })
         return NextResponse.json(
           { error: 'Failed to fetch community details' },
           { status: 500 }
@@ -131,9 +139,7 @@ export async function GET(request: NextRequest) {
       })
     } else {
       // Get all user's communities
-      console.log('Fetching communities for user:', user.id)
-      console.log('User email:', user.email)
-      console.log('User metadata:', user.user_metadata)
+      logger.debug('Fetching communities for user', { userId: user.id, email: user.email, metadata: user.user_metadata })
 
       // Get user's communities using direct query (using admin client to bypass RLS)
       const { data: communityMembers, error } = await supabase
@@ -142,9 +148,7 @@ export async function GET(request: NextRequest) {
         .eq('user_id', user.id)
       
       if (error) {
-        console.error('Failed to fetch community members:', error)
-        console.error('Error details:', JSON.stringify(error, null, 2))
-        console.error('User ID:', user.id)
+        logger.error('Failed to fetch community members', { error, userId: user.id })
         return NextResponse.json(
           { error: 'Failed to fetch communities', details: error.message },
           { status: 500 }
@@ -164,12 +168,12 @@ export async function GET(request: NextRequest) {
           // Get community details
           const { data: community, error: communityError } = await supabase
             .from('communities')
-            .select('id, name, numeric_id, created_at, music_enabled')
+            .select('id, name, numeric_id, created_at, music_enabled, description')
             .eq('id', member.community_id)
             .single()
           
           if (communityError) {
-            console.error(`Failed to fetch community ${member.community_id}:`, communityError)
+            logger.error('Failed to fetch community', { error: communityError, communityId: member.community_id })
             return null
           }
           
@@ -184,7 +188,16 @@ export async function GET(request: NextRequest) {
             community_name: community.name,
             community_numeric_id: community.numeric_id,
             user_role: member.role,
-            member_count: memberCount || 0
+            member_count: memberCount || 0,
+            // Include full community details to avoid individual API calls
+            community: {
+              id: community.id,
+              name: community.name,
+              description: community.description,
+              numeric_id: community.numeric_id,
+              created_at: community.created_at,
+              music_enabled: community.music_enabled
+            }
           }
         })
       )
@@ -192,14 +205,19 @@ export async function GET(request: NextRequest) {
       // Filter out any null results
       const validCommunities = transformedCommunities.filter(community => community !== null)
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         communities: validCommunities
       })
+      
+      // Add caching headers to prevent repeated calls
+      response.headers.set('Cache-Control', 'private, max-age=300') // 5 minutes cache
+      
+      return response
     }
 
   } catch (error) {
-    console.error('Error fetching communities:', error)
+    logger.error('Error fetching communities', { error })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -210,11 +228,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log('API received body:', body)
+    logger.debug('API received body', { body })
     const { name, description, music_enabled } = body
 
     if (!name || !name.trim()) {
-      console.log('Validation failed: name is required')
+      logger.warn('Validation failed: name is required')
       return NextResponse.json(
         { error: 'Name is required' },
         { status: 400 }
@@ -249,7 +267,7 @@ export async function POST(request: NextRequest) {
       user = authUser
     }
 
-    console.log('Authenticated user:', user.id)
+    logger.debug('Authenticated user', { userId: user.id })
 
     // Create community directly in the API route
     const supabaseAdmin = createSupabaseAdmin()
@@ -297,7 +315,7 @@ export async function POST(request: NextRequest) {
       .single()
     
     if (communityError) {
-      console.error('Failed to create community:', communityError)
+      logger.error('Failed to create community', { error: communityError, userId: user.id })
       return NextResponse.json(
         { error: 'Failed to create community' },
         { status: 500 }
@@ -314,21 +332,21 @@ export async function POST(request: NextRequest) {
       })
     
     if (memberError) {
-      console.error('Failed to add creator as admin:', memberError)
+      logger.error('Failed to add creator as admin', { error: memberError, userId: user.id, communityId: community.id })
       return NextResponse.json(
         { error: 'Failed to add creator as admin' },
         { status: 500 }
       )
     }
     
-    console.log('Community created successfully:', community.id)
+    logger.info('Community created successfully', { communityId: community.id, userId: user.id })
     return NextResponse.json({
       success: true,
       community
     })
 
   } catch (error) {
-    console.error('Error creating community:', error)
+    logger.error('Error creating community', { error })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

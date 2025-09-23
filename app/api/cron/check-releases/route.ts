@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/db'
 import { getArtistAlbums, mapSpotifyReleaseToRelease } from '@/lib/spotify'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
     // Verify this is a cron job (optional security check)
     const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
+    const cronSecret = process.env['CRON_SECRET']
     
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true)
 
     if (artistsError) {
-      console.error('Error fetching artists:', artistsError)
+      logger.error('Error fetching artists', { error: artistsError })
       return NextResponse.json({ error: 'Failed to fetch artists' }, { status: 500 })
     }
 
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     // Check each artist for new releases
     for (const artist of artists) {
       try {
-        console.log(`Checking releases for ${artist.artist_name}...`)
+        logger.debug('Checking releases for artist', { artistName: artist.artist_name, artistId: artist.id })
         
         // Fetch latest albums from Spotify
         const spotifyReleases = await getArtistAlbums(artist.spotify_id, 50)
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
             .select()
 
           if (insertError) {
-            console.error(`Error inserting releases for ${artist.artist_name}:`, insertError)
+            logger.error('Error inserting releases for artist', { artistName: artist.artist_name, error: insertError })
             results.push({
               artist: artist.artist_name,
               status: 'error',
@@ -70,6 +71,7 @@ export async function GET(request: NextRequest) {
             })
           } else {
             totalNewReleases += newReleases.length
+            logger.info('Successfully inserted releases for artist', { artistName: artist.artist_name, newReleases: newReleases.length })
             results.push({
               artist: artist.artist_name,
               status: 'success',
@@ -94,7 +96,7 @@ export async function GET(request: NextRequest) {
         await new Promise(resolve => setTimeout(resolve, 100))
 
       } catch (error) {
-        console.error(`Error checking releases for ${artist.artist_name}:`, error)
+        logger.error('Error checking releases for artist', { artistName: artist.artist_name, error })
         results.push({
           artist: artist.artist_name,
           status: 'error',
@@ -111,7 +113,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error in cron job:', error)
+    logger.error('Error in cron job', { error })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

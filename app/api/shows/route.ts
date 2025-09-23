@@ -13,16 +13,17 @@ import {
   validateTime 
 } from '@/lib/validation'
 import { isValidCategory } from '@/lib/categories'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   return NextResponse.json({ message: 'Shows API is working' })
 }
 
 export async function POST(request: NextRequest) {
-  console.log('=== SHOWS API POST CALLED ===')
+  logger.debug('Shows API POST called')
   try {
     const body = await request.json()
-    console.log('Request body:', body)
+    logger.debug('Request body', { body })
     const { title, date_local, time_local, city, venue, category, ticket_url, spotify_url, apple_music_url, google_photos_url, poster_url, notes, community_id } = body
 
     // Get current user and validate community access
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     // If community_id is provided, verify user is a member
     if (community_id && community_id !== 'null' && community_id !== 'undefined') {
-      console.log('Checking community membership for user:', user.id, 'community:', community_id)
+      logger.debug('Checking community membership', { userId: user.id, communityId: community_id })
       const supabaseAdmin = createSupabaseAdmin()
       const { data: membership, error: membershipError } = await supabaseAdmin
         .from('community_members')
@@ -47,17 +48,17 @@ export async function POST(request: NextRequest) {
         .eq('user_id', user.id)
         .single()
 
-      console.log('Membership check result:', { membership, membershipError })
+      logger.debug('Membership check result', { membership, membershipError })
 
       if (membershipError || !membership) {
-        console.log('User is not a member of community:', community_id)
+        logger.warn('User is not a member of community', { userId: user.id, communityId: community_id })
         return NextResponse.json(
           { error: 'You are not a member of this community' },
           { status: 403 }
         )
       }
       
-      console.log('User is a member with role:', membership.role)
+      logger.debug('User is a member with role', { userId: user.id, communityId: community_id, role: membership.role })
     }
 
     // Validate and sanitize all inputs
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Database error:', error)
+      logger.error('Database error', { error, userId: user.id })
       return NextResponse.json(
         { error: 'Failed to create show' },
         { status: 500 }
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data)
   } catch (error) {
-    console.error('API error:', error)
+    logger.error('API error', { error })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

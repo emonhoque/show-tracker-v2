@@ -1,7 +1,7 @@
 import { SpotifyArtist, SpotifyRelease } from './types'
 
-const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET
+const SPOTIFY_CLIENT_ID = process.env['SPOTIFY_CLIENT_ID']
+const SPOTIFY_CLIENT_SECRET = process.env['SPOTIFY_CLIENT_SECRET']
 
 // Check if Spotify API credentials are available
 export const isSpotifyConfigured = !!(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET)
