@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { clientEnv } from './env'
+import { clientEnv, serverEnv } from './env'
 
 // Server-side Supabase client for server components and API routes
 export async function createServerSupabaseClient() {
@@ -29,7 +29,7 @@ export async function createServerSupabaseClient() {
 // Server-side Supabase client with service role key
 // This should only be used in server-side code (API routes, server actions)
 export function createSupabaseAdmin() {
-  return createServerClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  return createServerClient(serverEnv.SUPABASE_URL, serverEnv.SUPABASE_SERVICE_ROLE_KEY, {
     cookies: {
       getAll() { return [] },
       setAll() {},

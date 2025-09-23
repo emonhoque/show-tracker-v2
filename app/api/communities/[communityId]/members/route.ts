@@ -98,13 +98,7 @@ export async function DELETE(
     const { communityId } = await params
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      )
-    }
+    const isLeaving = searchParams.get('leave') === 'true'
 
     // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
@@ -132,62 +126,175 @@ export async function DELETE(
       user = authUser
     }
 
-    // Verify user is admin of this community
-    const { data: membership, error: membershipError } = await supabase
-      .from('community_members')
-      .select('role')
-      .eq('community_id', communityId)
-      .eq('user_id', user.id)
-      .single()
+    if (isLeaving) {
+      // User is leaving the community themselves
+      if (!userId || userId !== user.id) {
+        return NextResponse.json(
+          { error: 'You can only leave communities yourself' },
+          { status: 400 }
+        )
+      }
 
-    if (membershipError || !membership || membership.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
+      // Verify user is a member of this community
+      const { data: membership, error: membershipError } = await supabase
+        .from('community_members')
+        .select('role')
+        .eq('community_id', communityId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (membershipError || !membership) {
+        return NextResponse.json(
+          { error: 'You are not a member of this community' },
+          { status: 404 }
+        )
+      }
+
+      // Check if user is the only admin
+      if (membership.role === 'admin') {
+        const { count: adminCount, error: adminCountError } = await supabase
+          .from('community_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('community_id', communityId)
+          .eq('role', 'admin')
+
+        if (adminCountError) {
+          console.error('Failed to check admin count:', adminCountError)
+          return NextResponse.json(
+            { error: 'Failed to verify admin status' },
+            { status: 500 }
+          )
+        }
+
+        if (adminCount === 1) {
+          return NextResponse.json(
+            { error: 'Cannot leave community as the only admin. Transfer ownership or promote another member to admin first.' },
+            { status: 400 }
+          )
+        }
+      }
+
+      // Remove user's RSVPs from community events first
+      console.log(`Removing RSVPs for user ${user.id} from community ${communityId}`)
+      const { error: rsvpError, count: rsvpCount } = await supabase
+        .from('rsvps')
+        .delete({ count: 'exact' })
+        .eq('community_id', communityId)
+        .eq('user_id', user.id)
+
+      if (rsvpError) {
+        console.error('Failed to remove RSVPs when leaving community:', rsvpError)
+        return NextResponse.json(
+          { error: 'Failed to remove RSVPs when leaving community' },
+          { status: 500 }
+        )
+      }
+
+      console.log(`Removed ${rsvpCount || 0} RSVPs for user ${user.id} from community ${communityId}`)
+
+      // Remove user from community
+      const { error: removeError } = await supabase
+        .from('community_members')
+        .delete()
+        .eq('community_id', communityId)
+        .eq('user_id', user.id)
+
+      if (removeError) {
+        console.error('Failed to leave community:', removeError)
+        return NextResponse.json(
+          { error: 'Failed to leave community' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully left the community${rsvpCount ? ` and removed ${rsvpCount} RSVP${rsvpCount !== 1 ? 's' : ''}` : ''}`
+      })
+    } else {
+      // Admin is removing another member
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'User ID is required' },
+          { status: 400 }
+        )
+      }
+
+      // Verify user is admin of this community
+      const { data: membership, error: membershipError } = await supabase
+        .from('community_members')
+        .select('role')
+        .eq('community_id', communityId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (membershipError || !membership || membership.role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Admin access required' },
+          { status: 403 }
+        )
+      }
+
+      // Check if trying to remove another admin
+      const { data: targetMember, error: targetError } = await supabase
+        .from('community_members')
+        .select('role')
+        .eq('community_id', communityId)
+        .eq('user_id', userId)
+        .single()
+
+      if (targetError || !targetMember) {
+        return NextResponse.json(
+          { error: 'Member not found' },
+          { status: 404 }
+        )
+      }
+
+      if (targetMember.role === 'admin') {
+        return NextResponse.json(
+          { error: 'Cannot remove admin members' },
+          { status: 400 }
+        )
+      }
+
+      // Remove member's RSVPs from community events first
+      console.log(`Removing RSVPs for user ${userId} from community ${communityId} (admin removal)`)
+      const { error: rsvpError, count: rsvpCount } = await supabase
+        .from('rsvps')
+        .delete({ count: 'exact' })
+        .eq('community_id', communityId)
+        .eq('user_id', userId)
+
+      if (rsvpError) {
+        console.error('Failed to remove RSVPs when removing member:', rsvpError)
+        return NextResponse.json(
+          { error: 'Failed to remove RSVPs when removing member' },
+          { status: 500 }
+        )
+      }
+
+      console.log(`Removed ${rsvpCount || 0} RSVPs for user ${userId} from community ${communityId} (admin removal)`)
+
+      // Remove member
+      const { error: removeError } = await supabase
+        .from('community_members')
+        .delete()
+        .eq('community_id', communityId)
+        .eq('user_id', userId)
+
+      if (removeError) {
+        console.error('Failed to remove member:', removeError)
+        return NextResponse.json(
+          { error: 'Failed to remove member' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Member removed successfully${rsvpCount ? ` and removed ${rsvpCount} RSVP${rsvpCount !== 1 ? 's' : ''}` : ''}`
+      })
     }
-
-    // Check if trying to remove another admin
-    const { data: targetMember, error: targetError } = await supabase
-      .from('community_members')
-      .select('role')
-      .eq('community_id', communityId)
-      .eq('user_id', userId)
-      .single()
-
-    if (targetError || !targetMember) {
-      return NextResponse.json(
-        { error: 'Member not found' },
-        { status: 404 }
-      )
-    }
-
-    if (targetMember.role === 'admin') {
-      return NextResponse.json(
-        { error: 'Cannot remove admin members' },
-        { status: 400 }
-      )
-    }
-
-    // Remove member
-    const { error: removeError } = await supabase
-      .from('community_members')
-      .delete()
-      .eq('community_id', communityId)
-      .eq('user_id', userId)
-
-    if (removeError) {
-      console.error('Failed to remove member:', removeError)
-      return NextResponse.json(
-        { error: 'Failed to remove member' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Member removed successfully'
-    })
 
   } catch (error) {
     console.error('Error removing member:', error)

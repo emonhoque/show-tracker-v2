@@ -103,7 +103,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
       // Construct URL from public ID
       const baseUrl = window.location.origin
       if (communityId) {
-        setShareUrl(`${baseUrl}/comm/${communityId}/event/${show.public_id}`)
+        setShareUrl(`${baseUrl}/groups/${communityId}/event/${show.public_id}`)
       } else {
         setShareUrl(`${baseUrl}/share/${show.public_id}`)
       }

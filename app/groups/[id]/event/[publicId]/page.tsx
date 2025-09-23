@@ -6,7 +6,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 interface ShowPageProps {
   params: Promise<{
-    id: string        // community numeric_id
+    id: string        // group numeric_id
     publicId: string  // event public_id
   }>
 }
@@ -66,7 +66,7 @@ export default async function ShowPage({ params }: ShowPageProps) {
           communityError: communityError?.message
         })
         
-        const communityName = community?.name || 'this community'
+        const communityName = community?.name || 'this group'
         redirect(`/access-denied?reason=membership&communityName=${encodeURIComponent(communityName)}`)
       }
     }
@@ -136,9 +136,9 @@ export async function generateMetadata({ params }: ShowPageProps) {
           .eq('id', result.show.community_id)
           .single()
         
-        const communityName = community?.name || 'this community'
+        const communityName = community?.name || 'this group'
         return {
-          title: 'Community Access Required',
+          title: 'Group Access Required',
           description: `You need to be a member of "${communityName}" to view this content.`
         }
       }

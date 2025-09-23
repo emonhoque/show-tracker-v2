@@ -10,7 +10,7 @@ import { CommunityCardSkeleton } from '@/components/CommunityCardSkeleton'
 import { LeaveCommunityDialog } from '@/components/LeaveCommunityDialog'
 import { Plus, Users, Settings, Crown, LogOut } from 'lucide-react'
 
-export default function CommunitiesPage() {
+export default function GroupsPage() {
   const [communities, setCommunities] = useState<UserCommunity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +34,7 @@ export default function CommunitiesPage() {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session?.access_token) {
-        setError('You must be logged in to view communities')
+        setError('You must be logged in to view groups')
         return
       }
       
@@ -48,11 +48,11 @@ export default function CommunitiesPage() {
       const data = await response.json()
       
       if (response.ok && data.success && data.communities) {
-        console.log('Loaded communities:', data.communities)
+        console.log('Loaded groups:', data.communities)
         setCommunities(data.communities)
       } else {
-        console.error('Failed to load communities:', data.error)
-        setError(data.error || 'Failed to load communities')
+        console.error('Failed to load groups:', data.error)
+        setError(data.error || 'Failed to load groups')
       }
     } catch {
       setError('An unexpected error occurred')
@@ -61,21 +61,21 @@ export default function CommunitiesPage() {
     }
   }
 
-  const handleCreateCommunity = () => {
-    router.push('/communities/create')
+  const handleCreateGroup = () => {
+    router.push('/groups/create')
   }
 
-  const handleCommunityClick = (numericId: string) => {
+  const handleGroupClick = (numericId: string) => {
     router.push(`/groups/${numericId}`)
   }
 
-  const handleLeaveCommunity = (community: UserCommunity) => {
-    console.log('Opening leave dialog for community:', community.community_name)
+  const handleLeaveGroup = (community: UserCommunity) => {
+    console.log('Opening leave dialog for group:', community.community_name)
     setLeaveDialog({ isOpen: true, community })
   }
 
   const handleLeaveSuccess = () => {
-    // Reload communities after leaving
+    // Reload groups after leaving
     loadCommunities()
   }
 
@@ -84,10 +84,10 @@ export default function CommunitiesPage() {
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold">Communities</h1>
-            <Button onClick={handleCreateCommunity} className="flex items-center space-x-2">
+            <h1 className="text-3xl font-bold">Groups</h1>
+            <Button onClick={handleCreateGroup} className="flex items-center space-x-2">
               <Plus className="h-4 w-4" />
-              <span>Create Community</span>
+              <span>Create Group</span>
             </Button>
           </div>
           
@@ -105,17 +105,17 @@ export default function CommunitiesPage() {
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold">Communities</h1>
-            <Button onClick={handleCreateCommunity} className="flex items-center space-x-2">
+            <h1 className="text-3xl font-bold">Groups</h1>
+            <Button onClick={handleCreateGroup} className="flex items-center space-x-2">
               <Plus className="h-4 w-4" />
-              <span>Create Community</span>
+              <span>Create Group</span>
             </Button>
           </div>
           
           <div className="text-center py-12">
             <div className="text-red-600 mb-4">
               <Users className="h-12 w-12 mx-auto mb-2" />
-              <h2 className="text-xl font-semibold">Error Loading Communities</h2>
+              <h2 className="text-xl font-semibold">Error Loading Groups</h2>
               <p className="text-gray-600">{error}</p>
             </div>
             <Button onClick={loadCommunities} variant="outline">
@@ -132,14 +132,14 @@ export default function CommunitiesPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Communities</h1>
+            <h1 className="text-3xl font-bold">Groups</h1>
             <p className="text-gray-600 mt-2">
-              Manage your communities and invite others to join
+              Manage your groups and invite others to join
             </p>
           </div>
-          <Button onClick={handleCreateCommunity} className="flex items-center space-x-2">
+          <Button onClick={handleCreateGroup} className="flex items-center space-x-2">
             <Plus className="h-4 w-4" />
-            <span>Create Community</span>
+            <span>Create Group</span>
           </Button>
         </div>
 
@@ -148,14 +148,14 @@ export default function CommunitiesPage() {
             <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
               <Users className="h-12 w-12 text-muted-foreground" />
             </div>
-            <h2 className="text-2xl font-semibold mb-3">No Communities Yet</h2>
+            <h2 className="text-2xl font-semibold mb-3">No Groups Yet</h2>
             <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Communities help you organize shows and events with friends. Create your first community or ask someone to invite you to theirs.
+              Groups help you organize shows and events with friends. Create your first group or ask someone to invite you to theirs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={handleCreateCommunity} className="flex items-center space-x-2">
+              <Button onClick={handleCreateGroup} className="flex items-center space-x-2">
                 <Plus className="h-4 w-4" />
-                <span>Create Community</span>
+                <span>Create Group</span>
               </Button>
               <Button variant="outline" onClick={() => window.location.href = '/home'} className="flex items-center space-x-2">
                 <Users className="h-4 w-4" />
@@ -169,7 +169,7 @@ export default function CommunitiesPage() {
               <Card 
                 key={community.community_id} 
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleCommunityClick(community.community_numeric_id)}
+                onClick={() => handleGroupClick(community.community_numeric_id)}
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -206,10 +206,10 @@ export default function CommunitiesPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
-                          console.log('Leave button clicked for community:', community.community_name)
-                          handleLeaveCommunity(community)
+                          console.log('Leave button clicked for group:', community.community_name)
+                          handleLeaveGroup(community)
                         }}
-                        title="Leave Community"
+                        title="Leave Group"
                       >
                         <LogOut className="h-4 w-4" />
                       </Button>
@@ -222,7 +222,7 @@ export default function CommunitiesPage() {
         )}
       </div>
 
-      {/* Leave Community Dialog */}
+      {/* Leave Group Dialog */}
       {leaveDialog.community && (
         <LeaveCommunityDialog
           isOpen={leaveDialog.isOpen}

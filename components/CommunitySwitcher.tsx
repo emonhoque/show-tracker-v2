@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu'
 import { CommunitySwitcherSkeleton } from '@/components/CommunitySwitcherSkeleton'
-import { ChevronDown, Plus, Users, Settings } from 'lucide-react'
+import { LeaveCommunityDialog } from '@/components/LeaveCommunityDialog'
+import { ChevronDown, Plus, Users, Settings, LogOut } from 'lucide-react'
 
 interface CommunitySwitcherProps {
   currentCommunity?: Community | null
@@ -24,6 +25,10 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
   const [communities, setCommunities] = useState<UserCommunity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [leaveDialog, setLeaveDialog] = useState<{
+    isOpen: boolean
+    community: UserCommunity | null
+  }>({ isOpen: false, community: null })
   const router = useRouter()
 
   useEffect(() => {
@@ -40,7 +45,7 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session?.access_token) {
-        setError('You must be logged in to view communities')
+        setError('You must be logged in to view groups')
         return
       }
       
@@ -56,7 +61,7 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
       if (response.ok && data.success && data.communities) {
         setCommunities(data.communities)
       } else {
-        setError(data.error || 'Failed to load communities')
+        setError(data.error || 'Failed to load groups')
       }
     } catch {
       setError('An unexpected error occurred')
@@ -102,11 +107,30 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
   }
 
   const handleCreateCommunity = () => {
-    router.push('/communities/create')
+    router.push('/groups/create')
   }
 
   const handleManageCommunities = () => {
-    router.push('/communities')
+    router.push('/groups')
+  }
+
+  const handleLeaveCommunity = (community: UserCommunity) => {
+    setLeaveDialog({ isOpen: true, community })
+  }
+
+  const handleLeaveSuccess = () => {
+    // Reload communities after leaving
+    loadCommunities()
+    // If we left the current community, switch to the first available one
+    if (currentCommunity && leaveDialog.community?.community_id === currentCommunity.id) {
+      const remainingCommunities = communities.filter(c => c.community_id !== leaveDialog.community?.community_id)
+      if (remainingCommunities.length > 0 && remainingCommunities[0]) {
+        handleCommunitySelect(remainingCommunities[0].community_id)
+      } else {
+        // No communities left, redirect to groups page
+        router.push('/groups')
+      }
+    }
   }
 
   if (loading) {
@@ -116,7 +140,7 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
   if (error) {
     return (
       <div className="flex items-center space-x-2 text-red-600">
-        <span className="text-sm">Error loading communities</span>
+        <span className="text-sm">Error loading groups</span>
         <Button 
           variant="outline" 
           size="sm" 
@@ -132,7 +156,7 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
     return (
       <Button onClick={handleCreateCommunity} className="flex items-center space-x-2">
         <Plus className="h-4 w-4" />
-        <span>Create Community</span>
+        <span>Create Group</span>
       </Button>
     )
   }
@@ -141,57 +165,81 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
   const currentCommunityName = currentCommunity?.name || communities[0]?.community_name
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="flex items-center space-x-2 min-w-0">
-          <div className="flex items-center space-x-2 min-w-0">
-            <Users className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate max-w-32">{currentCommunityName}</span>
-          </div>
-          <ChevronDown className="h-4 w-4 flex-shrink-0" />
-        </Button>
-      </DropdownMenuTrigger>
-      
-      <DropdownMenuContent align="start" className="w-64">
-        {communities.map((community) => (
-          <DropdownMenuItem
-            key={community.community_id}
-            onClick={() => handleCommunitySelect(community.community_id)}
-            className={`flex items-center justify-between ${
-              community.community_id === currentCommunityId 
-                ? 'bg-primary/10 text-primary border-l-2 border-primary' 
-                : ''
-            }`}
-          >
-            <div className="flex flex-col items-start min-w-0 flex-1">
-              <span className={`font-medium truncate ${
-                community.community_id === currentCommunityId ? 'text-primary' : ''
-              }`}>
-                {community.community_name}
-              </span>
-              <span className="text-xs text-gray-500">
-                {community.member_count} member{community.member_count !== 1 ? 's' : ''}
-              </span>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="flex items-center space-x-2 min-w-0">
+            <div className="flex items-center space-x-2 min-w-0">
+              <Users className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate max-w-32">{currentCommunityName}</span>
             </div>
-            {community.community_id === currentCommunityId && (
-              <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 ml-2" />
-            )}
+            <ChevronDown className="h-4 w-4 flex-shrink-0" />
+          </Button>
+        </DropdownMenuTrigger>
+        
+        <DropdownMenuContent align="start" className="w-64">
+          {communities.map((community) => (
+            <div key={community.community_id} className="relative group">
+              <DropdownMenuItem
+                onClick={() => handleCommunitySelect(community.community_id)}
+                className={`flex items-center justify-between ${
+                  community.community_id === currentCommunityId 
+                    ? 'bg-primary/10 text-primary border-l-2 border-primary' 
+                    : ''
+                }`}
+              >
+                <div className="flex flex-col items-start min-w-0 flex-1">
+                  <span className={`font-medium truncate ${
+                    community.community_id === currentCommunityId ? 'text-primary' : ''
+                  }`}>
+                    {community.community_name}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {community.member_count} member{community.member_count !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                {community.community_id === currentCommunityId && (
+                  <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 ml-2" />
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleLeaveCommunity(community)
+                }}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700"
+              >
+                <LogOut className="h-4 w-4" />
+              </DropdownMenuItem>
+            </div>
+          ))}
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem onClick={handleCreateCommunity} className="flex items-center space-x-2">
+            <Plus className="h-4 w-4" />
+            <span>Create Group</span>
           </DropdownMenuItem>
-        ))}
-        
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuItem onClick={handleCreateCommunity} className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
-          <span>Create Community</span>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem onClick={handleManageCommunities} className="flex items-center space-x-2">
-          <Settings className="h-4 w-4" />
-          <span>Manage Communities</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          
+          <DropdownMenuItem onClick={handleManageCommunities} className="flex items-center space-x-2">
+            <Settings className="h-4 w-4" />
+            <span>Manage Groups</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Leave Community Dialog */}
+      {leaveDialog.community && (
+        <LeaveCommunityDialog
+          isOpen={leaveDialog.isOpen}
+          onClose={() => setLeaveDialog({ isOpen: false, community: null })}
+          communityId={leaveDialog.community.community_id}
+          communityName={leaveDialog.community.community_name}
+          userRole={leaveDialog.community.user_role as 'admin' | 'member'}
+          onSuccess={handleLeaveSuccess}
+        />
+      )}
+    </>
   )
 }
 

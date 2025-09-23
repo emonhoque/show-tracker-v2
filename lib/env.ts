@@ -120,6 +120,14 @@ export const serverEnv = {
   get SHARE_URL_EXPIRATION_DAYS() {
     return getEnvVar('SHARE_URL_EXPIRATION_DAYS')
   },
+  
+  // Client-side environment variables (for server-side usage)
+  get NEXT_PUBLIC_APP_URL() {
+    return getEnvVar('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'
+  },
+  get NEXT_PUBLIC_SUPABASE_ANON_KEY() {
+    return getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  },
 } as const
 
 // Legacy export for backward compatibility (server-side only)

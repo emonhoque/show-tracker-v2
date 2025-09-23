@@ -40,7 +40,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  // Helper function for authenticated requests
+  // Helper function for authenticated requests with caching
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
@@ -54,6 +54,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
       headers: {
         'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
+        'Cache-Control': 'max-age=300', // Cache for 5 minutes
         ...options.headers,
       },
     })

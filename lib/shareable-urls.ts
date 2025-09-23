@@ -94,7 +94,7 @@ export async function generateShareableUrl(showId: string): Promise<ShareableUrl
     const publicId = generatePublicId()
     const slug = createSlug(show.title)
     const shareableUrl = communityNumericId 
-      ? `/comm/${communityNumericId}/event/${publicId}`
+      ? `/groups/${communityNumericId}/event/${publicId}`
       : `/share/${publicId}`
 
     // Update the show with the new shareable URL

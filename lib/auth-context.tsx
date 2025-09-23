@@ -87,10 +87,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     let mounted = true
+    let subscription: any = null
 
     const initializeAuth = async (): Promise<void> => {
       try {
-
         const supabase = createClient()
 
         // Get initial session
@@ -114,7 +114,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (mounted) {
               setUser(session?.user ?? null)
@@ -139,7 +139,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         )
 
         // Store subscription for cleanup
-        subscription.unsubscribe()
+        subscription = authSubscription
       } catch (error) {
         console.error('Error initializing auth:', error)
         if (mounted) {
@@ -152,6 +152,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       mounted = false
+      if (subscription) {
+        subscription.unsubscribe()
+      }
     }
   }, [])
 

@@ -165,9 +165,9 @@ export function Header({
                   <Button variant="outline" size="sm" className="h-8 px-2">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                        {user.user_metadata?.['avatar_url'] ? (
+                        {profileData?.avatar_url || user.user_metadata?.['avatar_url'] ? (
                           <Image
-                            src={user.user_metadata['avatar_url']}
+                            src={profileData?.avatar_url || user.user_metadata['avatar_url'] || ''}
                             alt="Profile"
                             width={24}
                             height={24}

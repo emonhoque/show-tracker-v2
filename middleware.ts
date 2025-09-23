@@ -63,16 +63,16 @@ export async function middleware(request: NextRequest) {
         rateLimiter = rateLimiters.upload
       } else if (pathname.includes('/search') || pathname.includes('/artists/search')) {
         rateLimiter = rateLimiters.search
-      } else if (pathname.includes('/communities') && request.method === 'POST') {
+      } else if (pathname.includes('/communities') && request.method === 'POST' && pathname.includes('/invites')) {
         rateLimiter = rateLimiters.strict
       } else if (
         // Read-only endpoints that are frequently called
-        pathname.includes('/shows/') && request.method === 'GET' ||
-        pathname.includes('/rsvps/') && request.method === 'GET' ||
-        pathname.includes('/profile') && request.method === 'GET' ||
-        pathname.includes('/communities') && request.method === 'GET' ||
-        pathname.includes('/categories/') && request.method === 'GET' ||
-        pathname.includes('/releases/') && request.method === 'GET'
+        (pathname.includes('/shows/') && request.method === 'GET') ||
+        (pathname.includes('/rsvps/') && request.method === 'GET') ||
+        (pathname.includes('/profile') && request.method === 'GET') ||
+        (pathname.includes('/communities') && request.method === 'GET') ||
+        (pathname.includes('/categories/') && request.method === 'GET') ||
+        (pathname.includes('/releases/') && request.method === 'GET')
       ) {
         rateLimiter = rateLimiters.readOnly
       }

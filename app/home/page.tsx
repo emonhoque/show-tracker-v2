@@ -72,7 +72,11 @@ export default function Home() {
     // Check if this request is already in progress
     if (activeRequests.current.has(url)) {
       console.log(`Request already in progress for ${url}, skipping duplicate`)
-      return new Response(null, { status: 200, statusText: 'Duplicate request skipped' })
+      return new Response('{"statuses": {}}', { 
+        status: 200, 
+        statusText: 'Duplicate request skipped',
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     const supabase = createClient()
@@ -91,7 +95,7 @@ export default function Home() {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
+          'Cache-Control': 'max-age=300', // Cache for 5 minutes
           ...options.headers,
         },
       })
@@ -138,10 +142,24 @@ export default function Home() {
         ? `/api/categories/stats?community_id=${currentCommunity.id}`
         : '/api/categories/stats'
       const response = await authenticatedFetch(url)
-      const data = await response.json()
       
-      if (data.success) {
-        setCategoryStats(data.stats || [])
+      if (response.ok) {
+        // Check if response has content before parsing JSON
+        const responseText = await response.text()
+        if (responseText && responseText.trim()) {
+          try {
+            const data = JSON.parse(responseText)
+            if (data.success) {
+              setCategoryStats(data.stats || [])
+            }
+          } catch (parseError) {
+            console.error('Error parsing category stats JSON:', parseError)
+            console.error('Response text:', responseText)
+            throw new Error('Invalid JSON response')
+          }
+        } else {
+          console.log('Empty response received for category stats, skipping')
+        }
       }
     } catch (error) {
       console.error(`Error fetching category stats (attempt ${retryCount + 1}):`, error)
@@ -163,8 +181,20 @@ export default function Home() {
       // Fetch all user RSVP statuses in a single request
       const response = await authenticatedFetch(`/api/rsvps/bulk?show_ids=${showIds.join(',')}`)
       if (response.ok) {
-        const data = await response.json()
-        setUserRsvpStatuses(data.statuses || {})
+        // Check if response has content before parsing JSON
+        const responseText = await response.text()
+        if (responseText && responseText.trim()) {
+          try {
+            const data = JSON.parse(responseText)
+            setUserRsvpStatuses(data.statuses || {})
+          } catch (parseError) {
+            console.error('Error parsing RSVP statuses JSON:', parseError)
+            console.error('Response text:', responseText)
+          }
+        } else {
+          // Handle empty response (e.g., from duplicate request)
+          console.log('Empty response received for RSVP statuses, skipping')
+        }
       }
     } catch (error) {
       console.error('Error fetching user RSVP statuses:', error)
@@ -186,27 +216,41 @@ export default function Home() {
         
         try {
           const upcomingResponse = await authenticatedFetch(upcomingUrl)
-          const upcomingData = await upcomingResponse.json()
-          if (Array.isArray(upcomingData)) {
-            setUpcomingShows(upcomingData)
-            
-            // Extract RSVPs from shows
-            const newRsvpsData: Record<string, RSVPSummary> = {}
-            
-            upcomingData.forEach((show: Show & { rsvps?: RSVPSummary }) => {
-              if (show.rsvps) {
-                newRsvpsData[show.id] = show.rsvps
+          if (upcomingResponse.ok) {
+            const responseText = await upcomingResponse.text()
+            if (responseText && responseText.trim()) {
+              try {
+                const upcomingData = JSON.parse(responseText)
+                if (Array.isArray(upcomingData)) {
+                  setUpcomingShows(upcomingData)
+                  
+                  // Extract RSVPs from shows
+                  const newRsvpsData: Record<string, RSVPSummary> = {}
+                  
+                  upcomingData.forEach((show: Show & { rsvps?: RSVPSummary }) => {
+                    if (show.rsvps) {
+                      newRsvpsData[show.id] = show.rsvps
+                    }
+                  })
+                  
+                  setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+                  
+                  // Fetch user RSVP statuses for all upcoming shows
+                  const upcomingShowIds = upcomingData.map((show: Show) => show.id)
+                  fetchUserRsvpStatuses(upcomingShowIds)
+                } else {
+                  console.error('Invalid upcoming shows data format:', upcomingData)
+                  setUpcomingShows([])
+                }
+              } catch (parseError) {
+                console.error('Error parsing upcoming shows JSON:', parseError)
+                console.error('Response text:', responseText)
+                setUpcomingShows([])
               }
-            })
-            
-            setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
-            
-            // Fetch user RSVP statuses for all upcoming shows
-            const upcomingShowIds = upcomingData.map((show: Show) => show.id)
-            fetchUserRsvpStatuses(upcomingShowIds)
-          } else {
-            console.error('Invalid upcoming shows data format:', upcomingData)
-            setUpcomingShows([])
+            } else {
+              console.log('Empty response received for upcoming shows')
+              setUpcomingShows([])
+            }
           }
         } catch (error) {
           console.error('Error fetching upcoming shows:', error)
@@ -220,39 +264,57 @@ export default function Home() {
       
       try {
         const pastResponse = await authenticatedFetch(pastUrl)
-        const pastData = await pastResponse.json()
-        if (pastData && pastData.shows && Array.isArray(pastData.shows)) {
-          if (isLoadMore) {
-            // Append new shows to existing ones, filtering out duplicates
-            setPastShows(prev => {
-              const existingIds = new Set(prev.map((show: Show) => show.id))
-              const newShows = pastData.shows.filter((show: Show) => !existingIds.has(show.id))
-              return [...prev, ...newShows]
-            })
-          } else {
-            // Replace shows on initial load
-            setPastShows(pastData.shows)
-          }
-          setPastShowsPagination(pastData.pagination)
-          
-          // Extract RSVPs from shows
-          const newRsvpsData: Record<string, RSVPSummary> = {}
-          pastData.shows.forEach((show: Show & { rsvps?: RSVPSummary }) => {
-            if (show.rsvps) {
-              newRsvpsData[show.id] = show.rsvps
+        if (pastResponse.ok) {
+          const responseText = await pastResponse.text()
+          if (responseText && responseText.trim()) {
+            try {
+              const pastData = JSON.parse(responseText)
+              if (pastData && pastData.shows && Array.isArray(pastData.shows)) {
+                if (isLoadMore) {
+                  // Append new shows to existing ones, filtering out duplicates
+                  setPastShows(prev => {
+                    const existingIds = new Set(prev.map((show: Show) => show.id))
+                    const newShows = pastData.shows.filter((show: Show) => !existingIds.has(show.id))
+                    return [...prev, ...newShows]
+                  })
+                } else {
+                  // Replace shows on initial load
+                  setPastShows(pastData.shows)
+                }
+                setPastShowsPagination(pastData.pagination)
+                
+                // Extract RSVPs from shows
+                const newRsvpsData: Record<string, RSVPSummary> = {}
+                pastData.shows.forEach((show: Show & { rsvps?: RSVPSummary }) => {
+                  if (show.rsvps) {
+                    newRsvpsData[show.id] = show.rsvps
+                  }
+                })
+                setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
+                
+                // Fetch user RSVP statuses for past shows
+                const pastShowIds = pastData.shows.map((show: Show) => show.id)
+                fetchUserRsvpStatuses(pastShowIds)
+              } else {
+                console.error('Invalid past shows data format:', pastData)
+                console.error('Expected: { shows: Array, pagination: Object }')
+                console.error('Received:', typeof pastData, pastData)
+                if (!isLoadMore) {
+                  setPastShows([])
+                }
+              }
+            } catch (parseError) {
+              console.error('Error parsing past shows JSON:', parseError)
+              console.error('Response text:', responseText)
+              if (!isLoadMore) {
+                setPastShows([])
+              }
             }
-          })
-          setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
-          
-          // Fetch user RSVP statuses for past shows
-          const pastShowIds = pastData.shows.map((show: Show) => show.id)
-          fetchUserRsvpStatuses(pastShowIds)
-        } else {
-          console.error('Invalid past shows data format:', pastData)
-          console.error('Expected: { shows: Array, pagination: Object }')
-          console.error('Received:', typeof pastData, pastData)
-          if (!isLoadMore) {
-            setPastShows([])
+          } else {
+            console.log('Empty response received for past shows')
+            if (!isLoadMore) {
+              setPastShows([])
+            }
           }
         }
       } catch (error) {
@@ -278,6 +340,8 @@ export default function Home() {
       hasLoadedCommunities.current = true
       const loadUserCommunities = async () => {
         setLoadingCommunities(true)
+        // Add small delay to prevent rapid successive calls during development
+        await new Promise(resolve => setTimeout(resolve, 100))
         try {
           const response = await authenticatedFetch('/api/communities')
           
@@ -285,23 +349,33 @@ export default function Home() {
             throw new Error(`HTTP error! status: ${response.status}`)
           }
           
-          const data = await response.json()
-          console.log('User communities data:', data)
-          if (data.success && data.communities) {
-            setUserCommunities(data.communities)
-            
-            // If no current community is set, try to get the first one or stored one
-            if (!currentCommunity && data.communities.length > 0) {
-              const storedCommunityId = localStorage.getItem('selectedCommunityId')
-              const selectedCommunity = storedCommunityId 
-                ? data.communities.find((c: { community_id: string; community?: Community }) => c.community_id === storedCommunityId)
-                : data.communities[0]
-              
-              if (selectedCommunity && selectedCommunity.community) {
-                // Use the community data from the bulk call - no additional API call needed!
-                setCurrentCommunity(selectedCommunity.community)
+          const responseText = await response.text()
+          if (responseText && responseText.trim()) {
+            try {
+              const data = JSON.parse(responseText)
+              console.log('User communities data:', data)
+              if (data.success && data.communities) {
+                setUserCommunities(data.communities)
+                
+                // If no current community is set, try to get the first one or stored one
+                if (!currentCommunity && data.communities.length > 0) {
+                  const storedCommunityId = localStorage.getItem('selectedCommunityId')
+                  const selectedCommunity = storedCommunityId 
+                    ? data.communities.find((c: { community_id: string; community?: Community }) => c.community_id === storedCommunityId)
+                    : data.communities[0]
+                  
+                  if (selectedCommunity && selectedCommunity.community) {
+                    // Use the community data from the bulk call - no additional API call needed!
+                    setCurrentCommunity(selectedCommunity.community)
+                  }
+                }
               }
+            } catch (parseError) {
+              console.error('Error parsing communities JSON:', parseError)
+              console.error('Response text:', responseText)
             }
+          } else {
+            console.log('Empty response received for communities')
           }
         } catch (error) {
           console.error('Failed to load user communities:', error)
@@ -314,7 +388,7 @@ export default function Home() {
       setLoadingCommunities(false)
       hasLoadedCommunities.current = false
     }
-  }, [user, currentCommunity]) // Include currentCommunity dependency
+  }, [user]) // Remove currentCommunity dependency to prevent loops
 
   // Fetch shows and category stats when authenticated
   useEffect(() => {
@@ -499,14 +573,32 @@ export default function Home() {
         
         // Update RSVPs data
         const response = await authenticatedFetch(`/api/rsvps/${showId}`)
-        const data = await response.json()
-        setRsvpsData(prev => ({ ...prev, [showId]: data }))
+        if (response.ok) {
+          const responseText = await response.text()
+          if (responseText && responseText.trim()) {
+            try {
+              const data = JSON.parse(responseText)
+              setRsvpsData(prev => ({ ...prev, [showId]: data }))
+            } catch (parseError) {
+              console.error('Error parsing RSVPs JSON:', parseError)
+              console.error('Response text:', responseText)
+            }
+          }
+        }
         
         // Update user RSVP status
         const userResponse = await authenticatedFetch(`/api/rsvps/${showId}/user`)
         if (userResponse.ok) {
-          const userData = await userResponse.json()
-          setUserRsvpStatuses(prev => ({ ...prev, [showId]: userData.status }))
+          const userResponseText = await userResponse.text()
+          if (userResponseText && userResponseText.trim()) {
+            try {
+              const userData = JSON.parse(userResponseText)
+              setUserRsvpStatuses(prev => ({ ...prev, [showId]: userData.status }))
+            } catch (parseError) {
+              console.error('Error parsing user RSVP JSON:', parseError)
+              console.error('Response text:', userResponseText)
+            }
+          }
         }
       } catch (error) {
         console.error(`Error updating RSVPs for show ${showId}:`, error)
@@ -535,8 +627,18 @@ export default function Home() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        alert(errorData.error || 'Failed to delete show')
+        const responseText = await response.text()
+        if (responseText && responseText.trim()) {
+          try {
+            const errorData = JSON.parse(responseText)
+            alert(errorData.error || 'Failed to delete show')
+          } catch (parseError) {
+            console.error('Error parsing delete error JSON:', parseError)
+            alert('Failed to delete show')
+          }
+        } else {
+          alert('Failed to delete show')
+        }
         return
       }
 
@@ -624,16 +726,16 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <h2 className="text-2xl font-semibold text-foreground mb-4">No Communities Found</h2>
+            <h2 className="text-2xl font-semibold text-foreground mb-4">No Groups Found</h2>
             <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-              You&apos;re not currently a member of any communities. Join a community to start tracking shows and events.
+              You&apos;re not currently a member of any groups. Join a group to start tracking shows and events.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild>
-                <Link href="/communities">Browse Communities</Link>
+                <Link href="/groups">Browse Groups</Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link href="/communities/create">Create Community</Link>
+                <Link href="/groups/create">Create Group</Link>
               </Button>
             </div>
           </div>

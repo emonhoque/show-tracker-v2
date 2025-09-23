@@ -57,7 +57,7 @@ export function useApiCall<T>({
       }, ttl)
       
       setData(response)
-      onSuccess?.(response)
+      onSuccess?.(response as T)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         // Request was cancelled, don't update state
@@ -142,10 +142,10 @@ export function useApiCallWithRetry<T>({
     options,
     ttl,
     enabled,
-    onSuccess: (data) => {
-      setRetryCount(0) // Reset retry count on success
-      onSuccess?.(data)
-    },
+      onSuccess: (data) => {
+        setRetryCount(0) // Reset retry count on success
+        onSuccess?.(data as T)
+      },
     onError: handleError
   })
 
@@ -158,5 +158,5 @@ export function useApiCallWithRetry<T>({
     }
   }, [])
 
-  return result
+  return result as UseApiCallReturn<T>
 }

@@ -58,7 +58,7 @@ export default function LandingPage() {
               <span className="text-primary block">Show Again</span>
             </h1>
             <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
-              Track your favorite artists, manage RSVPs, and stay connected with your music community. 
+              Track your favorite artists, manage RSVPs, and stay connected with your music groups. 
               All in one beautiful, modern platform.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">

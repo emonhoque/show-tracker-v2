@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS communities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     description TEXT,
-    slug TEXT NOT NULL UNIQUE, -- Changed from numeric_id to slug for consistency
+    numeric_id TEXT NOT NULL UNIQUE,
     created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -294,7 +294,7 @@ CREATE OR REPLACE FUNCTION get_user_communities(user_uuid UUID)
 RETURNS TABLE (
     community_id UUID,
     community_name TEXT,
-    community_slug TEXT,
+    community_numeric_id TEXT,
     user_role TEXT,
     member_count BIGINT
 ) AS $$
@@ -303,14 +303,14 @@ BEGIN
     SELECT 
         c.id,
         c.name,
-        c.slug,
+        c.numeric_id,
         cm.role,
         COUNT(cm2.user_id) as member_count
     FROM communities c
     JOIN community_members cm ON c.id = cm.community_id
     LEFT JOIN community_members cm2 ON c.id = cm2.community_id
     WHERE cm.user_id = user_uuid
-    GROUP BY c.id, c.name, c.slug, cm.role
+    GROUP BY c.id, c.name, c.numeric_id, cm.role
     ORDER BY c.name;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
@@ -341,10 +341,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
--- Function to get show by public_id and community_slug
+-- Function to get show by public_id and community_numeric_id
 CREATE OR REPLACE FUNCTION get_show_by_public_id(
     p_public_id TEXT,
-    p_community_slug TEXT DEFAULT NULL
+    p_community_numeric_id TEXT DEFAULT NULL
 )
 RETURNS TABLE (
     id UUID,
@@ -378,8 +378,8 @@ BEGIN
     LEFT JOIN communities c ON s.community_id = c.id
     WHERE s.public_id = p_public_id
     AND (
-        p_community_slug IS NULL 
-        OR c.slug = p_community_slug
+        p_community_numeric_id IS NULL 
+        OR c.numeric_id = p_community_numeric_id
         OR s.community_id IS NULL
     )
     AND (
@@ -418,7 +418,7 @@ DECLARE
     max_attempts INTEGER := 10;
 BEGIN
     -- Get show details
-    SELECT s.*, c.slug as community_slug
+    SELECT s.*, c.numeric_id as community_numeric_id
     INTO show_record
     FROM shows s
     LEFT JOIN communities c ON s.community_id = c.id
@@ -451,8 +451,8 @@ BEGIN
         new_slug := create_slug(show_record.title);
         
         -- Generate shareable URL
-        IF show_record.community_slug IS NOT NULL THEN
-            new_shareable_url := '/comm/' || show_record.community_slug || '/event/' || new_public_id;
+        IF show_record.community_numeric_id IS NOT NULL THEN
+            new_shareable_url := '/groups/' || show_record.community_numeric_id || '/event/' || new_public_id;
         ELSE
             new_shareable_url := '/share/' || new_public_id;
         END IF;
@@ -969,12 +969,12 @@ DECLARE
     new_public_id TEXT;
     new_slug TEXT;
     new_shareable_url TEXT;
-    community_slug TEXT;
+    community_numeric_id TEXT;
     attempts INTEGER;
     max_attempts INTEGER := 10;
 BEGIN
     FOR show_record IN 
-        SELECT s.id, s.title, s.community_id, c.slug as community_slug
+        SELECT s.id, s.title, s.community_id, c.numeric_id as community_numeric_id
         FROM shows s
         LEFT JOIN communities c ON s.community_id = c.id
         WHERE s.public_id IS NULL
@@ -1001,8 +1001,8 @@ BEGIN
         new_slug := create_slug(show_record.title);
         
         -- Generate shareable URL
-        IF show_record.community_slug IS NOT NULL THEN
-            new_shareable_url := '/comm/' || show_record.community_slug || '/event/' || new_public_id;
+        IF show_record.community_numeric_id IS NOT NULL THEN
+            new_shareable_url := '/groups/' || show_record.community_numeric_id || '/event/' || new_public_id;
         ELSE
             new_shareable_url := '/share/' || new_public_id;
         END IF;

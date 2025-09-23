@@ -8,11 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Layout } from '@/components/Layout'
 import { ArrowLeft, Users, Settings, Crown, UserPlus, Share2, Copy, Check } from 'lucide-react'
 
-// interface CommunityPageProps {
-//   params: Promise<{ id: string }>  // id is the community numeric_id
-// } // Unused interface
-
-export default function CommunityPage() {
+export default function GroupPage() {
   const params = useParams()
   const router = useRouter()
   const [community, setCommunity] = useState<Community | null>(null)
@@ -38,12 +34,12 @@ export default function CommunityPage() {
       if (response.ok && data.success && data.members) {
         setMembers(data.members)
       } else {
-        console.error('Failed to load community members:', data.error)
+        console.error('Failed to load group members:', data.error)
         // Set empty array on error to avoid breaking the UI
         setMembers([])
       }
     } catch (error) {
-      console.error('Error loading community members:', error)
+      console.error('Error loading group members:', error)
       setMembers([])
     }
   }, [])
@@ -58,7 +54,7 @@ export default function CommunityPage() {
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session?.access_token) {
-        setError('You must be logged in to view communities')
+        setError('You must be logged in to view groups')
         return
       }
       
@@ -92,10 +88,10 @@ export default function CommunityPage() {
           // Load community members
           await loadCommunityMembers(foundCommunity.community_id, session.access_token)
         } else {
-          setError('Community not found')
+          setError('Group not found')
         }
       } else {
-        setError(data.error || 'Failed to load community')
+        setError(data.error || 'Failed to load group')
       }
     } catch {
       setError('An unexpected error occurred')
@@ -186,7 +182,7 @@ export default function CommunityPage() {
           <div className="text-center py-12">
             <div className="text-red-600 mb-4">
               <Users className="h-12 w-12 mx-auto mb-2" />
-              <h2 className="text-xl font-semibold">Error Loading Community</h2>
+              <h2 className="text-xl font-semibold">Error Loading Group</h2>
               <p className="text-gray-600">{error}</p>
             </div>
             <Button onClick={() => router.back()} variant="outline">
@@ -204,12 +200,12 @@ export default function CommunityPage() {
         <div className="max-w-4xl mx-auto p-4">
           <div className="text-center py-12">
             <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <h2 className="text-xl font-semibold mb-2">Community Not Found</h2>
+            <h2 className="text-xl font-semibold mb-2">Group Not Found</h2>
             <p className="text-gray-600 mb-6">
-              The community you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
+              The group you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
             </p>
-            <Button onClick={() => router.push('/communities')} variant="outline">
-              View All Communities
+            <Button onClick={() => router.push('/groups')} variant="outline">
+              View All Groups
             </Button>
           </div>
         </div>
@@ -265,12 +261,12 @@ export default function CommunityPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Community Info */}
+        {/* Group Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Community Information</CardTitle>
+            <CardTitle>Group Information</CardTitle>
             <CardDescription>
-              Basic details about this community
+              Basic details about this group
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -299,7 +295,7 @@ export default function CommunityPage() {
               <span>Members</span>
             </CardTitle>
             <CardDescription>
-              People who are part of this community
+              People who are part of this group
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -341,7 +337,7 @@ export default function CommunityPage() {
               <span>Invite Link</span>
             </CardTitle>
             <CardDescription>
-              Share this link to invite people to join your community
+              Share this link to invite people to join your group
             </CardDescription>
           </CardHeader>
           <CardContent>
