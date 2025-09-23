@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, User, Mail, Calendar, Save, X } from 'lucide-react'
+import { ArrowLeft, User, Mail, Calendar, Save, X, Upload, Camera } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -29,6 +29,8 @@ export default function ProfilePage() {
   const [error, setError] = useState('')
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [migratingAvatar, setMigratingAvatar] = useState(false)
 
   // Fetch profile data on component mount
   useEffect(() => {
@@ -104,6 +106,71 @@ export default function ProfilePage() {
     setIsEditingName(false)
   }
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingAvatar(true)
+    setError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/upload-avatar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setProfile(prev => prev ? { ...prev, avatar_url: result.url } : null)
+        setError('')
+        // Refresh the auth context
+        if (refreshProfile) {
+          refreshProfile()
+        }
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to upload avatar')
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      setError('Failed to upload avatar')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  const handleMigrateAvatar = async () => {
+    setMigratingAvatar(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/migrate-avatar', {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setProfile(prev => prev ? { ...prev, avatar_url: result.url } : null)
+        setError('')
+        // Refresh the auth context
+        if (refreshProfile) {
+          refreshProfile()
+        }
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to migrate avatar')
+      }
+    } catch (error) {
+      console.error('Error migrating avatar:', error)
+      setError('Failed to migrate avatar')
+    } finally {
+      setMigratingAvatar(false)
+    }
+  }
+
   if (loadingProfile) {
     return (
       <Layout>
@@ -135,23 +202,71 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Profile Picture */}
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {profile?.avatar_url || user?.user_metadata?.['avatar_url'] ? (
-                    <Image
-                      src={profile?.avatar_url || user?.user_metadata?.['avatar_url'] || ''}
-                      alt="Profile"
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-8 h-8 text-gray-400" />
-                  )}
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {profile?.avatar_url || user?.user_metadata?.['avatar_url'] ? (
+                      <Image
+                        src={profile?.avatar_url || user?.user_metadata?.['avatar_url'] || ''}
+                        alt="Profile"
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                        unoptimized={true}
+                        onError={(e) => {
+                          console.error('Failed to load profile image:', e);
+                          // Hide the image on error
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <User className="w-8 h-8 text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium">{profile?.name || user?.user_metadata?.['full_name'] || user?.email?.split('@')[0]}</p>
+                    <p className="text-sm text-muted-foreground">{profile?.email || user?.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{profile?.name || user?.user_metadata?.['full_name'] || user?.email?.split('@')[0]}</p>
-                  <p className="text-sm text-muted-foreground">{profile?.email || user?.email}</p>
+                
+                {/* Avatar Upload Controls */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      id="avatar-upload"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      disabled={uploadingAvatar}
+                    />
+                    <label
+                      htmlFor="avatar-upload"
+                      className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 cursor-pointer disabled:opacity-50"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {uploadingAvatar ? 'Uploading...' : 'Upload New Avatar'}
+                    </label>
+                    
+                    {/* Show migrate button if using Google avatar */}
+                    {user?.user_metadata?.['avatar_url'] && 
+                     (!profile?.avatar_url || profile.avatar_url.includes('googleusercontent.com')) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMigrateAvatar}
+                        disabled={migratingAvatar}
+                        className="flex items-center gap-2"
+                      >
+                        <Camera className="w-4 h-4" />
+                        {migratingAvatar ? 'Migrating...' : 'Save to Our Storage'}
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    Upload a new profile picture or migrate your Google avatar to our storage for better performance.
+                  </p>
                 </div>
               </div>
 

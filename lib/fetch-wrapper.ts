@@ -1,3 +1,6 @@
+import { deduplicatedFetch } from './request-deduplication'
+import { cachedFetch } from './api-cache'
+
 // Simple fetch wrapper to handle ERR_CONTENT_DECODING_FAILED errors
 export async function safeFetch(url: string, options: RequestInit = {}) {
   const defaultOptions: RequestInit = {
@@ -10,7 +13,7 @@ export async function safeFetch(url: string, options: RequestInit = {}) {
   }
 
   try {
-    const response = await fetch(url, defaultOptions)
+    const response = await deduplicatedFetch(url, defaultOptions)
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -30,7 +33,7 @@ export async function safeFetch(url: string, options: RequestInit = {}) {
         }
       }
       
-      const retryResponse = await fetch(url, retryOptions)
+      const retryResponse = await deduplicatedFetch(url, retryOptions)
       
       if (!retryResponse.ok) {
         throw new Error(`HTTP error! status: ${retryResponse.status}`)
@@ -41,4 +44,25 @@ export async function safeFetch(url: string, options: RequestInit = {}) {
     
     throw error
   }
+}
+
+/**
+ * Cached fetch wrapper for GET requests that can be safely cached
+ * @param url - The request URL
+ * @param options - Fetch options
+ * @param ttl - Cache time to live in milliseconds (default: 5 minutes)
+ * @returns Promise that resolves to the response data
+ */
+export async function cachedSafeFetch<T>(
+  url: string, 
+  options: RequestInit = {}, 
+  ttl: number = 5 * 60 * 1000
+): Promise<T> {
+  // Only cache GET requests
+  if (options.method && options.method !== 'GET') {
+    const response = await safeFetch(url, options)
+    return response.json()
+  }
+  
+  return cachedFetch<T>(url, options, ttl)
 }

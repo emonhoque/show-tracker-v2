@@ -1,18 +1,22 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { env } from './env'
 
 // Client-side Supabase client
 export function createClient() {
   try {
-    if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    // Get environment variables directly from process.env
+    const supabaseUrl = process.env['NEXT_PUBLIC_SUPABASE_URL']
+    const supabaseAnonKey = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
       console.error('Missing Supabase environment variables:', {
-        url: env.NEXT_PUBLIC_SUPABASE_URL ? 'present' : 'missing',
-        key: env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'present' : 'missing'
+        url: supabaseUrl ? 'present' : 'missing',
+        key: supabaseAnonKey ? 'present' : 'missing',
+        allEnvKeys: Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_'))
       })
       throw new Error('Missing Supabase environment variables')
     }
     
-    return createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    return createBrowserClient(supabaseUrl, supabaseAnonKey)
   } catch (error) {
     console.error('Failed to create Supabase client:', error)
     throw error
@@ -22,7 +26,10 @@ export function createClient() {
 // Legacy export for backward compatibility - only create if env vars are available
 export const supabase = (() => {
   try {
-    if (env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const supabaseUrl = process.env['NEXT_PUBLIC_SUPABASE_URL']
+    const supabaseAnonKey = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']
+    
+    if (supabaseUrl && supabaseAnonKey) {
       return createClient()
     }
     return null

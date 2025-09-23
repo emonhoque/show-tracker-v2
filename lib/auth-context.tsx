@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { createClient } from './supabase'
 import type { User } from '@supabase/supabase-js'
-import { env } from './env'
 
 interface AuthContextType {
   user: User | null
@@ -54,10 +53,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signOut = useCallback(async () => {
     try {
-      if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        console.error('Supabase environment variables not available for sign out')
-        return
-      }
       const supabase = createClient()
       await supabase.auth.signOut()
       setUser(null)
@@ -68,10 +63,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshUser = useCallback(async () => {
     try {
-      if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        console.error('Supabase environment variables not available for refresh user')
-        return
-      }
       const supabase = createClient()
       const { data: { user: refreshedUser } } = await supabase.auth.getUser()
       setUser(refreshedUser)
@@ -99,14 +90,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const initializeAuth = async (): Promise<void> => {
       try {
-        // Check if environment variables are available
-        if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-          console.error('Supabase environment variables not available')
-          if (mounted) {
-            setLoading(false)
-          }
-          return
-        }
 
         const supabase = createClient()
 

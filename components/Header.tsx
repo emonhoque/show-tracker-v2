@@ -172,6 +172,12 @@ export function Header({
                             width={24}
                             height={24}
                             className="w-full h-full object-cover"
+                            unoptimized={true}
+                            onError={(e) => {
+                              console.error('Failed to load profile image:', e);
+                              // Hide the image on error
+                              e.currentTarget.style.display = 'none';
+                            }}
                           />
                         ) : (
                           <User className="w-4 h-4 text-gray-400" />

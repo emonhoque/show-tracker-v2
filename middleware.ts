@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { rateLimiters, createRateLimitHeaders } from '@/lib/rate-limiter'
 import { logger } from '@/lib/logger'
-import { env } from '@/lib/env'
+import { clientEnv } from '@/lib/env'
 
 // Generate nonce for CSP using Web Crypto API (Edge Runtime compatible)
 function generateNonce(): string {
@@ -13,10 +13,28 @@ function generateNonce(): string {
 
 // Create CSP header based on environment
 function createCSPHeader(nonce: string, isDevelopment: boolean): string {
-  const baseDirectives = [
+  if (isDevelopment) {
+    // More permissive CSP for development
+    return [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://vercel.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: https: blob:",
+      "connect-src 'self' https://*.supabase.co https://*.supabase.com https://api.spotify.com https://music.apple.com",
+      "frame-src 'self' https://vercel.live",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'"
+    ].join('; ')
+  }
+
+  // Production CSP with nonces
+  return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://vercel.live https://vercel.com`,
-    `style-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://fonts.googleapis.com`,
+    `script-src 'self' 'nonce-${nonce}' https://vercel.live https://vercel.com`,
+    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://*.supabase.co https://*.supabase.com https://api.spotify.com https://music.apple.com",
@@ -25,13 +43,7 @@ function createCSPHeader(nonce: string, isDevelopment: boolean): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'"
-  ]
-
-  if (isDevelopment) {
-    baseDirectives.push("'unsafe-eval'") // Allow eval in development for hot reloading
-  }
-
-  return baseDirectives.join('; ')
+  ].join('; ')
 }
 
 export async function middleware(request: NextRequest) {
@@ -53,6 +65,16 @@ export async function middleware(request: NextRequest) {
         rateLimiter = rateLimiters.search
       } else if (pathname.includes('/communities') && request.method === 'POST') {
         rateLimiter = rateLimiters.strict
+      } else if (
+        // Read-only endpoints that are frequently called
+        pathname.includes('/shows/') && request.method === 'GET' ||
+        pathname.includes('/rsvps/') && request.method === 'GET' ||
+        pathname.includes('/profile') && request.method === 'GET' ||
+        pathname.includes('/communities') && request.method === 'GET' ||
+        pathname.includes('/categories/') && request.method === 'GET' ||
+        pathname.includes('/releases/') && request.method === 'GET'
+      ) {
+        rateLimiter = rateLimiters.readOnly
       }
 
       const limit = await rateLimiter.checkLimit(request)
@@ -117,8 +139,8 @@ export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    clientEnv.NEXT_PUBLIC_SUPABASE_URL,
+    clientEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {

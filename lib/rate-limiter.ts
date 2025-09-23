@@ -122,34 +122,40 @@ export class RateLimiter {
 
 // Pre-configured rate limiters for different endpoint types
 export const rateLimiters = {
-  // General API endpoints - 100 requests per 15 minutes
+  // General API endpoints - 500 requests per 15 minutes (increased from 100)
   general: new RateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 100
+    maxRequests: 500
   }),
 
-  // Authentication endpoints - 10 requests per 15 minutes
+  // Authentication endpoints - 50 requests per 15 minutes (increased from 10)
   auth: new RateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 10
+    maxRequests: 50
   }),
 
-  // Upload endpoints - 20 requests per hour
+  // Upload endpoints - 50 requests per hour (increased from 20)
   upload: new RateLimiter({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    maxRequests: 50
+  }),
+
+  // Search endpoints - 500 requests per 15 minutes (increased from 200)
+  search: new RateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    maxRequests: 500
+  }),
+
+  // Strict rate limiting for sensitive operations - 20 requests per hour (increased from 5)
+  strict: new RateLimiter({
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 20
   }),
 
-  // Search endpoints - 200 requests per 15 minutes
-  search: new RateLimiter({
+  // New: Very permissive rate limiter for read-only endpoints
+  readOnly: new RateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 200
-  }),
-
-  // Strict rate limiting for sensitive operations
-  strict: new RateLimiter({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    maxRequests: 5
+    maxRequests: 1000
   })
 }
 
