@@ -344,22 +344,19 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, 
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={handleShare}
-            disabled={shareLoading}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1"
-          >
-            {shareLoading ? (
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            ) : copied ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <Share2 className="w-4 h-4" />
-            )}
-            {copied ? 'Copied!' : 'Share'}
-          </Button>
+          {show.ticket_url && !isPast && (
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+            >
+              <a href={show.ticket_url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-4 h-4 mr-1" />
+                Ticket
+              </a>
+            </Button>
+          )}
+          <CalendarExportButton show={show} />
           <Button
             onClick={handleCopyShowInfo}
             variant="outline"
@@ -373,18 +370,6 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, 
             )}
             {copySuccess ? 'Copied!' : 'Copy'}
           </Button>
-          {show.ticket_url && !isPast && (
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-            >
-              <a href={show.ticket_url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-4 h-4 mr-1" />
-                Ticket
-              </a>
-            </Button>
-          )}
           {show.google_photos_url && isPast && (
             <Button
               variant="outline"
@@ -424,7 +409,22 @@ export function ShowCard({ show, isPast, rsvps, onEdit, onDelete, onRSVPUpdate, 
               </a>
             </Button>
           )}
-          <CalendarExportButton show={show} />
+          <Button
+            onClick={handleShare}
+            disabled={shareLoading}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            {shareLoading ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : copied ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Share2 className="w-4 h-4" />
+            )}
+            {copied ? 'Copied!' : 'Share'}
+          </Button>
         </div>
 
         {/* RSVPs */}

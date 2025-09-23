@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Music, Github, Mail, Heart } from 'lucide-react'
+import { Music } from 'lucide-react'
 
 interface FooterProps {
   variant?: 'default' | 'landing'

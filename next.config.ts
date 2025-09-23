@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   },
   
   // External packages for server components (moved from experimental)
-  serverExternalPackages: ['@supabase/supabase-js'],
+  serverExternalPackages: ['@supabase/supabase-js', '@supabase/realtime-js'],
   
   // Configure allowed image domains
   images: {
@@ -49,6 +49,22 @@ const nextConfig: NextConfig = {
     config.cache = {
       type: 'memory',
     };
+
+    // Handle Node.js API warnings for Supabase
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+      crypto: false,
+    };
+
+    // Suppress specific warnings for Supabase Edge Runtime compatibility
+    config.ignoreWarnings = [
+      /A Node.js API is used.*which is not supported in the Edge Runtime/,
+      /process\.versions/,
+      /process\.version/
+    ];
 
     if (!isServer) {
       // Optimize chunk splitting for better performance

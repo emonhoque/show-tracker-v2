@@ -21,7 +21,7 @@ interface Profile {
 }
 
 export default function ProfilePage() {
-  const { user, refreshUser, refreshProfile } = useAuth()
+  const { user, refreshProfile } = useAuth()
   const router = useRouter()
   const [isEditingName, setIsEditingName] = useState(false)
   const [displayName, setDisplayName] = useState('')

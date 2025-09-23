@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Layout } from "@/components/Layout";
 import { useAuth } from "@/lib/auth-context";
-import { Calendar, Music, Users, Share2, Download, Bell, MapPin, Clock } from "lucide-react";
+import { Calendar, Users, Share2, Download, Bell, MapPin } from "lucide-react";
 import Link from "next/link";
 
 export default function LandingPage() {

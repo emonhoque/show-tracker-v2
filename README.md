@@ -85,7 +85,7 @@ A modern, password-protected Progressive Web App (PWA) for groups to track shows
 1. Enter the shared password and your name
 2. Add shows with the "Add" button
 3. RSVP to upcoming shows
-4. Export shows to your calendar using the "Add to Calendar" button
+4. Export shows to your calendar using the "Calendar" button
 5. Past shows are automatically moved to the Past tab
 6. Check the "Music" tab to see new music from tracked artists
 

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Use server-side client for API routes
     const supabase = await createServerSupabaseClient()

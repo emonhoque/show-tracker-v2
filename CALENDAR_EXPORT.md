@@ -69,7 +69,7 @@ ICS_CACHE_TTL_SECONDS=300
 
 ### For Users
 1. Navigate to any show in the application
-2. Click the "Add to Calendar" button
+2. Click the "Calendar" button
 3. Choose between:
    - **Google Calendar** - Opens Google Calendar with pre-filled event details
    - **Download ICS** - Downloads a calendar file for import

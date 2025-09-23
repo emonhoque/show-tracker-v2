@@ -6,7 +6,7 @@ import { Community, UserCommunity } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Layout } from '@/components/Layout'
-import { ArrowLeft, Users, Settings, Crown, Mail, UserPlus, Share2, Copy, Check } from 'lucide-react'
+import { ArrowLeft, Users, Settings, Crown, UserPlus, Share2, Copy, Check } from 'lucide-react'
 
 export default function CommunityPage() {
   const params = useParams()
@@ -99,7 +99,7 @@ export default function CommunityPage() {
     } finally {
       setLoading(false)
     }
-  }, [params.slug])
+  }, [params.slug, loadCommunityMembers])
 
   useEffect(() => {
     loadCommunityData()
@@ -136,7 +136,7 @@ export default function CommunityPage() {
         setError(data.error || 'Failed to create invite link')
       }
       
-    } catch (error) {
+    } catch {
       setError('Failed to create invite link')
     } finally {
       setIsCreatingInvite(false)

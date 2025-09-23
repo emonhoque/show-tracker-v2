@@ -24,7 +24,7 @@ export function CalendarExportButton({ show, shareableUrl, className }: Calendar
         className="flex items-center gap-2"
       >
         <Calendar className="h-4 w-4" />
-        Add to Calendar
+        Calendar
       </Button>
       
       <CalendarExportModal

@@ -16,7 +16,6 @@ export function GoogleAuthGate() {
   const returnUrl = searchParams.get('returnUrl')
   
   // Simple auth state without using the context to avoid circular imports
-  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   // Check auth status on mount
@@ -28,7 +27,6 @@ export function GoogleAuthGate() {
         const { data: { session } } = await supabase.auth.getSession()
         
         if (session?.user) {
-          setUser(session.user)
           // Redirect to return URL if provided, otherwise go home
           const redirectTo = returnUrl || '/'
           router.replace(redirectTo)

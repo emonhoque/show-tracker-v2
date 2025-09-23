@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,17 +13,7 @@ export default function SignOutPage() {
   const router = useRouter()
   const { user, loading, signOut } = useAuth()
 
-  // Auto-signout if user is authenticated
-  useEffect(() => {
-    if (!loading && user) {
-      handleSignOut()
-    } else if (!loading && !user) {
-      // If not authenticated, redirect to signin
-      router.replace('/signin')
-    }
-  }, [user, loading, router])
-
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     setIsLoading(true)
     setError('')
 
@@ -36,7 +26,17 @@ export default function SignOutPage() {
       setError('Failed to sign out. Please try again.')
       setIsLoading(false)
     }
-  }
+  }, [signOut, router])
+
+  // Auto-signout if user is authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      handleSignOut()
+    } else if (!loading && !user) {
+      // If not authenticated, redirect to signin
+      router.replace('/signin')
+    }
+  }, [user, loading, router, handleSignOut])
 
   const handleCancel = () => {
     router.back()

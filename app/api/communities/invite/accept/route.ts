@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if user is already a member
-    const { data: existingMembership, error: membershipCheckError } = await supabase
+    const { data: existingMembership } = await supabase
       .from('community_members')
       .select('id')
       .eq('community_id', invite.community_id)

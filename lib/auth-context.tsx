@@ -10,7 +10,12 @@ interface AuthContextType {
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
   refreshProfile: () => Promise<void>
-  profileData: any
+  profileData: {
+    id: string
+    name: string
+    email: string
+    avatar_url?: string
+  } | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -39,7 +44,12 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [profileData, setProfileData] = useState<any>(null)
+  const [profileData, setProfileData] = useState<{
+    id: string
+    name: string
+    email: string
+    avatar_url?: string
+  } | null>(null)
 
   const signOut = useCallback(async () => {
     try {

@@ -30,8 +30,14 @@ export default function CommunitySettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isCreatingInvite, setIsCreatingInvite] = useState(false)
-  const [inviteLinks, setInviteLinks] = useState<any[]>([])
-  const [showInviteLinks, setShowInviteLinks] = useState(false)
+  const [inviteLinks, setInviteLinks] = useState<Array<{
+    id: string
+    inviteUrl?: string
+    invite_url?: string
+    current_uses: number
+    max_uses: number
+    expires_at: string
+  }>>([])
 
   // Form state
   const [formData, setFormData] = useState({
@@ -70,7 +76,7 @@ export default function CommunitySettingsPage() {
       }
       
       const foundCommunity = communitiesData.communities.find(
-        (c: any) => c.community_numeric_id === params.slug
+        (c: { community_numeric_id: string }) => c.community_numeric_id === params.slug
       )
       
       if (!foundCommunity) {
@@ -199,7 +205,7 @@ export default function CommunitySettingsPage() {
         setError(data.error || 'Failed to save settings')
       }
       
-    } catch (error) {
+    } catch {
       setError('Failed to save settings')
     } finally {
       setIsSaving(false)
@@ -234,12 +240,11 @@ export default function CommunitySettingsPage() {
       if (response.ok && data.success) {
         // Reload invite links
         await loadInviteLinks(community.id, session.access_token)
-        setShowInviteLinks(true)
       } else {
         setError(data.error || 'Failed to create invite link')
       }
       
-    } catch (error) {
+    } catch {
       setError('Failed to create invite link')
     } finally {
       setIsCreatingInvite(false)
@@ -284,7 +289,7 @@ export default function CommunitySettingsPage() {
         setError(data.error || 'Failed to delete community')
       }
       
-    } catch (error) {
+    } catch {
       setError('Failed to delete community')
     }
   }
@@ -318,7 +323,7 @@ export default function CommunitySettingsPage() {
         setError(data.error || 'Failed to remove member')
       }
       
-    } catch (error) {
+    } catch {
       setError('Failed to remove member')
     }
   }
@@ -592,7 +597,7 @@ export default function CommunitySettingsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyInviteLink(invite.inviteUrl || invite.invite_url)}
+                    onClick={() => copyInviteLink(invite.inviteUrl || invite.invite_url || '')}
                   >
                     <Share2 className="h-4 w-4 mr-2" />
                     Copy

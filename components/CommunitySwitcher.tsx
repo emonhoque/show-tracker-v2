@@ -224,7 +224,7 @@ export function useCurrentCommunity() {
           // Get the first community or the one stored in localStorage
           const storedCommunityId = localStorage.getItem('selectedCommunityId')
           const selectedCommunity = storedCommunityId 
-            ? data.communities.find((c: any) => c.community_id === storedCommunityId)
+            ? data.communities.find((c: { community_id: string }) => c.community_id === storedCommunityId)
             : data.communities[0]
           
           if (selectedCommunity) {

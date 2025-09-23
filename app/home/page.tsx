@@ -16,14 +16,22 @@ import { PWAFeatures } from '@/components/PWAFeatures'
 import { RSVPFilter } from '@/components/RSVPFilter'
 import { RSVPFilterSkeleton } from '@/components/RSVPFilterSkeleton'
 import { ReleasesFeed } from '@/components/ReleasesFeed'
+import { ReleaseCardSkeleton } from '@/components/ReleaseCardSkeleton'
 import { Show, RSVPSummary, Community } from '@/lib/types'
 import { useInfiniteScroll } from '@/lib/useInfiniteScroll'
+import Link from 'next/link'
 
 export default function Home() {
-  const { user, loading: authLoading, signOut } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [userName, setUserName] = useState<string | null>(null)
   const [currentCommunity, setCurrentCommunity] = useState<Community | null>(null)
-  const [userCommunities, setUserCommunities] = useState<any[]>([])
+  const [userCommunities, setUserCommunities] = useState<Array<{
+    community_id: string
+    community_name: string
+    community_numeric_id: string
+    user_role: string
+    member_count: number
+  }>>([])
   const [upcomingShows, setUpcomingShows] = useState<Show[]>([])
   const [pastShows, setPastShows] = useState<Show[]>([])
   const [rsvpsData, setRsvpsData] = useState<Record<string, RSVPSummary>>({})
@@ -239,7 +247,7 @@ export default function Home() {
             if (!currentCommunity && data.communities.length > 0) {
               const storedCommunityId = localStorage.getItem('selectedCommunityId')
               const selectedCommunity = storedCommunityId 
-                ? data.communities.find((c: any) => c.community_id === storedCommunityId)
+                ? data.communities.find((c: { community_id: string }) => c.community_id === storedCommunityId)
                 : data.communities[0]
               
               if (selectedCommunity) {
@@ -263,7 +271,7 @@ export default function Home() {
     } else {
       setLoadingCommunities(false)
     }
-  }, [user])
+  }, [user, currentCommunity])
 
   // Fetch shows and category stats when authenticated
   useEffect(() => {
@@ -516,10 +524,10 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild>
-                <a href="/communities">Browse Communities</a>
+                <Link href="/communities">Browse Communities</Link>
               </Button>
               <Button variant="outline" asChild>
-                <a href="/communities/create">Create Community</a>
+                <Link href="/communities/create">Create Community</Link>
               </Button>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/db'
 import { createServerSupabaseClient, createSupabaseAdmin } from '@/lib/supabase-server'
 import { isShowPast } from '@/lib/time'
-import { validateUserName, validateRsvpStatus } from '@/lib/validation'
+import { validateRsvpStatus } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   try {

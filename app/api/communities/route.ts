@@ -75,13 +75,24 @@ export async function GET(request: NextRequest) {
       }
       
       // Return the first community
-      const member = communities[0] as any
+      const member = communities[0] as {
+        community_id: string
+        role: string
+        communities: {
+          id: string
+          name: string
+          description: string | null
+          numeric_id: string
+          created_at: string
+          music_enabled: boolean
+        }[]
+      }
       const community = {
-        id: member.communities.id,
-        name: member.communities.name,
-        description: member.communities.description,
-        numeric_id: member.communities.numeric_id,
-        created_at: member.communities.created_at
+        id: member.communities[0].id,
+        name: member.communities[0].name,
+        description: member.communities[0].description,
+        numeric_id: member.communities[0].numeric_id,
+        created_at: member.communities[0].created_at
       }
       
       return NextResponse.json({
@@ -165,7 +176,17 @@ export async function GET(request: NextRequest) {
       
       // Transform the data to match the expected format and calculate member counts
       const transformedCommunities = await Promise.all(
-        (communities || []).map(async (member: any) => {
+        (communities || []).map(async (member: {
+          community_id: string
+          role: string
+          communities: {
+            id: string
+            name: string
+            numeric_id: string
+            created_at: string
+            music_enabled: boolean
+          }[]
+        }) => {
           // Get actual member count for this community
           const { count: memberCount } = await supabase
             .from('community_members')
@@ -174,8 +195,8 @@ export async function GET(request: NextRequest) {
           
           return {
             community_id: member.community_id,
-            community_name: member.communities.name,
-            community_numeric_id: member.communities.numeric_id,
+            community_name: member.communities[0].name,
+            community_numeric_id: member.communities[0].numeric_id,
             user_role: member.role,
             member_count: memberCount || 0
           }
