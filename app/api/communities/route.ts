@@ -5,13 +5,11 @@ import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
     let user
     if (authHeader) {
-      // If we have an auth header, use it
       const token = authHeader.replace('Bearer ', '')
       const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(token)
       if (authError || !authUser) {
@@ -22,7 +20,6 @@ export async function GET(request: NextRequest) {
       }
       user = authUser
     } else {
-      // Try to get user from cookies/session
       const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser()
       if (authError || !authUser) {
         return NextResponse.json(
@@ -38,10 +35,8 @@ export async function GET(request: NextRequest) {
     const isCurrent = searchParams.get('current') === 'true'
 
     if (isCurrent) {
-      // Get user's first community (current/default)
       logger.debug('Fetching current community for user', { userId: user.id })
       
-      // Get user's communities using direct query (using admin client to bypass RLS)
       const { data: communityMembers, error } = await supabase
         .from('community_members')
         .select('community_id, role')
@@ -64,7 +59,6 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      // Get the community details
       const member = communityMembers[0]
       if (!member) {
         return NextResponse.json(
@@ -92,10 +86,8 @@ export async function GET(request: NextRequest) {
         community
       })
     } else if (communityId) {
-      // Get specific community
       logger.debug('Fetching specific community', { communityId, userId: user.id })
       
-      // Get user's communities first to verify access (using admin client to bypass RLS)
       const { data: userCommunities, error: communitiesError } = await supabase
         .from('community_members')
         .select('community_id')
@@ -109,7 +101,6 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      // Check if user has access to this community
       const hasAccess = userCommunities?.some((c: { community_id: string }) => c.community_id === communityId)
       if (!hasAccess) {
         return NextResponse.json(
@@ -118,7 +109,6 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      // Get full community details
       const { data: community, error: communityError } = await supabase
         .from('communities')
         .select('*')
@@ -138,10 +128,6 @@ export async function GET(request: NextRequest) {
         community
       })
     } else {
-      // Get all user's communities
-      logger.debug('Fetching communities for user', { userId: user.id, email: user.email, metadata: user.user_metadata })
-
-      // Get user's communities using direct query (using admin client to bypass RLS)
       const { data: communityMembers, error } = await supabase
         .from('community_members')
         .select('community_id, role')
@@ -162,10 +148,8 @@ export async function GET(request: NextRequest) {
         })
       }
       
-      // Get community details for each community
       const transformedCommunities = await Promise.all(
         communityMembers.map(async (member: { community_id: string; role: string }) => {
-          // Get community details
           const { data: community, error: communityError } = await supabase
             .from('communities')
             .select('id, name, numeric_id, created_at, music_enabled, description')
@@ -177,7 +161,6 @@ export async function GET(request: NextRequest) {
             return null
           }
           
-          // Get actual member count for this community
           const { count: memberCount } = await supabase
             .from('community_members')
             .select('*', { count: 'exact', head: true })
@@ -189,7 +172,6 @@ export async function GET(request: NextRequest) {
             community_numeric_id: community.numeric_id,
             user_role: member.role,
             member_count: memberCount || 0,
-            // Include full community details to avoid individual API calls
             community: {
               id: community.id,
               name: community.name,
@@ -202,7 +184,6 @@ export async function GET(request: NextRequest) {
         })
       )
       
-      // Filter out any null results
       const validCommunities = transformedCommunities.filter(community => community !== null)
 
       const response = NextResponse.json({
@@ -210,8 +191,7 @@ export async function GET(request: NextRequest) {
         communities: validCommunities
       })
       
-      // Add caching headers to prevent repeated calls
-      response.headers.set('Cache-Control', 'private, max-age=300') // 5 minutes cache
+      response.headers.set('Cache-Control', 'private, max-age=300') 
       
       return response
     }
@@ -239,13 +219,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
     let user
     if (authHeader) {
-      // If we have an auth header, use it
       const token = authHeader.replace('Bearer ', '')
       const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(token)
       if (authError || !authUser) {
@@ -256,7 +234,6 @@ export async function POST(request: NextRequest) {
       }
       user = authUser
     } else {
-      // Try to get user from cookies/session
       const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser()
       if (authError || !authUser) {
         return NextResponse.json(
@@ -269,10 +246,8 @@ export async function POST(request: NextRequest) {
 
     logger.debug('Authenticated user', { userId: user.id })
 
-    // Create community directly in the API route
     const supabaseAdmin = createSupabaseAdmin()
     
-    // Generate a unique numeric ID
     let numericId: string = ''
     let isUnique = false
     let attempts = 0
@@ -281,7 +256,6 @@ export async function POST(request: NextRequest) {
     while (!isUnique && attempts < maxAttempts) {
       numericId = Math.floor(10000000 + Math.random() * 90000000).toString()
       
-      // Check if ID is already taken
       const { data: existingCommunity } = await supabaseAdmin
         .from('communities')
         .select('id')
@@ -301,7 +275,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Create community
     const { data: community, error: communityError } = await supabaseAdmin
       .from('communities')
       .insert({
@@ -322,7 +295,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Add creator as admin
     const { error: memberError } = await supabaseAdmin
       .from('community_members')
       .insert({

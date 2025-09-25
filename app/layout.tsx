@@ -14,12 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EDM Adoption Clinic Show Tracker", // change to your own title
-  description: "Track shows and manage RSVPs for the EDM Adoption Clinic group", // change to your own description
-  keywords: ["EDM", "shows", "events", "RSVP", "music", "concerts"], // change to your own keywords
-  authors: [{ name: "EDM Adoption Clinic" }], // change to your own authors
-  creator: "EDM Adoption Clinic", // change to your own creator
-  publisher: "EDM Adoption Clinic", // change to your own publisher
+  title: "EDM Adoption Clinic Show Tracker",
+  description: "Track shows and manage RSVPs for the EDM Adoption Clinic group",
+  keywords: ["EDM", "shows", "events", "RSVP", "music", "concerts"],
+  authors: [{ name: "EDM Adoption Clinic" }],
+  creator: "EDM Adoption Clinic",
+  publisher: "EDM Adoption Clinic",
   formatDetection: {
     email: false,
     address: false,
@@ -39,22 +39,6 @@ export const metadata: Metadata = {
       { url: '/assets/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
     ]
   },
-  // PWA features disabled for development
-  // manifest: '/assets/site.webmanifest',
-  // appleWebApp: {
-  //   capable: true,
-  //   statusBarStyle: 'default',
-  //   title: 'EDM Adoption Clinic Show Tracker' // change to your own title
-  // },
-  // other: {
-  //   'mobile-web-app-capable': 'yes',
-  //   'apple-mobile-web-app-capable': 'yes',
-  //   'apple-mobile-web-app-status-bar-style': 'default',
-  //   'apple-mobile-web-app-title': 'EDM Adoption Clinic Show Tracker', // change to your own title
-  //   'application-name': 'EDM Adoption Clinic Show Tracker', // change to your own title
-  //   'msapplication-TileColor': '#1f2937',
-  //   'msapplication-config': '/browserconfig.xml'
-  // }
 };
 
 export const viewport: Viewport = {
@@ -79,37 +63,31 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // Prevent theme flash by setting theme before page renders
               (function() {
                 try {
                   const theme = localStorage.getItem('show-tracker-theme');
                   if (theme === 'dark' || theme === 'light') {
                     document.documentElement.classList.add(theme);
                   } else {
-                    // Default to light theme if no preference is stored
                     document.documentElement.classList.add('light');
                   }
                 } catch (e) {
-                  // Fallback to light theme if localStorage is not available
                   document.documentElement.classList.add('light');
                 }
               })();
 
-              // Handle chunk load errors with more robust error handling
               window.addEventListener('error', function(event) {
                 if (event.message && event.message.includes('Loading chunk')) {
                   console.error('Chunk load error detected:', event.message);
                   
                   
                   
-                  // Force reload on chunk load errors
                   setTimeout(() => {
                     window.location.reload();
                   }, 1500);
                 }
               });
 
-              // Handle unhandled promise rejections (chunk load errors)
               window.addEventListener('unhandledrejection', function(event) {
                 if (event.reason && event.reason.message && event.reason.message.includes('Loading chunk')) {
                   console.error('Chunk load error (unhandled rejection):', event.reason.message);
@@ -117,7 +95,6 @@ export default function RootLayout({
                   
                   
                   
-                  // Force reload on chunk load errors
                   setTimeout(() => {
                     window.location.reload();
                   }, 1500);

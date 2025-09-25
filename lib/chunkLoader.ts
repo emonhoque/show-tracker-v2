@@ -1,23 +1,19 @@
-// Chunk loading utilities with retry logic
 export class ChunkLoader {
   private static retryAttempts = 3;
   private static retryDelay = 1000;
 
   static async loadChunk(chunkId: string, retryCount = 0): Promise<unknown> {
     try {
-      // Try to load the chunk
       const chunk = await import(/* webpackChunkName: "[request]" */ `../app/page`);
       return chunk;
     } catch (error) {
       console.error(`Chunk load error for ${chunkId}, attempt ${retryCount + 1}:`, error);
       
       if (retryCount < this.retryAttempts) {
-      // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, this.retryDelay * (retryCount + 1)));
       return this.loadChunk('', retryCount + 1);
       }
       
-      // If all retries failed, throw the error
       throw error;
     }
   }
@@ -25,9 +21,7 @@ export class ChunkLoader {
   static handleChunkError(error: Error) {
     console.error('Chunk load error:', error);
     
-    // Check if it's a chunk loading error
     if (error.message.includes('Loading chunk') || error.message.includes('ChunkLoadError')) {
-      // Clear all caches
       if ('caches' in window) {
         caches.keys().then(cacheNames => {
           cacheNames.forEach(cacheName => {
@@ -36,7 +30,6 @@ export class ChunkLoader {
         });
       }
       
-      // Reload the page after clearing caches
       setTimeout(() => {
         window.location.reload();
       }, 1000);
@@ -44,7 +37,6 @@ export class ChunkLoader {
   }
 }
 
-// Global error handler for chunk loading
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
     if (event.message && event.message.includes('Loading chunk')) {

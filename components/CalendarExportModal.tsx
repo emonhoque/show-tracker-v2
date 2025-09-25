@@ -29,7 +29,6 @@ export function CalendarExportModal({ open, onOpenChange, show, shareableUrl }: 
   const [error, setError] = useState<string | null>(null)
   const [duration, setDuration] = useState('3')
 
-  // Helper function for authenticated requests
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
@@ -69,9 +68,8 @@ export function CalendarExportModal({ open, onOpenChange, show, shareableUrl }: 
       }
 
       if (data.calendarUrl) {
-        // Open Google Calendar in new tab
         window.open(data.calendarUrl, '_blank', 'noopener,noreferrer')
-        onOpenChange(false) // Close modal after successful action
+        onOpenChange(false)
       }
     } catch (error) {
       console.error('Google Calendar export error:', error)
@@ -100,13 +98,11 @@ export function CalendarExportModal({ open, onOpenChange, show, shareableUrl }: 
         throw new Error(data.error || 'Failed to generate calendar file')
       }
 
-      // Get filename from Content-Disposition header
       const contentDisposition = response.headers.get('Content-Disposition')
       const filename = contentDisposition
         ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
         : `${show.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.ics`
 
-      // Create blob and download
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -117,7 +113,7 @@ export function CalendarExportModal({ open, onOpenChange, show, shareableUrl }: 
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
       
-      onOpenChange(false) // Close modal after successful action
+      onOpenChange(false) 
     } catch (error) {
       console.error('ICS download error:', error)
       setError(error instanceof Error ? error.message : 'Failed to download calendar file')

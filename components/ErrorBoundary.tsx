@@ -37,13 +37,10 @@ export class ErrorBoundary extends Component<Props, State> {
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo)
     
-    // Call custom error handler if provided
     this.props.onError?.(error, errorInfo)
     
-    // Store error info for debugging
     this.setState({ errorInfo })
     
-    // Report to external service (e.g., Sentry, LogRocket, etc.)
     this.reportError(error, errorInfo)
   }
 
@@ -72,9 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private reportError = (error: Error, errorInfo: ErrorInfo) => {
-    // In production, you would send this to an error reporting service
     if (process.env.NODE_ENV === 'production') {
-      // Example: Sentry.captureException(error, { extra: errorInfo })
       console.error('Production error:', error, errorInfo)
     }
   }
@@ -101,12 +96,10 @@ export class ErrorBoundary extends Component<Props, State> {
         retryCount: prevState.retryCount + 1 
       }))
       
-      // Reset after a short delay
       this.resetTimeoutId = setTimeout(() => {
         this.resetErrorBoundary()
       }, 1000)
     } else {
-      // After max retries, reload the page
       window.location.reload()
     }
   }

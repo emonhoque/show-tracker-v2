@@ -13,7 +13,6 @@ export function formatBostonTime(utcDate: string | Date): string {
     const currentYear = new Date().getFullYear()
     const showYear = bostonDate.getFullYear()
     
-    // Include year if it's different from current year
     const formatString = showYear !== currentYear 
       ? 'EEE MMM d, yyyy, h:mm a'
       : 'EEE MMM d, h:mm a'
@@ -35,12 +34,10 @@ export function formatUserTime(utcDate: string | Date, userTimeInput: string): s
     const currentYear = new Date().getFullYear()
     const showYear = bostonDate.getFullYear()
     
-    // Include year if it's different from current year
     const dayOfWeek = showYear !== currentYear 
       ? format(bostonDate, 'EEE MMM d, yyyy')
       : format(bostonDate, 'EEE MMM d')
     
-    // Parse the user's time input to get the display format
     if (!userTimeInput || typeof userTimeInput !== 'string') {
       return dayOfWeek
     }
@@ -49,12 +46,10 @@ export function formatUserTime(utcDate: string | Date, userTimeInput: string): s
     const hour = parseInt(hours || '0', 10)
     const minute = parseInt(minutes || '0', 10)
     
-    // Validate parsed values
     if (isNaN(hour) || isNaN(minute)) {
       return dayOfWeek
     }
     
-    // Convert to 12-hour format with AM/PM
     const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
     const ampm = hour >= 12 ? 'PM' : 'AM'
     const displayMinute = minute.toString().padStart(2, '0')
@@ -77,11 +72,8 @@ export function getBostonNow(): Date {
  * Convert Boston local date and time strings to UTC timestamp
  */
 export function bostonToUTC(dateLocal: string, timeLocal: string): Date {
-  // Combine date and time strings
   const dateTimeString = `${dateLocal}T${timeLocal}`
-  // Create a date object treating it as Boston time
   const bostonDate = new Date(dateTimeString)
-  // Convert from Boston time to UTC
   return fromZonedTime(bostonDate, BOSTON_TZ)
 }
 

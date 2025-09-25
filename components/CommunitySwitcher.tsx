@@ -40,7 +40,6 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
       setLoading(true)
       setError(null)
       
-      // Get the current session to include the auth token
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       
@@ -72,10 +71,8 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
 
   const handleCommunitySelect = async (communityId: string) => {
     try {
-      // Store selected community in localStorage
       localStorage.setItem('selectedCommunityId', communityId)
       
-      // Get the current session to include the auth token
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       
@@ -84,7 +81,6 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
         return
       }
       
-      // Get full community details from API
       const response = await fetch(`/api/communities?id=${communityId}`, {
         method: 'GET',
         headers: {
@@ -96,7 +92,6 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
       
       if (response.ok && data.success && data.community) {
         onCommunityChange?.(data.community)
-        // Refresh the page to load community-scoped data
         router.refresh()
       } else {
         console.error('Failed to get community details:', data.error)
@@ -119,15 +114,12 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
   }
 
   const handleLeaveSuccess = () => {
-    // Reload communities after leaving
     loadCommunities()
-    // If we left the current community, switch to the first available one
     if (currentCommunity && leaveDialog.community?.community_id === currentCommunity.id) {
       const remainingCommunities = communities.filter(c => c.community_id !== leaveDialog.community?.community_id)
       if (remainingCommunities.length > 0 && remainingCommunities[0]) {
         handleCommunitySelect(remainingCommunities[0].community_id)
       } else {
-        // No communities left, redirect to groups page
         router.push('/groups')
       }
     }
@@ -243,7 +235,6 @@ export function CommunitySwitcher({ currentCommunity, onCommunityChange }: Commu
   )
 }
 
-// Hook to get current community from localStorage
 export function useCurrentCommunity() {
   const [currentCommunity, setCurrentCommunity] = useState<Community | null>(null)
   const [loading, setLoading] = useState(true)
@@ -269,14 +260,12 @@ export function useCurrentCommunity() {
         const data = await response.json()
         
         if (response.ok && data.success && data.communities && data.communities.length > 0) {
-          // Get the first community or the one stored in localStorage
           const storedCommunityId = localStorage.getItem('selectedCommunityId')
           const selectedCommunity = storedCommunityId 
             ? data.communities.find((c: { community_id: string }) => c.community_id === storedCommunityId)
             : data.communities[0]
           
           if (selectedCommunity) {
-            // Get full community details
             const communityResponse = await fetch(`/api/communities?id=${selectedCommunity.community_id}`, {
               method: 'GET',
               headers: {

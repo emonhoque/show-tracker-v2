@@ -1,7 +1,6 @@
 import { deduplicatedFetch } from './request-deduplication'
 import { cachedFetch } from './api-cache'
 
-// Simple fetch wrapper to handle ERR_CONTENT_DECODING_FAILED errors
 export async function safeFetch(url: string, options: RequestInit = {}) {
   const defaultOptions: RequestInit = {
     headers: {
@@ -21,7 +20,6 @@ export async function safeFetch(url: string, options: RequestInit = {}) {
     
     return response
   } catch (error) {
-    // If it's a content decoding error, try again without compression
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
       console.warn('Fetch failed, retrying without compression headers...')
       
@@ -58,7 +56,6 @@ export async function cachedSafeFetch<T>(
   options: RequestInit = {}, 
   ttl: number = 5 * 60 * 1000
 ): Promise<T> {
-  // Only cache GET requests
   if (options.method && options.method !== 'GET') {
     const response = await safeFetch(url, options)
     return response.json()

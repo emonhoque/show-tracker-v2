@@ -13,7 +13,6 @@ interface ImageModalProps {
 }
 
 export function ImageModal({ open, onOpenChange, src, alt }: ImageModalProps) {
-  // Prevent body scroll when modal is open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden'
@@ -21,7 +20,6 @@ export function ImageModal({ open, onOpenChange, src, alt }: ImageModalProps) {
       document.body.style.overflow = 'unset'
     }
 
-    // Cleanup on unmount
     return () => {
       document.body.style.overflow = 'unset'
     }
@@ -33,7 +31,6 @@ export function ImageModal({ open, onOpenChange, src, alt }: ImageModalProps) {
         className="max-w-[95vw] max-h-[95vh] w-[95vw] h-[95vh] p-0 bg-transparent border-0 shadow-none"
         showCloseButton={false}
         onPointerDownOutside={(e) => {
-          // Allow clicking outside to close
           e.preventDefault()
           onOpenChange(false)
         }}

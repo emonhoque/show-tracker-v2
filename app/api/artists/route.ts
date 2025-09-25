@@ -37,7 +37,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Spotify ID is required' }, { status: 400 })
     }
 
-    // Check if artist already exists
     const { data: existingArtist } = await supabase
       .from('artists')
       .select('*')
@@ -48,14 +47,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(existingArtist)
     }
 
-    // Fetch artist data from Spotify
     const spotifyArtist = await getArtist(spotifyId)
     
     if (!spotifyArtist) {
       return NextResponse.json({ error: 'Artist not found' }, { status: 404 })
     }
 
-    // Map and insert artist
     const artistData = mapSpotifyArtistToArtist(spotifyArtist, createdBy)
     
     const { data: newArtist, error } = await supabase

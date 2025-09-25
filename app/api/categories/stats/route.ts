@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Calculate category statistics
     const categoryCounts: Record<string, number> = {}
     let totalShows = 0
 

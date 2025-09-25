@@ -14,7 +14,6 @@ export interface Show {
   notes?: string | null
   created_at: string
   community_id?: string | null
-  // Shareable URL fields
   public_id?: string | null
   slug?: string | null
   shareable_url?: string | null
@@ -112,7 +111,6 @@ export interface SpotifyRelease {
   }>
 }
 
-// Community types
 export interface Community {
   id: string
   name: string
@@ -153,7 +151,6 @@ export interface UserCommunity {
   member_count: number
 }
 
-// Updated Show and RSVP types with community support
 export interface ShowWithCommunity extends Show {
   community_id?: string | null
 }
@@ -163,7 +160,6 @@ export interface RSVPWithCommunity extends RSVP {
   community_id?: string | null
 }
 
-// Community management types
 export interface CreateCommunityInput {
   name: string
   description?: string
@@ -183,7 +179,6 @@ export interface AcceptInviteInput {
   token: string
 }
 
-// API response types
 export interface CommunityResponse {
   success: boolean
   community?: Community
@@ -203,7 +198,6 @@ export interface InviteResponse {
   error?: string
 }
 
-// Show category types
 export type ShowCategory = 
   | 'general'
   | 'festival'
@@ -227,7 +221,6 @@ export interface CategoryStats {
   percentage: number
 }
 
-// Shareable URL types
 export interface ShareableUrlResponse {
   success: boolean
   shareableUrl?: string
@@ -256,7 +249,6 @@ export interface ShareTrackingResponse {
   error?: string
 }
 
-// Calendar export types
 export interface CalendarEvent {
   title: string
   start: string

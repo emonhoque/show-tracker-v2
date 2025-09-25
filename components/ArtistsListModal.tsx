@@ -9,7 +9,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { ArtistCardSkeleton } from '@/components/ArtistCardSkeleton'
 import { Artist } from '@/lib/types'
 
-// Spotify Icon Component
 const SpotifyIcon = ({ className }: { className?: string }) => (
   <svg
     className={className}

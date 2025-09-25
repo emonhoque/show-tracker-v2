@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic'
 import { Calendar } from 'lucide-react'
 
-// Dynamically import CalendarExportButton with loading fallback
 const CalendarExportButton = dynamic(() => import('./CalendarExportButton').then(mod => ({ default: mod.CalendarExportButton })), {
   loading: () => (
     <button 

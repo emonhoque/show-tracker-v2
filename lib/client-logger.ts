@@ -5,12 +5,6 @@
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
-// interface LogEntry {
-//   level: LogLevel
-//   message: string
-//   timestamp: string
-//   context?: Record<string, unknown>
-// } // Unused interface
 
 class ClientLogger {
   private isDevelopment = process.env.NODE_ENV === 'development'
@@ -22,10 +16,8 @@ class ClientLogger {
   }
 
   private shouldLog(level: LogLevel): boolean {
-    // In development, log everything
     if (this.isDevelopment) return true
     
-    // In production, only log warnings and errors
     return level === 'warn' || level === 'error'
   }
 
@@ -57,14 +49,11 @@ class ClientLogger {
     console.error(this.formatMessage('error', message, context))
   }
 
-  // Legacy method for backward compatibility
   log(message: string, context?: Record<string, unknown>): void {
     this.info(message, context)
   }
 }
 
-// Export singleton instance
 export const clientLogger = new ClientLogger()
 
-// Export individual methods for convenience
 export const { debug, info, warn, error, log } = clientLogger

@@ -9,8 +9,8 @@ import { cachedSafeFetch } from './fetch-wrapper'
 interface UseApiCallOptions<T> {
   url: string
   options?: RequestInit
-  ttl?: number // Cache time to live in milliseconds
-  enabled?: boolean // Whether to make the request immediately
+  ttl?: number 
+  enabled?: boolean
   onSuccess?: (data: T) => void
   onError?: (error: Error) => void
 }
@@ -26,7 +26,7 @@ interface UseApiCallReturn<T> {
 export function useApiCall<T>({
   url,
   options = {},
-  ttl = 5 * 60 * 1000, // 5 minutes default
+  ttl = 5 * 60 * 1000,
   enabled = true,
   onSuccess,
   onError
@@ -39,12 +39,10 @@ export function useApiCall<T>({
   const fetchData = useCallback(async () => {
     if (!enabled) return
 
-    // Cancel previous request if it exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
 
-    // Create new abort controller
     abortControllerRef.current = new AbortController()
 
     setLoading(true)
@@ -60,7 +58,6 @@ export function useApiCall<T>({
       onSuccess?.(response as T)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        // Request was cancelled, don't update state
         return
       }
       
@@ -77,10 +74,7 @@ export function useApiCall<T>({
   }, [fetchData])
 
   const clearCache = useCallback(() => {
-    // Clear cache for this specific URL
     const cacheKey = `GET:${url}:`
-    // Note: This would need to be implemented in the cache module
-    // For now, we'll just refetch
     refetch()
   }, [url, refetch])
 
@@ -89,7 +83,6 @@ export function useApiCall<T>({
       fetchData()
     }
 
-    // Cleanup on unmount
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
@@ -129,9 +122,8 @@ export function useApiCallWithRetry<T>({
     if (retryCount < maxRetries) {
       setRetryCount(prev => prev + 1)
       retryTimeoutRef.current = setTimeout(() => {
-        // Retry the request
-        window.location.reload() // Simple retry by reloading
-      }, retryDelay * Math.pow(2, retryCount)) // Exponential backoff
+        window.location.reload()
+      }, retryDelay * Math.pow(2, retryCount))  
     } else {
       onError?.(error)
     }
@@ -143,13 +135,12 @@ export function useApiCallWithRetry<T>({
     ttl,
     enabled,
       onSuccess: (data) => {
-        setRetryCount(0) // Reset retry count on success
+        setRetryCount(0)
         onSuccess?.(data as T)
       },
     onError: handleError
   })
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (retryTimeoutRef.current) {

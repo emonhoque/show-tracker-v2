@@ -9,7 +9,6 @@ export async function GET(
   try {
     const { show_id } = await params
 
-    // Fetch all RSVPs for this show with profile names
     const { data, error } = await supabase
       .from('rsvps')
       .select(`
@@ -27,7 +26,6 @@ export async function GET(
       )
     }
 
-    // Organize RSVPs by status
     const summary: RSVPSummary = {
       going: [],
       maybe: [],

@@ -19,11 +19,7 @@ export default async function SharePage({ params }: SharePageProps) {
       notFound()
     }
 
-    // If the show has a community, redirect to the community-specific URL
     if (result.show.community_id) {
-      // We need to get the community slug - for now, we'll show the show
-      // but in a real implementation, you'd query the community table
-      // For now, we'll just show the show without community context
     }
 
     return (
@@ -42,7 +38,6 @@ export default async function SharePage({ params }: SharePageProps) {
   }
 }
 
-// Generate metadata for the page
 export async function generateMetadata({ params }: SharePageProps) {
   const { publicId } = await params
 

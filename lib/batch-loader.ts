@@ -13,7 +13,7 @@ interface BatchRequest {
 class BatchLoader {
   private pendingRequests = new Map<string, BatchRequest>()
   private batchTimeout: NodeJS.Timeout | null = null
-  private readonly batchDelay = 50 // 50ms delay to collect requests
+  private readonly batchDelay = 50
   private readonly maxBatchSize = 10
 
   async addRequest<T>(
@@ -22,7 +22,6 @@ class BatchLoader {
     options?: RequestInit
   ): Promise<T> {
     return new Promise((resolve, reject) => {
-      // If there's already a pending request for this ID, return the existing promise
       if (this.pendingRequests.has(id)) {
         const existing = this.pendingRequests.get(id)!
         return existing.resolve(resolve as any)
@@ -38,7 +37,6 @@ class BatchLoader {
 
       this.pendingRequests.set(id, request)
 
-      // Schedule batch processing
       this.scheduleBatch()
     })
   }
@@ -66,7 +64,6 @@ class BatchLoader {
       return
     }
 
-    // Process requests in batches
     const batches = this.chunkArray(requests, this.maxBatchSize)
     
     for (const batch of batches) {
@@ -101,14 +98,12 @@ class BatchLoader {
     return chunks
   }
 
-  // Clear all pending requests
   clear() {
     if (this.batchTimeout) {
       clearTimeout(this.batchTimeout)
       this.batchTimeout = null
     }
 
-    // Reject all pending requests
     for (const request of this.pendingRequests.values()) {
       request.reject(new Error('Batch loader cleared'))
     }
@@ -116,13 +111,11 @@ class BatchLoader {
     this.pendingRequests.clear()
   }
 
-  // Get current pending request count
   getPendingCount(): number {
     return this.pendingRequests.size
   }
 }
 
-// Global batch loader instance
 export const batchLoader = new BatchLoader()
 
 /**

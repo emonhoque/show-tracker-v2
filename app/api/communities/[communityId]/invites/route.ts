@@ -10,7 +10,6 @@ export async function POST(
 ) {
   try {
     const { communityId } = await params
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
@@ -36,7 +35,6 @@ export async function POST(
       user = authUser
     }
 
-    // Verify user is admin of this community
     const { data: membership, error: membershipError } = await supabase
       .from('community_members')
       .select('role')
@@ -51,21 +49,19 @@ export async function POST(
       )
     }
 
-    // Generate invite token
     const token = randomBytes(32).toString('hex')
     const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days from now
+    expiresAt.setDate(expiresAt.getDate() + 7)
 
-    // Create Discord-style invite
     const { data: invite, error: inviteError } = await supabase
       .from('community_invites')
       .insert({
         community_id: communityId,
         created_by: user.id,
-        email: null, // No email for Discord-style invites
+        email: null,
         token,
         expires_at: expiresAt.toISOString(),
-        max_uses: 100, // Discord-style invites can be used multiple times
+        max_uses: 100,
         current_uses: 0
       })
       .select()
@@ -79,7 +75,6 @@ export async function POST(
       )
     }
 
-    // Generate invite URL
     const baseUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const inviteUrl = `${baseUrl}/invite/${token}`
 
@@ -111,7 +106,6 @@ export async function GET(
   try {
     const { communityId } = await params
 
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
@@ -137,7 +131,6 @@ export async function GET(
       user = authUser
     }
 
-    // Verify user is admin of this community
     const { data: membership, error: membershipError } = await supabase
       .from('community_members')
       .select('role')
@@ -152,7 +145,6 @@ export async function GET(
       )
     }
 
-    // Get active invites
     const { data: invites, error: invitesError } = await supabase
       .from('community_invites')
       .select('*')
@@ -198,7 +190,6 @@ export async function DELETE(
       )
     }
 
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
@@ -224,7 +215,6 @@ export async function DELETE(
       user = authUser
     }
 
-    // Verify user is admin of this community
     const { data: membership, error: membershipError } = await supabase
       .from('community_members')
       .select('role')
@@ -239,7 +229,6 @@ export async function DELETE(
       )
     }
 
-    // Delete the invite
     const { error: deleteError } = await supabase
       .from('community_invites')
       .delete()

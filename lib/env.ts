@@ -2,13 +2,10 @@
  * Environment variable utilities with proper type safety
  */
 
-// Environment variable getter with type safety
 export function getEnvVar(key: string): string | undefined {
-  // Always use process.env directly - Next.js handles the client-side injection
   return process.env[key]
 }
 
-// Required environment variable getter
 export function getRequiredEnvVar(key: string): string {
   const value = getEnvVar(key)
   if (!value || value.trim() === '') {
@@ -26,16 +23,13 @@ export function getRequiredEnvVar(key: string): string {
   return value
 }
 
-// Boolean environment variable getter
 export function getBooleanEnvVar(key: string, defaultValue: boolean = false): boolean {
   const value = process.env[key]
   if (!value) return defaultValue
   return value.toLowerCase() === 'true'
 }
 
-// Client-side environment variables (safe to use in browser)
 export const clientEnv = {
-  // Supabase (public) - lazy getters
   get NEXT_PUBLIC_SUPABASE_URL() {
     return getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_URL')
   },
@@ -43,7 +37,6 @@ export const clientEnv = {
     return getRequiredEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY')
   },
   
-  // App URLs - lazy getters
   get NEXT_PUBLIC_APP_URL() {
     return getEnvVar('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'
   },
@@ -52,9 +45,7 @@ export const clientEnv = {
   },
 } as const
 
-// Server-side environment variables (only for server-side code)
 export const serverEnv = {
-  // Supabase (server-only) - lazy getters
   get SUPABASE_URL() {
     return getRequiredEnvVar('SUPABASE_URL')
   },
@@ -62,7 +53,6 @@ export const serverEnv = {
     return getRequiredEnvVar('SUPABASE_SERVICE_ROLE_KEY')
   },
   
-  // Google OAuth - lazy getters
   get GOOGLE_CLIENT_ID() {
     return getEnvVar('GOOGLE_CLIENT_ID')
   },
@@ -70,7 +60,6 @@ export const serverEnv = {
     return getEnvVar('GOOGLE_CLIENT_SECRET')
   },
   
-  // Spotify - lazy getters
   get SPOTIFY_CLIENT_ID() {
     return getEnvVar('SPOTIFY_CLIENT_ID')
   },
@@ -78,22 +67,18 @@ export const serverEnv = {
     return getEnvVar('SPOTIFY_CLIENT_SECRET')
   },
   
-  // Discord - lazy getter
   get DISCORD_BOT_API_URL() {
     return getEnvVar('DISCORD_BOT_API_URL')
   },
   
-  // Blob storage - lazy getter
   get BLOB_READ_WRITE_TOKEN() {
     return getEnvVar('BLOB_READ_WRITE_TOKEN')
   },
   
-  // Cron - lazy getter
   get CRON_SECRET() {
     return getEnvVar('CRON_SECRET')
   },
   
-  // Feature flags - lazy getters
   get ENABLE_CALENDAR_EXPORT() {
     return getBooleanEnvVar('ENABLE_CALENDAR_EXPORT')
   },
@@ -116,12 +101,10 @@ export const serverEnv = {
     return getBooleanEnvVar('PUBLIC_SHARE_ENABLED')
   },
   
-  // Other - lazy getter
   get SHARE_URL_EXPIRATION_DAYS() {
     return getEnvVar('SHARE_URL_EXPIRATION_DAYS')
   },
   
-  // Client-side environment variables (for server-side usage)
   get NEXT_PUBLIC_APP_URL() {
     return getEnvVar('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'
   },
@@ -130,6 +113,4 @@ export const serverEnv = {
   },
 } as const
 
-// Legacy export for backward compatibility (server-side only)
-// Only export serverEnv for server-side usage
 export const env = serverEnv

@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
     logger.debug('Request body', { body })
     const { title, date_local, time_local, city, venue, category, ticket_url, spotify_url, apple_music_url, google_photos_url, poster_url, notes, community_id } = body
 
-    // Get current user and validate community access
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -37,7 +36,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If community_id is provided, verify user is a member
     if (community_id && community_id !== 'null' && community_id !== 'undefined') {
       logger.debug('Checking community membership', { userId: user.id, communityId: community_id })
       const supabaseAdmin = createSupabaseAdmin()
@@ -61,7 +59,6 @@ export async function POST(request: NextRequest) {
       logger.debug('User is a member with role', { userId: user.id, communityId: community_id, role: membership.role })
     }
 
-    // Validate and sanitize all inputs
     const titleValidation = validateTitle(title)
     if (!titleValidation.isValid) {
       return NextResponse.json({ error: titleValidation.error }, { status: 400 })
@@ -87,7 +84,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: timeValidation.error }, { status: 400 })
     }
 
-    // Validate category
     if (category && !isValidCategory(category)) {
       return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
     }
@@ -122,10 +118,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: notesValidation.error }, { status: 400 })
     }
 
-    // Convert Boston local date and time to UTC
     const utcDateTime = bostonToUTC(dateValidation.sanitizedValue!, timeValidation.sanitizedValue!)
 
-    // Insert into database with sanitized values
     const { data, error } = await supabase
       .from('shows')
       .insert([
@@ -156,7 +150,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Send Discord notification asynchronously (don't block the response)
     if (data) {
       const showData: ShowData = {
         id: data.id,
@@ -166,7 +159,6 @@ export async function POST(request: NextRequest) {
         city: data.city
       }
       
-      // Send notification asynchronously - don't await to avoid blocking the response
       discordService.sendNotificationAsync('new-show', showData)
     }
 

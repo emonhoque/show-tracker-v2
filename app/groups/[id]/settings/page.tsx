@@ -45,7 +45,6 @@ export default function GroupSettingsPage() {
     expires_at: string
   }>>([])
 
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -56,7 +55,6 @@ export default function GroupSettingsPage() {
     try {
       setLoading(true)
       
-      // Get the current session to include the auth token
       const { createClient } = await import('@/lib/supabase')
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -66,7 +64,6 @@ export default function GroupSettingsPage() {
         return
       }
       
-      // First, get user's communities to find the community ID by numeric_id
       const communitiesResponse = await fetch('/api/communities', {
         method: 'GET',
         headers: {
@@ -90,7 +87,6 @@ export default function GroupSettingsPage() {
         return
       }
 
-      // Now get full community details
       const response = await fetch(`/api/communities/${foundCommunity.community_id}`, {
         method: 'GET',
         headers: {
@@ -109,10 +105,8 @@ export default function GroupSettingsPage() {
         })
         setIsAdmin(data.userRole === 'admin')
         
-        // Load community members
         await loadCommunityMembers(data.community.id, session.access_token)
         
-        // Load invite links
         await loadInviteLinks(data.community.id, session.access_token)
       } else {
         setError(data.error || 'Failed to load group details')
@@ -159,7 +153,6 @@ export default function GroupSettingsPage() {
       const data = await response.json()
       
       if (response.ok && data.success && data.invites) {
-        // Construct full invite URLs for each invite
         const invitesWithUrls = data.invites.map((invite: any) => ({
           ...invite,
           inviteUrl: `${window.location.origin}/invite/${invite.token}`
@@ -211,7 +204,6 @@ export default function GroupSettingsPage() {
       
       if (response.ok && data.success) {
         setCommunity(data.community)
-        // Show success message
         success('Settings saved successfully!')
       } else {
         setError(data.error || 'Failed to save settings')
@@ -250,7 +242,6 @@ export default function GroupSettingsPage() {
       const data = await response.json()
       
       if (response.ok && data.success) {
-        // Reload invite links
         await loadInviteLinks(community.id, session.access_token)
       } else {
         setError(data.error || 'Failed to create invite link')
@@ -283,15 +274,12 @@ export default function GroupSettingsPage() {
     await copyWithFeedback(
       inviteUrl,
       () => {
-        // Success callback
         console.log('Copy successful')
         setCopiedInviteId(inviteId)
         setTimeout(() => setCopiedInviteId(null), 2000)
       },
       (error) => {
-        // Error callback
         console.error('Copy failed:', error)
-        // Still show visual feedback to indicate attempt was made
         setCopiedInviteId(inviteId)
         setTimeout(() => setCopiedInviteId(null), 2000)
       }
@@ -323,7 +311,6 @@ export default function GroupSettingsPage() {
       const data = await response.json()
       
       if (response.ok && data.success) {
-        // Reload invite links
         await loadInviteLinks(community.id, session.access_token)
       } else {
         setError(data.error || 'Failed to delete invite link')
@@ -392,7 +379,6 @@ export default function GroupSettingsPage() {
       const data = await response.json()
       
       if (response.ok && data.success) {
-        // Reload members list
         await loadCommunityMembers(community.id, session.access_token)
       } else {
         setError(data.error || 'Failed to remove member')

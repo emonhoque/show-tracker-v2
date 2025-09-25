@@ -38,7 +38,6 @@ async function getShowById(showId: string): Promise<Show | null> {
  */
 export async function generateGoogleCalendarUrlAction(showId: string, shareableUrl?: string, duration?: number): Promise<CalendarExportResult> {
   try {
-    // Check if calendar export is enabled
     if (process.env['ENABLE_CALENDAR_EXPORT'] !== 'true') {
       return {
         success: false,
@@ -54,7 +53,6 @@ export async function generateGoogleCalendarUrlAction(showId: string, shareableU
       }
     }
 
-    // Validate show data
     const validation = validateCalendarData(show)
     if (!validation.isValid) {
       return {
@@ -83,7 +81,6 @@ export async function generateGoogleCalendarUrlAction(showId: string, shareableU
  */
 export async function generateICSFileAction(showId: string, shareableUrl?: string, duration?: number): Promise<CalendarExportResult> {
   try {
-    // Check if calendar export is enabled
     if (process.env['ENABLE_CALENDAR_EXPORT'] !== 'true') {
       return {
         success: false,
@@ -99,7 +96,6 @@ export async function generateICSFileAction(showId: string, shareableUrl?: strin
       }
     }
 
-    // Validate show data
     const validation = validateCalendarData(show)
     if (!validation.isValid) {
       return {
@@ -138,7 +134,6 @@ export async function getCalendarEventDataAction(showId: string, shareableUrl?: 
       }
     }
 
-    // Validate show data
     const validation = validateCalendarData(show)
     if (!validation.isValid) {
       return {
@@ -151,7 +146,6 @@ export async function getCalendarEventDataAction(showId: string, shareableUrl?: 
     
     return {
       success: true,
-      // Note: We'll return the event data as JSON in the calendarUrl field for simplicity
       calendarUrl: JSON.stringify(eventData)
     }
   } catch (error) {

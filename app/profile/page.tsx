@@ -41,7 +41,6 @@ export default function ProfilePage() {
     community: UserCommunity | null
   }>({ isOpen: false, community: null })
 
-  // Fetch profile data on component mount
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return
@@ -62,15 +61,13 @@ export default function ProfilePage() {
       }
     }
 
-    // Only fetch if we don't already have profile data
     if (user && !profile) {
       fetchProfile()
     } else if (!user) {
       setLoadingProfile(false)
     }
-  }, [user, profile]) // Add profile dependency to prevent refetching
+  }, [user, profile])
 
-  // Fetch communities data on component mount
   useEffect(() => {
     const fetchCommunities = async () => {
       if (!user) return
@@ -78,7 +75,6 @@ export default function ProfilePage() {
       try {
         setLoadingCommunities(true)
         
-        // Get the current session to include the auth token
         const { createClient } = await import('@/lib/supabase')
         const supabase = createClient()
         const { data: { session } } = await supabase.auth.getSession()
@@ -139,12 +135,10 @@ export default function ProfilePage() {
         throw new Error(errorData.error || 'Failed to update name')
       }
 
-      // Refresh profile data to get updated name
       const updatedProfile = await response.json()
       setProfile(updatedProfile)
       setIsEditingName(false)
       
-      // Refresh profile data to update the header
       if (refreshProfile) {
         await refreshProfile()
       }
@@ -181,7 +175,6 @@ export default function ProfilePage() {
         const result = await response.json()
         setProfile(prev => prev ? { ...prev, avatar_url: result.url } : null)
         setError('')
-        // Refresh the auth context
         if (refreshProfile) {
           refreshProfile()
         }
@@ -210,7 +203,6 @@ export default function ProfilePage() {
         const result = await response.json()
         setProfile(prev => prev ? { ...prev, avatar_url: result.url } : null)
         setError('')
-        // Refresh the auth context
         if (refreshProfile) {
           refreshProfile()
         }
@@ -226,7 +218,6 @@ export default function ProfilePage() {
     }
   }
 
-  // Community management handlers
   const handleCreateGroup = () => {
     router.push('/groups/create')
   }
@@ -244,7 +235,6 @@ export default function ProfilePage() {
   }
 
   const handleLeaveSuccess = () => {
-    // Reload communities after leaving
     const fetchCommunities = async () => {
       if (!user) return
       
@@ -317,7 +307,6 @@ export default function ProfilePage() {
                         unoptimized={true}
                         onError={(e) => {
                           console.error('Failed to load profile image:', e);
-                          // Hide the image on error
                           e.currentTarget.style.display = 'none';
                         }}
                       />

@@ -29,7 +29,6 @@ export default function GroupsPage() {
     try {
       setLoading(true)
       
-      // Get the current session to include the auth token
       const { createClient } = await import('@/lib/supabase')
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -76,7 +75,6 @@ export default function GroupsPage() {
   }
 
   const handleLeaveSuccess = () => {
-    // Reload groups after leaving
     loadCommunities()
   }
 

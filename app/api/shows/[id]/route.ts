@@ -26,7 +26,6 @@ export async function DELETE(
       )
     }
 
-    // Delete the show (RSVPs will be deleted automatically due to CASCADE)
     const { error } = await supabase
       .from('shows')
       .delete()
@@ -65,7 +64,6 @@ export async function PUT(
       )
     }
 
-    // Validate and sanitize all inputs
     const titleValidation = validateTitle(title)
     if (!titleValidation.isValid) {
       return NextResponse.json({ error: titleValidation.error }, { status: 400 })
@@ -121,10 +119,8 @@ export async function PUT(
       return NextResponse.json({ error: notesValidation.error }, { status: 400 })
     }
 
-    // Convert Boston local date and time to UTC
     const utcDateTime = bostonToUTC(dateValidation.sanitizedValue!, timeValidation.sanitizedValue!)
 
-    // Update the show with sanitized values
     const { data, error } = await supabase
       .from('shows')
       .update({
@@ -159,7 +155,6 @@ export async function PUT(
       )
     }
 
-    // Send Discord notification asynchronously (don't block the response)
     const showData: ShowData = {
       id: data.id,
       title: data.title,
@@ -168,7 +163,6 @@ export async function PUT(
       city: data.city
     }
     
-    // Send notification asynchronously - don't await to avoid blocking the response
     discordService.sendNotificationAsync('updated-show', showData)
 
     return NextResponse.json(data)

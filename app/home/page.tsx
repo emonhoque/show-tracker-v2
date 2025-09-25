@@ -13,7 +13,6 @@ import { ShowCardSkeleton } from '@/components/ShowCardSkeleton'
 import { AddShowModal } from '@/components/AddShowModal'
 import { EditShowModal } from '@/components/EditShowModal'
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog'
-// import { PWAFeatures } from '@/components/PWAFeatures' // Unused import
 import { RSVPFilter } from '@/components/RSVPFilter'
 import { RSVPFilterSkeleton } from '@/components/RSVPFilterSkeleton'
 import { ReleasesFeed } from '@/components/ReleasesFeed'
@@ -61,7 +60,6 @@ export default function Home() {
   const [loadingCommunities, setLoadingCommunities] = useState(true)
   const [isOffline, setIsOffline] = useState(false)
   const [cacheVersion, setCacheVersion] = useState(0)
-  // const hasLoadedData = useRef(false) // Unused variable
   const isLoadingData = useRef(false)
   const lastLoadTime = useRef(0)
   const hasLoadedCommunities = useRef(false)
@@ -69,9 +67,7 @@ export default function Home() {
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null)
   const rsvpDebounceTimeouts = useRef<Record<string, NodeJS.Timeout>>({})
 
-  // Helper function for authenticated requests with deduplication
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
-    // Check if this request is already in progress
     if (activeRequests.current.has(url)) {
       console.log(`Request already in progress for ${url}, skipping duplicate`)
       return new Response('{"statuses": {}}', { 
@@ -88,7 +84,6 @@ export default function Home() {
       throw new Error('No session token available')
     }
 
-    // Mark request as active
     activeRequests.current.add(url)
     
     try {
@@ -97,18 +92,16 @@ export default function Home() {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Accept': 'application/json',
-          'Cache-Control': 'max-age=300', // Cache for 5 minutes
+          'Cache-Control': 'max-age=300',
           ...options.headers,
         },
       })
       return response
     } finally {
-      // Remove from active requests when done
       activeRequests.current.delete(url)
     }
   }
 
-  // Update userName when user changes
   useEffect(() => {
     if (user) {
       setUserName(user.user_metadata?.['full_name'] || user.email?.split('@')[0] || 'User')
@@ -118,7 +111,6 @@ export default function Home() {
   }, [user])
 
 
-  // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => setIsOffline(false)
     const handleOffline = () => setIsOffline(true)
@@ -126,7 +118,6 @@ export default function Home() {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
     
-    // Check initial status
     setIsOffline(!navigator.onLine)
     
     return () => {
@@ -137,7 +128,7 @@ export default function Home() {
 
   const fetchCategoryStats = useCallback(async (retryCount = 0) => {
     const maxRetries = 3
-    const retryDelay = 1000 * Math.pow(2, retryCount) // Exponential backoff
+    const retryDelay = 1000 * Math.pow(2, retryCount) 
     
     try {
       const url = currentCommunity 
@@ -146,7 +137,6 @@ export default function Home() {
       const response = await authenticatedFetch(url)
       
       if (response.ok) {
-        // Check if response has content before parsing JSON
         const responseText = await response.text()
         if (responseText && responseText.trim()) {
           try {
@@ -170,7 +160,6 @@ export default function Home() {
         console.log(`Retrying in ${retryDelay}ms...`)
         setTimeout(() => fetchCategoryStats(retryCount + 1), retryDelay)
       } else {
-        // Set empty stats on final failure to prevent UI issues
         setCategoryStats([])
       }
     }
@@ -180,10 +169,8 @@ export default function Home() {
     if (showIds.length === 0) return
     
     try {
-      // Fetch all user RSVP statuses in a single request
       const response = await authenticatedFetch(`/api/rsvps/bulk?show_ids=${showIds.join(',')}`)
       if (response.ok) {
-        // Check if response has content before parsing JSON
         const responseText = await response.text()
         if (responseText && responseText.trim()) {
           try {
@@ -194,7 +181,6 @@ export default function Home() {
             console.error('Response text:', responseText)
           }
         } else {
-          // Handle empty response (e.g., from duplicate request)
           console.log('Empty response received for RSVP statuses, skipping')
         }
       }
@@ -211,7 +197,6 @@ export default function Home() {
     }
     
     try {
-      // Fetch upcoming shows (now includes RSVPs) - only on initial load
       if (!isLoadMore) {
         const categoryParam = selectedCategoryFilters.has('all') ? '' : Array.from(selectedCategoryFilters).join(',')
         const upcomingUrl = `/api/shows/upcoming?v=${cacheVersion}${currentCommunity ? `&community_id=${currentCommunity.id}` : ''}${categoryParam ? `&categories=${encodeURIComponent(categoryParam)}` : ''}`
@@ -226,7 +211,6 @@ export default function Home() {
                 if (Array.isArray(upcomingData)) {
                   setUpcomingShows(upcomingData)
                   
-                  // Extract RSVPs from shows
                   const newRsvpsData: Record<string, RSVPSummary> = {}
                   
                   upcomingData.forEach((show: Show & { rsvps?: RSVPSummary }) => {
@@ -237,7 +221,6 @@ export default function Home() {
                   
                   setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
                   
-                  // Fetch user RSVP statuses for all upcoming shows
                   const upcomingShowIds = upcomingData.map((show: Show) => show.id)
                   fetchUserRsvpStatuses(upcomingShowIds)
                 } else {
@@ -260,7 +243,6 @@ export default function Home() {
         }
       }
 
-      // Fetch past shows with pagination
       const pastCategoryParam = selectedCategoryFilters.has('all') ? '' : Array.from(selectedCategoryFilters).join(',')
       const pastUrl = `/api/shows/past?page=${pastPage}&limit=20&v=${cacheVersion}${pastCategoryParam ? `&categories=${encodeURIComponent(pastCategoryParam)}` : ''}`
       
@@ -273,19 +255,16 @@ export default function Home() {
               const pastData = JSON.parse(responseText)
               if (pastData && pastData.shows && Array.isArray(pastData.shows)) {
                 if (isLoadMore) {
-                  // Append new shows to existing ones, filtering out duplicates
                   setPastShows(prev => {
                     const existingIds = new Set(prev.map((show: Show) => show.id))
                     const newShows = pastData.shows.filter((show: Show) => !existingIds.has(show.id))
                     return [...prev, ...newShows]
                   })
                 } else {
-                  // Replace shows on initial load
                   setPastShows(pastData.shows)
                 }
                 setPastShowsPagination(pastData.pagination)
                 
-                // Extract RSVPs from shows
                 const newRsvpsData: Record<string, RSVPSummary> = {}
                 pastData.shows.forEach((show: Show & { rsvps?: RSVPSummary }) => {
                   if (show.rsvps) {
@@ -294,7 +273,6 @@ export default function Home() {
                 })
                 setRsvpsData(prev => ({ ...prev, ...newRsvpsData }))
                 
-                // Fetch user RSVP statuses for past shows
                 const pastShowIds = pastData.shows.map((show: Show) => show.id)
                 fetchUserRsvpStatuses(pastShowIds)
               } else {
@@ -336,13 +314,11 @@ export default function Home() {
     }
   }, [cacheVersion, selectedCategoryFilters, currentCommunity, fetchUserRsvpStatuses])
 
-  // Load user communities when authenticated
   useEffect(() => {
     if (user && !hasLoadedCommunities.current) {
       hasLoadedCommunities.current = true
       const loadUserCommunities = async () => {
         setLoadingCommunities(true)
-        // Add small delay to prevent rapid successive calls during development
         await new Promise(resolve => setTimeout(resolve, 100))
         try {
           const response = await authenticatedFetch('/api/communities')
@@ -359,7 +335,6 @@ export default function Home() {
               if (data.success && data.communities) {
                 setUserCommunities(data.communities)
                 
-                // If no current community is set, try to get the first one or stored one
                 if (!currentCommunity && data.communities.length > 0) {
                   const storedCommunityId = localStorage.getItem('selectedCommunityId')
                   const selectedCommunity = storedCommunityId 
@@ -367,7 +342,6 @@ export default function Home() {
                     : data.communities[0]
                   
                   if (selectedCommunity && selectedCommunity.community) {
-                    // Use the community data from the bulk call - no additional API call needed!
                     setCurrentCommunity(selectedCommunity.community)
                   }
                 }
@@ -390,16 +364,13 @@ export default function Home() {
       setLoadingCommunities(false)
       hasLoadedCommunities.current = false
     }
-  }, [user]) // Remove currentCommunity dependency to prevent loops
+  }, [user])
 
-  // Fetch shows and category stats when authenticated
   useEffect(() => {
-    // Clear any existing debounce timeout
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current)
     }
 
-    // Debounce the data loading to prevent rapid successive calls
     debounceTimeout.current = setTimeout(() => {
       const now = Date.now()
       const timeSinceLastLoad = now - lastLoadTime.current
@@ -424,17 +395,15 @@ export default function Home() {
         
         loadData()
       }
-    }, 300) // 300ms debounce
+    }, 300) 
 
-    // Cleanup timeout on unmount
     return () => {
       if (debounceTimeout.current) {
         clearTimeout(debounceTimeout.current)
       }
     }
-  }, [user, currentCommunity?.id, fetchShows, fetchCategoryStats, currentCommunity]) // Include function dependencies
+  }, [user, currentCommunity?.id, fetchShows, fetchCategoryStats, currentCommunity])
 
-  // Apply filters to upcoming shows
   useEffect(() => {
     if (selectedStatusFilters.has('all')) {
       setFilteredUpcomingShows(upcomingShows)
@@ -445,7 +414,6 @@ export default function Home() {
       const rsvps = rsvpsData[show.id]
       if (!rsvps) return false
 
-      // Check status filters
       return Array.from(selectedStatusFilters).some(status => {
         if (status === 'going') {
           return rsvps.going && rsvps.going.length > 0
@@ -462,7 +430,6 @@ export default function Home() {
   }, [selectedStatusFilters, upcomingShows, rsvpsData])
 
 
-  // Filter functions
   const handleStatusFilterToggle = (filter: string) => {
     setSelectedStatusFilters(prev => {
       const newFilters = new Set(prev)
@@ -516,11 +483,8 @@ export default function Home() {
   }
 
   const handleShowAdded = async () => {
-    // Invalidate cache and refresh data
     setCacheVersion(prev => prev + 1)
-    // Small delay to ensure database has been updated
     await new Promise(resolve => setTimeout(resolve, 100))
-    // Fetch both upcoming and past shows to ensure new show appears
     await fetchShows(pastShowsPagination.page)
   }
 
@@ -531,7 +495,6 @@ export default function Home() {
     }
   }, [pastShowsPagination.hasNext, pastShowsPagination.page, loadingMore, fetchShows])
 
-  // Infinite scroll for past shows
   const { sentinelRef } = useInfiniteScroll({
     hasMore: pastShowsPagination.hasNext,
     isLoading: loadingMore,
@@ -544,25 +507,19 @@ export default function Home() {
   }
 
   const handleShowUpdated = async () => {
-    // Invalidate cache and refresh data
     setCacheVersion(prev => prev + 1)
-    // Small delay to ensure database has been updated
     await new Promise(resolve => setTimeout(resolve, 100))
-    // Fetch both upcoming and past shows to ensure updated show appears
     await fetchShows(pastShowsPagination.page)
     setShowEditModal(false)
     setEditingShow(null)
   }
 
   const updateRSVPs = async (showId: string) => {
-    // Clear any existing debounce timeout for this show
     if (rsvpDebounceTimeouts.current[showId]) {
       clearTimeout(rsvpDebounceTimeouts.current[showId])
     }
 
-    // Debounce RSVP updates to prevent rapid successive calls
     rsvpDebounceTimeouts.current[showId] = setTimeout(async () => {
-      // Check if this RSVP update is already in progress
       const rsvpKey = `rsvp-${showId}`
       if (activeRequests.current.has(rsvpKey)) {
         console.log(`RSVP update already in progress for show ${showId}, skipping duplicate`)
@@ -570,10 +527,8 @@ export default function Home() {
       }
 
       try {
-        // Mark RSVP update as active
         activeRequests.current.add(rsvpKey)
         
-        // Update RSVPs data
         const response = await authenticatedFetch(`/api/rsvps/${showId}`)
         if (response.ok) {
           const responseText = await response.text()
@@ -588,7 +543,6 @@ export default function Home() {
           }
         }
         
-        // Update user RSVP status
         const userResponse = await authenticatedFetch(`/api/rsvps/${showId}/user`)
         if (userResponse.ok) {
           const userResponseText = await userResponse.text()
@@ -605,10 +559,9 @@ export default function Home() {
       } catch (error) {
         console.error(`Error updating RSVPs for show ${showId}:`, error)
       } finally {
-        // Remove from active requests when done
         activeRequests.current.delete(rsvpKey)
       }
-    }, 200) // 200ms debounce for RSVP updates
+    }, 200)
   }
 
   const handleDeleteShow = (showId: string) => {
@@ -644,7 +597,6 @@ export default function Home() {
         return
       }
 
-      // Invalidate cache and refresh shows
       setCacheVersion(prev => prev + 1)
       await fetchShows(pastShowsPagination.page)
       setShowDeleteDialog(false)
@@ -711,7 +663,6 @@ export default function Home() {
     return <GoogleAuthGate />
   }
 
-  // Show empty state if user has no communities
   if (userCommunities.length === 0 && !loadingCommunities) {
     return (
       <Layout
@@ -906,9 +857,6 @@ export default function Home() {
         onConfirm={confirmDeleteShow}
       />
 
-      {/* PWA Features */}
-      {/* PWA features disabled in development */}
-      {/* <PWAFeatures onRefresh={fetchShows} /> */}
     </Layout>
   )
 }

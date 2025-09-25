@@ -44,7 +44,6 @@ export function ReleaseCard({ release }: ReleaseCardProps) {
 
   const getArtistNames = (): string => {
     try {
-      // Parse the artists JSON string if it exists
       const artists = typeof release.artists === 'string' 
         ? JSON.parse(release.artists) 
         : release.artists;
@@ -53,7 +52,6 @@ export function ReleaseCard({ release }: ReleaseCardProps) {
         return artists.map(artist => artist.name).join(', ');
       }
       
-      // Fallback to old structure if available
       if (release.artists && typeof release.artists === 'object' && 'artist_name' in release.artists) {
         return (release.artists as { artist_name: string }).artist_name;
       }

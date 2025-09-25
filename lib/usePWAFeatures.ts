@@ -19,7 +19,6 @@ export function usePWAFeatures() {
   const pullThreshold = 80
   const maxPullDistance = 120
 
-  // Detect if running as PWA
   useEffect(() => {
     const checkPWA = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
@@ -35,7 +34,6 @@ export function usePWAFeatures() {
     return () => window.removeEventListener('resize', checkPWA)
   }, [])
 
-  // Handle pull-to-refresh
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isPWA || window.scrollY > 0) return
     
@@ -55,7 +53,6 @@ export function usePWAFeatures() {
       pullDistance: limitedDistance 
     }))
 
-    // Prevent default scrolling when pulling
     if (pullDistance > 0) {
       e.preventDefault()
     }
@@ -70,7 +67,6 @@ export function usePWAFeatures() {
       setPullToRefreshState(prev => ({ ...prev, isRefreshing: true }))
       onRefresh()
       
-      // Reset after refresh
       setTimeout(() => {
         setPullToRefreshState(prev => ({ 
           ...prev, 
@@ -83,7 +79,6 @@ export function usePWAFeatures() {
     }
   }
 
-  // Scroll to top function
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }

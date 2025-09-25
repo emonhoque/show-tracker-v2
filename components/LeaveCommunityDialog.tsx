@@ -60,16 +60,12 @@ export function LeaveCommunityDialog({
       const data = await response.json()
 
       if (response.ok && data.success) {
-        // Clear the selected community from localStorage
         localStorage.removeItem('selectedCommunityId')
         
-        // Call success callback if provided
         onSuccess?.()
         
-        // Close dialog
         onClose()
         
-        // Redirect to groups page
         router.push('/groups')
       } else {
         setError(data.error || 'Failed to leave group')

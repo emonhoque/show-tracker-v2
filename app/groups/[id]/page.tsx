@@ -22,7 +22,6 @@ export default function GroupPage() {
   const [isCreatingInvite, setIsCreatingInvite] = useState(false)
   const [copied, setCopied] = useState(false)
   
-  // Events state
   const [upcomingShows, setUpcomingShows] = useState<Show[]>([])
   const [pastShows, setPastShows] = useState<Show[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
@@ -43,7 +42,6 @@ export default function GroupPage() {
         setMembers(data.members)
       } else {
         console.error('Failed to load group members:', data.error)
-        // Set empty array on error to avoid breaking the UI
         setMembers([])
       }
     } catch (error) {
@@ -57,7 +55,6 @@ export default function GroupPage() {
       setEventsLoading(true)
       setEventsError(null)
       
-      // Fetch upcoming shows
       const upcomingResponse = await fetch(`/api/shows/upcoming?community_id=${communityId}`, {
         method: 'GET',
         headers: {
@@ -65,7 +62,6 @@ export default function GroupPage() {
         },
       })
       
-      // Fetch past shows
       const pastResponse = await fetch(`/api/shows/past?community_id=${communityId}`, {
         method: 'GET',
         headers: {
@@ -102,7 +98,6 @@ export default function GroupPage() {
     try {
       setLoading(true)
       
-      // Get the current session to include the auth token
       const { createClient } = await import('@/lib/supabase')
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -112,7 +107,6 @@ export default function GroupPage() {
         return
       }
       
-      // Get user's communities to find the one with matching numeric_id
       const response = await fetch('/api/communities', {
         method: 'GET',
         headers: {
@@ -139,7 +133,6 @@ export default function GroupPage() {
           })
           setIsAdmin(foundCommunity.user_role === 'admin')
           
-          // Load community members and events
           await loadCommunityMembers(foundCommunity.community_id, session.access_token)
           await loadCommunityEvents(foundCommunity.community_id, session.access_token)
         } else {
@@ -208,14 +201,11 @@ export default function GroupPage() {
     await copyWithFeedback(
       inviteLink,
       () => {
-        // Success callback
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       },
       (error) => {
-        // Error callback
         console.error('Copy failed:', error)
-        // Still show visual feedback to indicate attempt was made
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }

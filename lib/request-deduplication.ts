@@ -8,13 +8,11 @@ interface PendingRequest {
   timestamp: number
 }
 
-// Store for pending requests
 const pendingRequests = new Map<string, PendingRequest>()
 
-// Clean up old requests every 5 minutes
 setInterval(() => {
   const now = Date.now()
-  const maxAge = 5 * 60 * 1000 // 5 minutes
+  const maxAge = 5 * 60 * 1000  
   
   for (const [key, request] of pendingRequests.entries()) {
     if (now - request.timestamp > maxAge) {
@@ -43,14 +41,11 @@ export async function deduplicatedFetch(
 ): Promise<Response> {
   const key = generateRequestKey(url, options.method || 'GET', options.body)
   
-  // Check if there's already a pending request for this key
   const existing = pendingRequests.get(key)
   if (existing) {
-    // Return the existing promise
     return existing.promise
   }
   
-  // Create new request
   const promise = fetch(url, options)
   pendingRequests.set(key, {
     promise,
@@ -59,11 +54,9 @@ export async function deduplicatedFetch(
   
   try {
     const response = await promise
-    // Remove from pending requests once completed
     pendingRequests.delete(key)
     return response
   } catch (error) {
-    // Remove from pending requests on error
     pendingRequests.delete(key)
     throw error
   }

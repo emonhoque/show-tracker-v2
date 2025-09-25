@@ -4,11 +4,11 @@
  */
 
 interface RateLimitConfig {
-  windowMs: number // Time window in milliseconds
-  maxRequests: number // Maximum requests per window
-  keyGenerator?: (request: Request) => string // Custom key generator
-  skipSuccessfulRequests?: boolean // Skip counting successful requests
-  skipFailedRequests?: boolean // Skip counting failed requests
+  windowMs: number
+  maxRequests: number
+  keyGenerator?: (request: Request) => string
+  skipSuccessfulRequests?: boolean
+  skipFailedRequests?: boolean
 }
 
 interface RateLimitEntry {
@@ -16,10 +16,8 @@ interface RateLimitEntry {
   resetTime: number
 }
 
-// In-memory store for rate limiting (in production, use Redis or similar)
 const rateLimitStore = new Map<string, RateLimitEntry>()
 
-// Clean up expired entries every 5 minutes
 setInterval(() => {
   const now = Date.now()
   for (const [key, entry] of rateLimitStore.entries()) {
@@ -41,20 +39,16 @@ export class RateLimiter {
       return this.config.keyGenerator(request)
     }
 
-    // Default: use IP address
     const forwarded = request.headers.get('x-forwarded-for')
     const ip = forwarded ? forwarded.split(',')[0] : 'unknown'
     return `rate_limit:${ip}`
   }
 
   private getUserKey(request: Request): string | null {
-    // Try to get user ID from authorization header
     const authHeader = request.headers.get('authorization')
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '')
-      // In a real implementation, you'd decode the JWT to get user ID
-      // For now, we'll use the token as a proxy for user ID
-      return `user_rate_limit:${token.slice(0, 20)}` // Use first 20 chars as key
+      return `user_rate_limit:${token.slice(0, 20)}`
     }
     return null
   }
@@ -66,9 +60,7 @@ export class RateLimiter {
     retryAfter?: number
   }> {
     const now = Date.now()
-    // const windowStart = now - this.config.windowMs // Unused variable
 
-    // Check IP-based rate limit
     const ipKey = this.generateKey(request)
     const ipEntry = rateLimitStore.get(ipKey) || { count: 0, resetTime: now + this.config.windowMs }
     
@@ -80,7 +72,6 @@ export class RateLimiter {
     ipEntry.count++
     rateLimitStore.set(ipKey, ipEntry)
 
-    // Check user-based rate limit if available
     const userKey = this.getUserKey(request)
     let userEntry: RateLimitEntry | null = null
     
@@ -96,7 +87,6 @@ export class RateLimiter {
       rateLimitStore.set(userKey, userEntry)
     }
 
-    // Check if either limit is exceeded
     const ipExceeded = ipEntry.count > this.config.maxRequests
     const userExceeded = userEntry && userEntry.count > this.config.maxRequests
 
@@ -120,41 +110,34 @@ export class RateLimiter {
   }
 }
 
-// Pre-configured rate limiters for different endpoint types
 export const rateLimiters = {
-  // General API endpoints - 1000 requests per 15 minutes
   general: new RateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000, 
     maxRequests: 1000
   }),
 
-  // Authentication endpoints - 100 requests per 15 minutes
   auth: new RateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     maxRequests: 100
   }),
 
-  // Upload endpoints - 100 requests per hour
   upload: new RateLimiter({
-    windowMs: 60 * 60 * 1000, // 1 hour
+    windowMs: 60 * 60 * 1000,
     maxRequests: 100
   }),
 
-  // Search endpoints - 1000 requests per 15 minutes
   search: new RateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     maxRequests: 1000
   }),
 
-  // Strict rate limiting for sensitive operations - 50 requests per hour
   strict: new RateLimiter({
-    windowMs: 60 * 60 * 1000, // 1 hour
+    windowMs: 60 * 60 * 1000,
     maxRequests: 50
   }),
 
-  // Very permissive rate limiter for read-only endpoints
   readOnly: new RateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     maxRequests: 2000
   })
 }

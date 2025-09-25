@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Return ICS content as downloadable file
     return new NextResponse(result.icsContent, {
       status: 200,
       headers: {

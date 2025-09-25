@@ -31,9 +31,9 @@ export async function GET() {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       features: {
-        googleAuth: true, // Always enabled now
-        supabaseAuth: true, // Always enabled now
-        passwordAuth: false, // Removed
+        googleAuth: true,
+        supabaseAuth: true,
+        passwordAuth: false,
         calendarExport: env.ENABLE_CALENDAR_EXPORT,
         googleCalendarLinks: env.ENABLE_GOOGLE_CALENDAR_LINKS,
         icsDownload: env.ENABLE_ICS_DOWNLOAD,
@@ -50,7 +50,6 @@ export async function GET() {
       }
     }
 
-    // Test database connection
     let supabaseAdmin: ReturnType<typeof createSupabaseAdmin> | null = null
     try {
       supabaseAdmin = createSupabaseAdmin()
@@ -70,7 +69,6 @@ export async function GET() {
       health.database = { status: 'error', error: 'Connection failed' }
     }
 
-    // Get user statistics if database is connected
     if (health.database?.status === 'connected' && supabaseAdmin) {
       try {
         const { count: profileCount } = await supabaseAdmin
@@ -85,7 +83,6 @@ export async function GET() {
           .from('shows')
           .select('*', { count: 'exact', head: true })
 
-        // Get shareable URL statistics if feature is enabled
         let shareableUrlStats = {}
         if (env.ENABLE_SHAREABLE_URLS) {
           try {

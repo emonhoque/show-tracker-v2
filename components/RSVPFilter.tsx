@@ -32,7 +32,6 @@ export function RSVPFilter({
   const contentRef = useRef<HTMLDivElement>(null)
   const [contentHeight, setContentHeight] = useState<number | undefined>(undefined)
 
-  // Measure content height when component mounts or when filters change
   useEffect(() => {
     if (contentRef.current) {
       const height = contentRef.current.scrollHeight
@@ -46,13 +45,11 @@ export function RSVPFilter({
     setIsAnimating(true)
     setFiltersCollapsed(!filtersCollapsed)
     
-    // Reset animation state after transition completes
     setTimeout(() => {
       setIsAnimating(false)
     }, 300)
   }
 
-  // If user has no communities, show community action buttons instead of filters
   if (!hasCommunities) {
     return (
       <Card>

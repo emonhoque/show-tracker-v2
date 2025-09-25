@@ -4,7 +4,6 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get current user for authentication
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -22,7 +21,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({ 
@@ -30,26 +28,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Validate file size (max 5MB for avatars)
-    const maxSize = 5 * 1024 * 1024 // 5MB
+    const maxSize = 5 * 1024 * 1024
     if (file.size > maxSize) {
       return NextResponse.json({ 
         error: 'File too large. Maximum size is 5MB.' 
       }, { status: 400 })
     }
 
-    // Generate unique filename for user avatar
     const timestamp = Date.now()
     const fileExtension = file.name.split('.').pop() || 'jpg'
     const filename = `avatars/${user.id}-${timestamp}.${fileExtension}`
 
-    // Upload to Vercel Blob
     const blob = await put(filename, file, {
       access: 'public',
       token: process.env['BLOB_READ_WRITE_TOKEN'],
     })
 
-    // Update user profile with new avatar URL
     const { error: updateError } = await supabaseClient
       .from('profiles')
       .update({ 

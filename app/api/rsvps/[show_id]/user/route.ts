@@ -8,7 +8,6 @@ export async function GET(
   try {
     const { show_id } = await params
 
-    // Get current user for authentication
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -19,7 +18,6 @@ export async function GET(
       )
     }
 
-    // Fetch current user's RSVP for this show
     const { data, error } = await supabaseClient
       .from('rsvps')
       .select('status')
@@ -27,7 +25,7 @@ export async function GET(
       .eq('user_id', user.id)
       .single()
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+    if (error && error.code !== 'PGRST116') {
       console.error('Database error:', error)
       return NextResponse.json(
         { error: 'Failed to fetch RSVP status' },
@@ -35,7 +33,6 @@ export async function GET(
       )
     }
 
-    // Return the status or null if no RSVP found
     return NextResponse.json({ status: data?.status || null })
   } catch (error) {
     console.error('API error:', error)

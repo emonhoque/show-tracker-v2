@@ -27,7 +27,7 @@ interface UseOptimizedApiReturn<T> {
 export function useOptimizedApi<T>({
   url,
   options = {},
-  ttl = 5 * 60 * 1000, // 5 minutes default
+  ttl = 5 * 60 * 1000,  
   enabled = true,
   useBatch = false,
   onSuccess,
@@ -42,12 +42,10 @@ export function useOptimizedApi<T>({
   const fetchData = useCallback(async () => {
     if (!enabled) return
 
-    // Cancel previous request if it exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
 
-    // Create new abort controller
     abortControllerRef.current = new AbortController()
     const requestId = `${url}-${Date.now()}`
     requestIdRef.current = requestId
@@ -59,13 +57,11 @@ export function useOptimizedApi<T>({
       let response: T
 
       if (useBatch) {
-        // Use batch loading for multiple requests
         response = await batchRequest<T>(requestId, url, {
           ...options,
           signal: abortControllerRef.current.signal
         })
       } else {
-        // Use optimized fetch with caching
         response = await optimizedAuthenticatedFetch<T>(url, {
           ...options,
           signal: abortControllerRef.current.signal,
@@ -73,26 +69,22 @@ export function useOptimizedApi<T>({
         })
       }
 
-      // Only update state if this is still the latest request
       if (requestIdRef.current === requestId) {
         setData(response)
         onSuccess?.(response)
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        // Request was cancelled, don't update state
         return
       }
       
       const error = err instanceof Error ? err : new Error('Unknown error')
       
-      // Only update state if this is still the latest request
       if (requestIdRef.current === requestId) {
         setError(error)
         onError?.(error)
       }
     } finally {
-      // Only update loading state if this is still the latest request
       if (requestIdRef.current === requestId) {
         setLoading(false)
       }
@@ -104,8 +96,6 @@ export function useOptimizedApi<T>({
   }, [fetchData])
 
   const clearCache = useCallback(() => {
-    // Clear cache for this specific URL
-    // This would need to be implemented in the cache module
     refetch()
   }, [refetch])
 
@@ -114,7 +104,6 @@ export function useOptimizedApi<T>({
       fetchData()
     }
 
-    // Cleanup on unmount
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
@@ -149,7 +138,6 @@ export function useOptimizedApiBatch<T>(
   const fetchAll = useCallback(async () => {
     if (!enabled || requests.length === 0) return
 
-    // Initialize loading states
     const initialLoading: Record<string, boolean> = {}
     const initialError: Record<string, Error | null> = {}
     
@@ -161,7 +149,6 @@ export function useOptimizedApiBatch<T>(
     setLoading(initialLoading)
     setError(initialError)
 
-    // Process all requests
     const promises = requests.map(async (req) => {
       try {
         const response = await batchRequest<T>(req.id, req.url, req.options)

@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
     const categories = searchParams.get('categories')
 
-    // Build query for past shows - only select necessary fields
     let query = supabase
       .from('shows')
       .select(`
@@ -34,7 +33,6 @@ export async function GET(request: NextRequest) {
       .lt('date_time', new Date().toISOString())
       .order('date_time', { ascending: false })
 
-    // Add category filtering if specified
     if (categories && categories !== 'all') {
       const categoryList = categories.split(',').filter(Boolean)
       if (categoryList.length > 0) {
@@ -42,7 +40,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Apply pagination
     const { data: shows, error: showsError, count } = await query.range(offset, offset + limit - 1)
 
     if (showsError) {
@@ -53,7 +50,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get all unique user IDs from RSVPs
     const userIds = new Set<string>()
     if (shows) {
       for (const show of shows) {
@@ -67,7 +63,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch user names for all RSVPs
     let userNames: Record<string, string> = {}
     if (userIds.size > 0) {
       const { data: profiles } = await supabase
@@ -83,7 +78,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Process shows and organize RSVPs efficiently
     const processedShows = (shows || []).map(show => {
       const rsvps: RSVPSummary = {
         going: [],
@@ -91,7 +85,6 @@ export async function GET(request: NextRequest) {
         not_going: []
       }
 
-      // Group RSVPs by status efficiently
       if (show.rsvps && Array.isArray(show.rsvps)) {
         for (const rsvp of show.rsvps) {
           const name = rsvp.user_id ? (userNames[rsvp.user_id] || 'Unknown User') : 'Unknown User'
@@ -105,7 +98,6 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Return optimized show object
       return {
         id: show.id,
         title: show.title,
@@ -140,7 +132,6 @@ export async function GET(request: NextRequest) {
       }
     })
     
-    // Add caching with revalidation for past shows
     response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
     response.headers.set('ETag', `"past-shows-${Math.floor(Date.now() / 60000)}"`)
     response.headers.set('Content-Type', 'application/json; charset=utf-8')

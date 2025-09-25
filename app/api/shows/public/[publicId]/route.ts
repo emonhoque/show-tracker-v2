@@ -17,14 +17,12 @@ export async function GET(
       )
     }
 
-    // Get the show details
     const result = await getShowByPublicId(publicId, communitySlug || undefined)
 
     if (!result.success) {
       return NextResponse.json(result, { status: 404 })
     }
 
-    // Update share tracking (increment count)
     await updateShareTracking(publicId)
 
     return NextResponse.json(result)

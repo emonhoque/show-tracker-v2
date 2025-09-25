@@ -7,9 +7,9 @@ import { deduplicatedFetch } from './request-deduplication'
 import { cachedFetch } from './api-cache'
 
 interface OptimizedFetchOptions extends RequestInit {
-  ttl?: number // Cache time to live in milliseconds
-  useCache?: boolean // Whether to use caching (default: true for GET requests)
-  skipDeduplication?: boolean // Whether to skip request deduplication
+  ttl?: number
+  useCache?: boolean
+  skipDeduplication?: boolean
 }
 
 /**
@@ -21,7 +21,6 @@ export async function optimizedAuthenticatedFetch<T>(
 ): Promise<T> {
   const { ttl = 5 * 60 * 1000, useCache = true, skipDeduplication = false, ...fetchOptions } = options
   
-  // Get authentication token
   const supabase = createClient()
   const { data: { session } } = await supabase.auth.getSession()
   
@@ -29,7 +28,6 @@ export async function optimizedAuthenticatedFetch<T>(
     throw new Error('No session token available')
   }
 
-  // Prepare headers
   const headers = {
     'Authorization': `Bearer ${session.access_token}`,
     'Content-Type': 'application/json',
@@ -42,20 +40,17 @@ export async function optimizedAuthenticatedFetch<T>(
     headers,
   }
 
-  // For GET requests, use caching if enabled
   if (requestOptions.method === 'GET' || !requestOptions.method) {
     if (useCache) {
       return cachedFetch<T>(url, requestOptions, ttl)
     }
   }
 
-  // Use deduplication unless explicitly disabled
   if (!skipDeduplication) {
     const response = await deduplicatedFetch(url, requestOptions)
     return response.json()
   }
 
-  // Direct fetch without deduplication
   const response = await fetch(url, requestOptions)
   
   if (!response.ok) {
@@ -74,20 +69,17 @@ export async function optimizedFetch<T>(
 ): Promise<T> {
   const { ttl = 5 * 60 * 1000, useCache = true, skipDeduplication = false, ...fetchOptions } = options
 
-  // For GET requests, use caching if enabled
   if (fetchOptions.method === 'GET' || !fetchOptions.method) {
     if (useCache) {
       return cachedFetch<T>(url, fetchOptions, ttl)
     }
   }
 
-  // Use deduplication unless explicitly disabled
   if (!skipDeduplication) {
     const response = await deduplicatedFetch(url, fetchOptions)
     return response.json()
   }
 
-  // Direct fetch without deduplication
   const response = await fetch(url, fetchOptions)
   
   if (!response.ok) {

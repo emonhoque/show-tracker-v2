@@ -27,7 +27,6 @@ export default function OptimizedHomePage() {
   const { error: showError } = useToast()
   const queryClient = useQueryClient()
   
-  // State
   const [userName, setUserName] = useState<string | null>(null)
   const [currentCommunity, setCurrentCommunity] = useState<Community | null>(null)
   const [selectedStatusFilters, setSelectedStatusFilters] = useState<Set<string>>(new Set(['all']))
@@ -40,7 +39,6 @@ export default function OptimizedHomePage() {
   const [deletingShowTitle, setDeletingShowTitle] = useState<string>('')
   const [isOffline, setIsOffline] = useState(false)
 
-  // Update userName when user changes
   useEffect(() => {
     if (user) {
       setUserName(user.user_metadata?.['full_name'] || user.email?.split('@')[0] || 'User')
@@ -49,7 +47,6 @@ export default function OptimizedHomePage() {
     }
   }, [user])
 
-  // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => setIsOffline(false)
     const handleOffline = () => setIsOffline(true)
@@ -64,13 +61,11 @@ export default function OptimizedHomePage() {
     }
   }, [])
 
-  // Fetch user communities
   const { 
     data: userCommunities = [], 
     isLoading: loadingCommunities 
   } = useUserCommunities()
 
-  // Fetch home page data (combines multiple API calls into one)
   const { 
     data: homePageData,
     isLoading: loadingHomeData,
@@ -82,7 +77,6 @@ export default function OptimizedHomePage() {
     enabled: !!user && !!currentCommunity
   })
 
-  // Extract data from the combined query
   const upcomingShows = homePageData?.upcomingShows || []
   const pastShows = homePageData?.pastShows?.data || []
   const pastShowsPagination = homePageData?.pastShows?.pagination || {
@@ -96,7 +90,6 @@ export default function OptimizedHomePage() {
   const categoryStats = homePageData?.categoryStats || []
   const userRsvpStatuses = homePageData?.userRsvps || {}
 
-  // Set current community when user communities load
   useEffect(() => {
     if (userCommunities.length > 0 && !currentCommunity) {
       const storedCommunityId = localStorage.getItem('selectedCommunityId')
@@ -105,19 +98,17 @@ export default function OptimizedHomePage() {
         : userCommunities[0]
       
       if (selectedCommunity?.community) {
-        // Convert UserCommunity.community to full Community type
         const fullCommunity: Community = {
           ...selectedCommunity.community,
-          created_by: '', // Will be set properly by the API
-          updated_at: selectedCommunity.community.created_at, // Use created_at as fallback
-          is_default: false // Default value
+          created_by: '',
+          updated_at: selectedCommunity.community.created_at,
+          is_default: false
         }
         setCurrentCommunity(fullCommunity)
       }
     }
   }, [userCommunities, currentCommunity])
 
-  // Apply filters to upcoming shows
   const filteredUpcomingShows = upcomingShows.filter(show => {
     if (selectedStatusFilters.has('all')) return true
     
@@ -136,7 +127,6 @@ export default function OptimizedHomePage() {
     })
   })
 
-  // Filter functions
   const handleStatusFilterToggle = (filter: string) => {
     setSelectedStatusFilters(prev => {
       const newFilters = new Set(prev)
@@ -188,15 +178,12 @@ export default function OptimizedHomePage() {
     setSelectedCategoryFilters(new Set(['all']))
   }
 
-  // Show management functions
   const handleShowAdded = useCallback(async () => {
-    // Invalidate and refetch home page data
     await queryClient.invalidateQueries({ queryKey: queryKeys.shows })
     await refetchHomeData()
   }, [queryClient, refetchHomeData])
 
   const handleShowUpdated = useCallback(async () => {
-    // Invalidate and refetch home page data
     await queryClient.invalidateQueries({ queryKey: queryKeys.shows })
     await refetchHomeData()
     setShowEditModal(false)
@@ -244,7 +231,6 @@ export default function OptimizedHomePage() {
         return
       }
 
-      // Invalidate and refetch data
       await queryClient.invalidateQueries({ queryKey: queryKeys.shows })
       await refetchHomeData()
       setShowDeleteDialog(false)
@@ -256,33 +242,25 @@ export default function OptimizedHomePage() {
     }
   }
 
-  // RSVP update function
   const updateRSVPs = useCallback(async (showId: string) => {
-    // Invalidate RSVP data for this show
     await queryClient.invalidateQueries({ 
       queryKey: queryKeys.rsvps(showId) 
     })
-    // Refetch home page data to get updated RSVPs
     await refetchHomeData()
   }, [queryClient, refetchHomeData])
 
-  // Load more past shows
   const loadMorePastShows = useCallback(async () => {
     if (pastShowsPagination.hasNext && !loadingHomeData) {
-      // For now, we'll refetch with a higher page number
-      // In a more advanced implementation, we'd implement pagination in the query
       await refetchHomeData()
     }
   }, [pastShowsPagination.hasNext, loadingHomeData, refetchHomeData])
 
-  // Infinite scroll for past shows
   const { sentinelRef } = useInfiniteScroll({
     hasMore: pastShowsPagination.hasNext,
     isLoading: loadingHomeData,
     onLoadMore: loadMorePastShows
   })
 
-  // Loading state
   if (authLoading || loadingCommunities) {
     return (
       <Layout
@@ -338,7 +316,6 @@ export default function OptimizedHomePage() {
     return <GoogleAuthGate />
   }
 
-  // Show empty state if user has no communities
   if (userCommunities.length === 0 && !loadingCommunities) {
     return (
       <Layout

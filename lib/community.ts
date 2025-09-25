@@ -13,7 +13,6 @@ import {
 import { z } from 'zod'
 import { randomBytes } from 'crypto'
 
-// Validation schemas
 const createCommunitySchema = z.object({
   name: z.string().min(2).max(50),
   description: z.string().max(200).optional()
@@ -33,18 +32,14 @@ const acceptInviteSchema = z.object({
   token: z.string().min(1)
 })
 
-// Helper function to generate secure invite token
 function generateInviteToken(): string {
   return randomBytes(32).toString('hex')
 }
 
-// Helper function to generate random numeric ID
 function generateNumericId(): string {
-  // Generate a random 8-digit number
   return Math.floor(10000000 + Math.random() * 90000000).toString()
 }
 
-// Helper function to check if user is authenticated
 async function getCurrentUser() {
   const supabase = createSupabaseAdmin()
   const { data: { user }, error } = await supabase.auth.getUser()
@@ -56,7 +51,6 @@ async function getCurrentUser() {
   return user
 }
 
-// Helper function to check if user is admin of community
 async function isCommunityAdmin(userId: string, communityId: string): Promise<boolean> {
   const supabase = createSupabaseAdmin()
   
@@ -74,7 +68,6 @@ async function isCommunityAdmin(userId: string, communityId: string): Promise<bo
   return data.role === 'admin'
 }
 
-// Helper function to check if user is member of community
 async function isCommunityMember(userId: string, communityId: string): Promise<boolean> {
   const supabase = createSupabaseAdmin()
   
@@ -88,7 +81,6 @@ async function isCommunityMember(userId: string, communityId: string): Promise<b
   return !error && !!data
 }
 
-// Create a new community
 export async function createCommunity(input: CreateCommunityInput): Promise<CommunityResponse> {
   try {
     console.log('createCommunity called with input:', input)
@@ -119,7 +111,6 @@ export async function createCommunity(input: CreateCommunityInput): Promise<Comm
     
     const supabase = createSupabaseAdmin()
     
-    // Generate a unique numeric ID
     let numericId: string = ''
     let isUnique = false
     let attempts = 0
@@ -128,7 +119,6 @@ export async function createCommunity(input: CreateCommunityInput): Promise<Comm
     while (!isUnique && attempts < maxAttempts) {
       numericId = generateNumericId()
       
-      // Check if ID is already taken
       const { data: existingCommunity } = await supabase
         .from('communities')
         .select('id')
@@ -148,7 +138,6 @@ export async function createCommunity(input: CreateCommunityInput): Promise<Comm
       }
     }
     
-    // Create community
     const { data: community, error } = await supabase
       .from('communities')
       .insert({
@@ -167,7 +156,6 @@ export async function createCommunity(input: CreateCommunityInput): Promise<Comm
       }
     }
     
-    // Add creator as admin
     const { error: memberError } = await supabase
       .from('community_members')
       .insert({
@@ -202,7 +190,6 @@ export async function createCommunity(input: CreateCommunityInput): Promise<Comm
   }
 }
 
-// Get user's communities
 export async function getCommunities(): Promise<CommunitiesResponse> {
   try {
     const user = await getCurrentUser()
@@ -230,13 +217,11 @@ export async function getCommunities(): Promise<CommunitiesResponse> {
   }
 }
 
-// Get current community (from localStorage or default)
 export async function getCurrentCommunity(): Promise<CommunityResponse> {
   try {
     const user = await getCurrentUser()
     const supabase = createSupabaseAdmin()
     
-    // Get user's communities
     const { data: communities, error } = await supabase
       .rpc('get_user_communities', { user_uuid: user.id })
     
@@ -247,10 +232,8 @@ export async function getCurrentCommunity(): Promise<CommunityResponse> {
       }
     }
     
-    // Return the first community (or could be stored in localStorage)
     const community = communities[0]
     
-    // Get full community details
     const { data: fullCommunity, error: communityError } = await supabase
       .from('communities')
       .select('*')
@@ -276,13 +259,11 @@ export async function getCurrentCommunity(): Promise<CommunityResponse> {
   }
 }
 
-// Update community
 export async function updateCommunity(communityId: string, input: UpdateCommunityInput): Promise<CommunityResponse> {
   try {
     const user = await getCurrentUser()
     const validatedInput = updateCommunitySchema.parse(input)
     
-    // Check if user is admin
     const isAdmin = await isCommunityAdmin(user.id, communityId)
     if (!isAdmin) {
       return {
@@ -326,13 +307,11 @@ export async function updateCommunity(communityId: string, input: UpdateCommunit
   }
 }
 
-// Create invite to community
 export async function inviteToCommunity(input: InviteToCommunityInput): Promise<InviteResponse> {
   try {
     const user = await getCurrentUser()
     const validatedInput = inviteToCommunitySchema.parse(input)
     
-    // Check if user is admin
     const isAdmin = await isCommunityAdmin(user.id, validatedInput.communityId)
     if (!isAdmin) {
       return {
@@ -343,12 +322,10 @@ export async function inviteToCommunity(input: InviteToCommunityInput): Promise<
     
     const supabase = createSupabaseAdmin()
     
-    // Generate invite token
     const token = generateInviteToken()
     const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days from now
+    expiresAt.setDate(expiresAt.getDate() + 7)
     
-    // Create invite
     const { error } = await supabase
       .from('community_invites')
       .insert({
@@ -369,7 +346,6 @@ export async function inviteToCommunity(input: InviteToCommunityInput): Promise<
       }
     }
     
-    // Generate invite URL
     const baseUrl = process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'
     const inviteUrl = `${baseUrl}/invite/${token}`
     
@@ -393,7 +369,6 @@ export async function inviteToCommunity(input: InviteToCommunityInput): Promise<
   }
 }
 
-// Accept invite
 export async function acceptInvite(input: AcceptInviteInput): Promise<CommunityResponse> {
   try {
     const user = await getCurrentUser()
@@ -401,7 +376,6 @@ export async function acceptInvite(input: AcceptInviteInput): Promise<CommunityR
     
     const supabase = createSupabaseAdmin()
     
-    // Get invite details
     const { data: invite, error: inviteError } = await supabase
       .from('community_invites')
       .select('*')
@@ -415,7 +389,6 @@ export async function acceptInvite(input: AcceptInviteInput): Promise<CommunityR
       }
     }
     
-    // Check if invite is expired
     if (new Date(invite.expires_at) < new Date()) {
       return {
         success: false,
@@ -423,7 +396,6 @@ export async function acceptInvite(input: AcceptInviteInput): Promise<CommunityR
       }
     }
     
-    // Check if invite has reached max uses
     if (invite.current_uses >= invite.max_uses) {
       return {
         success: false,
@@ -431,7 +403,6 @@ export async function acceptInvite(input: AcceptInviteInput): Promise<CommunityR
       }
     }
     
-    // Check if user is already a member
     const isMember = await isCommunityMember(user.id, invite.community_id)
     if (isMember) {
       return {
@@ -440,7 +411,6 @@ export async function acceptInvite(input: AcceptInviteInput): Promise<CommunityR
       }
     }
     
-    // Add user to community
     const { error: memberError } = await supabase
       .from('community_members')
       .insert({
@@ -457,13 +427,11 @@ export async function acceptInvite(input: AcceptInviteInput): Promise<CommunityR
       }
     }
     
-    // Update invite usage count
     await supabase
       .from('community_invites')
       .update({ current_uses: invite.current_uses + 1 })
       .eq('id', invite.id)
     
-    // Get community details
     const { data: community, error: communityError } = await supabase
       .from('communities')
       .select('*')
@@ -496,12 +464,9 @@ export async function acceptInvite(input: AcceptInviteInput): Promise<CommunityR
   }
 }
 
-// Remove member from community
 export async function removeMember(communityId: string, userId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await getCurrentUser()
-    
-    // Check if user is admin or removing themselves
     const isAdmin = await isCommunityAdmin(user.id, communityId)
     const isSelf = user.id === userId
     
@@ -536,7 +501,6 @@ export async function removeMember(communityId: string, userId: string): Promise
   }
 }
 
-// Leave community
 export async function leaveCommunity(communityId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await getCurrentUser()
@@ -565,12 +529,10 @@ export async function leaveCommunity(communityId: string): Promise<{ success: bo
   }
 }
 
-// Get community members
 export async function getCommunityMembers(communityId: string): Promise<{ success: boolean; members?: { id: string; name: string; email: string; role: string; user_id: string; profiles: { id: string; name: string; email: string; avatar_url: string } }[]; error?: string }> {
   try {
     const user = await getCurrentUser()
     
-    // Check if user is member of community
     const isMember = await isCommunityMember(user.id, communityId)
     if (!isMember) {
       return {

@@ -12,7 +12,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Artist ID is required' }, { status: 400 })
     }
 
-    // Delete the artist
     const { error } = await supabase
       .from('artists')
       .delete()

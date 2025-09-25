@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ statuses: {} })
     }
 
-    // Get current user for authentication
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -29,7 +28,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch all user's RSVPs for the specified shows in a single query
     const { data: rsvps, error } = await supabaseClient
       .from('rsvps')
       .select('show_id, status')
@@ -44,10 +42,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Convert array to object for easy lookup
     const statuses: Record<string, string | null> = {}
     showIds.forEach(showId => {
-      statuses[showId] = null // Default to null
+      statuses[showId] = null
     })
     
     if (rsvps) {

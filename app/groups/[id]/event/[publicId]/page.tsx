@@ -6,8 +6,8 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 interface ShowPageProps {
   params: Promise<{
-    id: string        // group numeric_id
-    publicId: string  // event public_id
+    id: string
+    publicId: string  
   }>
 }
 
@@ -15,24 +15,20 @@ export default async function ShowPage({ params }: ShowPageProps) {
   const { id, publicId } = await params
 
   try {
-    // Check authentication first
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
     if (authError || !user) {
-      // Redirect to access denied page for authentication
       const returnUrl = `/groups/${id}/event/${publicId}`
       redirect(`/access-denied?reason=auth&returnUrl=${encodeURIComponent(returnUrl)}`)
     }
 
-    // Get the show data
     const result = await getShowByPublicId(publicId, id)
 
     if (!result.success || !result.show) {
       notFound()
     }
 
-    // Check if user is a member of the community
     if (result.show.community_id) {
       console.log('Checking membership for:', {
         community_id: result.show.community_id,
@@ -53,8 +49,6 @@ export default async function ShowPage({ params }: ShowPageProps) {
       })
 
       if (membershipError || !membership) {
-        // User is not a member of this community
-        // Get community name for better error message
         const { data: community, error: communityError } = await supabaseClient
           .from('communities')
           .select('name')
@@ -83,9 +77,7 @@ export default async function ShowPage({ params }: ShowPageProps) {
       </ShareableLayout>
     )
   } catch (error) {
-    // Check if this is a Next.js redirect (which throws an error internally)
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      // Re-throw redirect errors so they work properly
       throw error
     }
     
@@ -94,12 +86,10 @@ export default async function ShowPage({ params }: ShowPageProps) {
   }
 }
 
-// Generate metadata for the page
 export async function generateMetadata({ params }: ShowPageProps) {
   const { id, publicId } = await params
 
   try {
-    // Check authentication for metadata generation
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -119,7 +109,6 @@ export async function generateMetadata({ params }: ShowPageProps) {
       }
     }
 
-    // Check community membership for metadata
     if (result.show.community_id) {
       const { data: membership, error: membershipError } = await supabaseClient
         .from('community_members')
@@ -129,7 +118,6 @@ export async function generateMetadata({ params }: ShowPageProps) {
         .single()
 
       if (membershipError || !membership) {
-        // Get community name for better error message
         const { data: community } = await supabaseClient
           .from('communities')
           .select('name')
@@ -159,9 +147,7 @@ export async function generateMetadata({ params }: ShowPageProps) {
       },
     }
   } catch (error) {
-    // Check if this is a Next.js redirect (which throws an error internally)
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      // Re-throw redirect errors so they work properly
       throw error
     }
     

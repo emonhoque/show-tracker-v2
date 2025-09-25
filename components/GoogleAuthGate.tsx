@@ -12,13 +12,10 @@ export function GoogleAuthGate() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
-  // Get return URL from search params
   const returnUrl = searchParams.get('returnUrl')
   
-  // Simple auth state without using the context to avoid circular imports
   const [loading, setLoading] = useState(true)
 
-  // Check auth status on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -27,7 +24,6 @@ export function GoogleAuthGate() {
         const { data: { session } } = await supabase.auth.getSession()
         
         if (session?.user) {
-          // Redirect to return URL if provided, otherwise go home
           const redirectTo = returnUrl || '/'
           router.replace(redirectTo)
         }

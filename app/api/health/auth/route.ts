@@ -14,20 +14,19 @@ export async function GET() {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       googleAuth: {
-        enabled: true, // Always enabled now
+        enabled: true,
         configured: !!(process.env['GOOGLE_CLIENT_ID'] && process.env['GOOGLE_CLIENT_SECRET'])
       },
       supabaseAuth: {
-        enabled: true, // Always enabled now
+        enabled: true,
         configured: !!(process.env['SUPABASE_URL'] && process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'])
       },
       passwordAuth: {
-        enabled: false, // Removed
+        enabled: false,
         configured: false
       }
     }
 
-    // Test Supabase Auth connection
     if (authHealth.supabaseAuth.enabled) {
       try {
         const supabaseAdmin = createSupabaseAdmin()
@@ -49,7 +48,6 @@ export async function GET() {
       }
     }
 
-    // Check if profiles table exists and is accessible
     try {
       const supabaseAdmin = createSupabaseAdmin()
       const { error } = await supabaseAdmin

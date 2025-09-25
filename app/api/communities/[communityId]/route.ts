@@ -9,7 +9,6 @@ export async function GET(
   try {
     const { communityId } = await params
 
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
@@ -35,7 +34,6 @@ export async function GET(
       user = authUser
     }
 
-    // Verify user has access to this community
     const { data: membership, error: membershipError } = await supabase
       .from('community_members')
       .select('role')
@@ -50,7 +48,6 @@ export async function GET(
       )
     }
 
-    // Get community details
     const { data: community, error: communityError } = await supabase
       .from('communities')
       .select('*')
@@ -89,7 +86,6 @@ export async function PUT(
     const body = await request.json()
     const { name, description, music_enabled } = body
 
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
@@ -115,7 +111,6 @@ export async function PUT(
       user = authUser
     }
 
-    // Verify user is admin of this community
     const { data: membership, error: membershipError } = await supabase
       .from('community_members')
       .select('role')
@@ -130,7 +125,6 @@ export async function PUT(
       )
     }
 
-    // Validate input
     if (!name || !name.trim()) {
       return NextResponse.json(
         { error: 'Name is required' },
@@ -138,7 +132,6 @@ export async function PUT(
       )
     }
 
-    // Update community
     const { data: updatedCommunity, error: updateError } = await supabase
       .from('communities')
       .update({
@@ -180,7 +173,6 @@ export async function DELETE(
   try {
     const { communityId } = await params
 
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
@@ -206,7 +198,6 @@ export async function DELETE(
       user = authUser
     }
 
-    // Verify user is admin of this community
     const { data: membership, error: membershipError } = await supabase
       .from('community_members')
       .select('role')
@@ -221,7 +212,6 @@ export async function DELETE(
       )
     }
 
-    // Delete community (cascade will handle related data)
     const { error: deleteError } = await supabase
       .from('communities')
       .delete()

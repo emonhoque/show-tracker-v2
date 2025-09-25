@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic'
 import { ReleaseCardSkeleton } from '@/components/ReleaseCardSkeleton'
 
-// Dynamically import ReleasesFeed with loading fallback
 const ReleasesFeed = dynamic(() => import('./ReleasesFeed'), {
   loading: () => (
     <div className="space-y-4">

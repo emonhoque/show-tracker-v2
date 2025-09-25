@@ -106,7 +106,6 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
     }
   }, [pagination.hasNext, pagination.page, isLoadingMore, fetchReleases])
 
-  // Set up infinite scroll
   const { sentinelRef } = useInfiniteScroll({
     hasMore: pagination.hasNext,
     isLoading: isLoadingMore,
@@ -120,7 +119,6 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
     setSpotifyError(null)
 
     try {
-      // First, fetch releases for all artists from Spotify
       const response = await fetch('/api/releases', {
         method: 'POST',
         headers: {
@@ -143,18 +141,15 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
       console.error('Error fetching releases from Spotify:', error)
     }
 
-    // Then refresh the releases list from database
     fetchReleases(true)
   }
 
   const handleArtistAdded = async () => {
-    // When an artist is added, fetch new releases from Spotify first, then refresh local data
     setIsRefreshing(true)
     setError(null)
     setSpotifyError(null)
 
     try {
-      // First, fetch releases for all artists from Spotify (including the newly added one)
       const response = await fetch('/api/releases', {
         method: 'POST',
         headers: {
@@ -178,14 +173,11 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
       console.error('Error fetching releases from Spotify:', error)
     }
 
-    // Then refresh the releases list from database
     await fetchReleases(true)
     setIsRefreshing(false)
   }
 
   const handleArtistRemoved = async () => {
-    // When an artist is removed, refresh local data
-    // Note: We don't need to fetch from Spotify since we're just removing data
     await fetchReleases(true)
   }
 
@@ -195,7 +187,7 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
     releases.forEach(release => {
       const releaseDate = new Date(release.release_date)
       const weekStart = new Date(releaseDate)
-      weekStart.setDate(releaseDate.getDate() - releaseDate.getDay()) // Start of week (Sunday)
+      weekStart.setDate(releaseDate.getDate() - releaseDate.getDay())
       
       const weekKey = weekStart.toISOString().split('T')[0]
       
@@ -207,7 +199,6 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
       }
     })
     
-    // Sort weeks by date (newest first)
     return Object.entries(groups)
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([weekKey, weekReleases]) => ({
@@ -222,7 +213,6 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
     const end = new Date(weekEnd)
     const now = new Date()
     
-    // Check if it's this week
     const thisWeekStart = new Date(now)
     thisWeekStart.setDate(now.getDate() - now.getDay())
     
@@ -230,7 +220,6 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
       return 'This Week'
     }
     
-    // Check if it's last week
     const lastWeekStart = new Date(thisWeekStart)
     lastWeekStart.setDate(thisWeekStart.getDate() - 7)
     
@@ -238,7 +227,6 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
       return 'Last Week'
     }
     
-    // Format as date range
     return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
   }
 
@@ -258,12 +246,10 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
     return expandedWeeks.has(weekStart)
   }
 
-  // Set the newest week as expanded by default when releases change
   useEffect(() => {
     if (weeks > 0 && releases.length > 0) {
       const weekGroups = groupReleasesByWeek(releases)
       if (weekGroups.length > 0) {
-        // Only expand the first (newest) week
         const firstWeekStart = weekGroups[0]?.weekStart
         if (firstWeekStart) {
           setExpandedWeeks(new Set([firstWeekStart]))
@@ -345,7 +331,6 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
       ) : (
         <div className="space-y-6">
           {weeks > 0 ? (
-            // Group by weeks with collapsible functionality
             groupReleasesByWeek(releases).map((weekGroup) => {
               const isExpanded = isWeekExpanded(weekGroup.weekStart)
               return (
@@ -383,7 +368,6 @@ export function ReleasesFeed({ limit = 50, days = 30, weeks = 0, userName }: Rel
               )
             })
           ) : (
-            // Show all releases without grouping
             <div className="grid gap-4">
               {releases.map((release) => (
                 <ReleaseCard key={release.id} release={release} />

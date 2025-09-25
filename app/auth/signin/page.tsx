@@ -7,7 +7,6 @@ function AuthSignInContent() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Redirect to user-facing signin page with all query parameters
     const callbackUrl = searchParams.get('callbackUrl') || '/'
     const error = searchParams.get('error')
     

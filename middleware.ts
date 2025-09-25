@@ -4,17 +4,14 @@ import { rateLimiters, createRateLimitHeaders } from '@/lib/rate-limiter'
 import { logger } from '@/lib/logger'
 import { clientEnv } from '@/lib/env'
 
-// Generate nonce for CSP using Web Crypto API (Edge Runtime compatible)
 function generateNonce(): string {
   const array = new Uint8Array(16)
   crypto.getRandomValues(array)
   return btoa(String.fromCharCode(...array))
 }
 
-// Create CSP header based on environment
 function createCSPHeader(nonce: string, isDevelopment: boolean): string {
   if (isDevelopment) {
-    // More permissive CSP for development
     return [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://vercel.com",
@@ -30,7 +27,6 @@ function createCSPHeader(nonce: string, isDevelopment: boolean): string {
     ].join('; ')
   }
 
-  // Production CSP with nonces
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' https://vercel.live https://vercel.com`,
@@ -51,10 +47,8 @@ export async function middleware(request: NextRequest) {
   const isDevelopment = process.env.NODE_ENV === 'development'
   const nonce = generateNonce()
 
-  // Handle API rate limiting
   if (pathname.startsWith('/api/')) {
     try {
-      // Determine rate limiter based on endpoint
       let rateLimiter = rateLimiters.general
       
       if (pathname.includes('/auth/')) {
@@ -66,7 +60,6 @@ export async function middleware(request: NextRequest) {
       } else if (pathname.includes('/communities') && request.method === 'POST' && pathname.includes('/invites')) {
         rateLimiter = rateLimiters.strict
       } else if (
-        // Read-only endpoints that are frequently called
         (pathname.includes('/shows/') && request.method === 'GET') ||
         (pathname.includes('/rsvps/') && request.method === 'GET') ||
         (pathname.includes('/profile') && request.method === 'GET') ||
@@ -95,7 +88,6 @@ export async function middleware(request: NextRequest) {
           { status: 429 }
         )
 
-        // Add rate limit headers
         const headers = createRateLimitHeaders(limit)
         Object.entries(headers).forEach(([key, value]) => {
           response.headers.set(key, String(value))
@@ -104,7 +96,6 @@ export async function middleware(request: NextRequest) {
         return response
       }
 
-      // Create response with rate limit headers
       const response = NextResponse.next({ request })
       const headers = createRateLimitHeaders(limit)
       Object.entries(headers).forEach(([key, value]) => {
@@ -114,11 +105,9 @@ export async function middleware(request: NextRequest) {
       return response
     } catch (error) {
       logger.error('Rate limiting error', { error, path: pathname })
-      // Continue with request if rate limiting fails
     }
   }
 
-  // Skip middleware for static files and Next.js internals
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/assets') ||
@@ -127,7 +116,6 @@ export async function middleware(request: NextRequest) {
   ) {
     const response = NextResponse.next()
     
-    // Add security headers even for static files
     response.headers.set('X-Content-Type-Options', 'nosniff')
     response.headers.set('X-Frame-Options', 'DENY')
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
@@ -135,7 +123,6 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // Create Supabase client for middleware
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -157,21 +144,17 @@ export async function middleware(request: NextRequest) {
     }
   )
   
-  // Refresh session if expired
   await supabase.auth.getUser()
   
-  // Add security headers
   supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff')
   supabaseResponse.headers.set('X-Frame-Options', 'DENY')
   supabaseResponse.headers.set('X-XSS-Protection', '1; mode=block')
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   
-  // Add CSP header
   const cspHeader = createCSPHeader(nonce, isDevelopment)
   supabaseResponse.headers.set('Content-Security-Policy', cspHeader)
   
-  // Add nonce to response for use in components
   supabaseResponse.headers.set('X-Nonce', nonce)
   
   return supabaseResponse

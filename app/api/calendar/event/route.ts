@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse the event data from the calendarUrl field
     const eventData = JSON.parse(result.calendarUrl || '{}')
     
     return NextResponse.json({

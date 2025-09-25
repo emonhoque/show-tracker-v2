@@ -10,14 +10,11 @@ export function AuthRedirect() {
   const { user, loading } = useAuth()
 
   useEffect(() => {
-    // If user is authenticated, redirect immediately
     if (!loading && user) {
       const callbackUrl = searchParams.get('callbackUrl') || '/'
-      // Use replace to prevent back button issues
       router.replace(callbackUrl)
     }
   }, [user, loading, router, searchParams])
 
-  // Don't render anything - this is just for redirect logic
   return null
 }

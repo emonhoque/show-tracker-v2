@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createSupabaseAdmin } from '@/lib/supabase-server'
 import { z } from 'zod'
 
-// Validation schema
 const acceptInviteSchema = z.object({
   token: z.string().min(1)
 })
@@ -13,11 +12,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('Request body:', body)
     
-    // Validate input
     const validatedInput = acceptInviteSchema.parse(body)
     console.log('Validated input:', validatedInput)
     
-    // Get authenticated user
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -33,7 +30,6 @@ export async function POST(request: NextRequest) {
     
     const supabase = createSupabaseAdmin()
     
-    // Get invite details
     const { data: invite, error: inviteError } = await supabase
       .from('community_invites')
       .select('*')
@@ -50,7 +46,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Check if invite is expired
     if (new Date(invite.expires_at) < new Date()) {
       return NextResponse.json(
         { error: 'Invite has expired' },
@@ -58,7 +53,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Check if invite has reached max uses
     if (invite.current_uses >= invite.max_uses) {
       return NextResponse.json(
         { error: 'Invite has reached maximum uses' },
@@ -66,7 +60,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Check if user is already a member
     const { data: existingMembership } = await supabase
       .from('community_members')
       .select('id')
@@ -81,7 +74,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Add user to community
     const { error: memberError } = await supabase
       .from('community_members')
       .insert({
@@ -99,13 +91,11 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Update invite usage count
     await supabase
       .from('community_invites')
       .update({ current_uses: invite.current_uses + 1 })
       .eq('id', invite.id)
     
-    // Get community details
     const { data: community, error: communityError } = await supabase
       .from('communities')
       .select('*')

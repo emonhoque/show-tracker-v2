@@ -1,9 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-// Client-side Supabase client
 export function createClient() {
   try {
-    // Get environment variables directly from process.env
     const supabaseUrl = process.env['NEXT_PUBLIC_SUPABASE_URL']
     const supabaseAnonKey = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']
     
@@ -23,7 +21,6 @@ export function createClient() {
   }
 }
 
-// Legacy export for backward compatibility - only create if env vars are available
 export const supabase = (() => {
   try {
     const supabaseUrl = process.env['NEXT_PUBLIC_SUPABASE_URL']

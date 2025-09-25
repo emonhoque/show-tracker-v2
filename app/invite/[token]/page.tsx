@@ -18,7 +18,6 @@ export default function InvitePage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const router = useRouter()
 
-  // Check authentication status on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -39,19 +38,16 @@ export default function InvitePage() {
       setLoading(true)
       setError(null)
       
-      // Get authentication token
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session?.access_token) {
         setError('Please sign in to accept this invitation')
-        // Redirect to sign in with return URL
         const returnUrl = encodeURIComponent(window.location.href)
         router.push(`/signin?returnUrl=${returnUrl}`)
         return
       }
       
-      // Call the API endpoint
       const response = await fetch('/api/communities/invite/accept', {
         method: 'POST',
         headers: {
@@ -67,10 +63,8 @@ export default function InvitePage() {
         setSuccess(true)
         setCommunityName(data.community.name)
         
-        // Store the community as selected
         localStorage.setItem('selectedCommunityId', data.community.id)
         
-        // Redirect to home page after a short delay
         setTimeout(() => {
           router.push('/')
         }, 2000)
@@ -150,7 +144,6 @@ export default function InvitePage() {
     )
   }
 
-  // Show loading state while checking authentication
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -159,7 +152,6 @@ export default function InvitePage() {
     )
   }
 
-  // Show sign-in prompt for unauthenticated users
   if (isAuthenticated === false) {
     return (
       <Layout>

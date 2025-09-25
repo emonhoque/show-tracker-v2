@@ -27,7 +27,6 @@ export function ThemeProvider({
   defaultTheme = 'light',
   storageKey = 'show-tracker-theme',
 }: ThemeProviderProps) {
-  // Initialize theme from DOM class (set by the blocking script) or default
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
       const root = window.document.documentElement
@@ -38,7 +37,6 @@ export function ThemeProvider({
   })
   const [mounted, setMounted] = useState(false)
 
-  // Initialize theme from localStorage on mount
   useEffect(() => {
     setMounted(true)
     
@@ -52,7 +50,6 @@ export function ThemeProvider({
     }
   }, [storageKey])
 
-  // Update DOM classes when theme changes
   useEffect(() => {
     if (!mounted) return
     
@@ -65,7 +62,6 @@ export function ThemeProvider({
     }
   }, [theme, mounted])
 
-  // Memoized setTheme function to prevent unnecessary re-renders
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme)
     if (mounted) {
@@ -93,7 +89,6 @@ export const useTheme = () => {
   const context = useContext(ThemeProviderContext)
 
   if (context === undefined) {
-    // Return default values instead of throwing error during SSR
     return {
       theme: 'light' as Theme,
       setTheme: () => {}

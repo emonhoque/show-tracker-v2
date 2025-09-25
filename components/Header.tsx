@@ -40,19 +40,16 @@ export function Header({
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
 
-  // Prevent hydration mismatch by only rendering after mount
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Load profile data if not already loaded (only once)
   useEffect(() => {
     if (user && !profileData && refreshProfile) {
       refreshProfile()
     }
   }, [user, profileData, refreshProfile])
 
-  // Update userName when user or profileData changes
   useEffect(() => {
     if (user) {
       const profileName = profileData?.name
@@ -60,7 +57,6 @@ export function Header({
       if (profileName) {
         setUserName(profileName)
       }
-      // Don't set any fallback - keep showing loading until profile loads
     } else {
       setUserName(null)
     }
@@ -96,7 +92,6 @@ export function Header({
     )
   }
 
-  // Show loading state during SSR and initial load
   if (!mounted || authLoading) {
     return (
       <header className="bg-card shadow-sm border-b border-border">
@@ -175,7 +170,6 @@ export function Header({
                             unoptimized={true}
                             onError={(e) => {
                               console.error('Failed to load profile image:', e);
-                              // Hide the image on error
                               e.currentTarget.style.display = 'none';
                             }}
                           />

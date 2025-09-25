@@ -3,7 +3,6 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function GET() {
   try {
-    // Use server-side client for API routes
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
@@ -11,7 +10,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // Get user profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')

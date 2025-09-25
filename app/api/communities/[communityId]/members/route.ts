@@ -9,7 +9,6 @@ export async function GET(
   try {
     const { communityId } = await params
 
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
@@ -35,7 +34,6 @@ export async function GET(
       user = authUser
     }
 
-    // Verify user has access to this community
     const { data: membership, error: membershipError } = await supabase
       .from('community_members')
       .select('role')
@@ -50,7 +48,6 @@ export async function GET(
       )
     }
 
-    // Get community members with profile information
     const { data: members, error: membersError } = await supabase
       .from('community_members')
       .select(`
@@ -100,7 +97,6 @@ export async function DELETE(
     const userId = searchParams.get('userId')
     const isLeaving = searchParams.get('leave') === 'true'
 
-    // Get the authenticated user from the request
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
@@ -127,7 +123,6 @@ export async function DELETE(
     }
 
     if (isLeaving) {
-      // User is leaving the community themselves
       if (!userId || userId !== user.id) {
         return NextResponse.json(
           { error: 'You can only leave communities yourself' },
@@ -135,7 +130,6 @@ export async function DELETE(
         )
       }
 
-      // Verify user is a member of this community
       const { data: membership, error: membershipError } = await supabase
         .from('community_members')
         .select('role')
@@ -150,7 +144,6 @@ export async function DELETE(
         )
       }
 
-      // Check if user is the only admin
       if (membership.role === 'admin') {
         const { count: adminCount, error: adminCountError } = await supabase
           .from('community_members')
@@ -174,7 +167,6 @@ export async function DELETE(
         }
       }
 
-      // Remove user's RSVPs from community events first
       console.log(`Removing RSVPs for user ${user.id} from community ${communityId}`)
       const { error: rsvpError, count: rsvpCount } = await supabase
         .from('rsvps')
@@ -192,7 +184,6 @@ export async function DELETE(
 
       console.log(`Removed ${rsvpCount || 0} RSVPs for user ${user.id} from community ${communityId}`)
 
-      // Remove user from community
       const { error: removeError } = await supabase
         .from('community_members')
         .delete()
@@ -212,7 +203,6 @@ export async function DELETE(
         message: `Successfully left the community${rsvpCount ? ` and removed ${rsvpCount} RSVP${rsvpCount !== 1 ? 's' : ''}` : ''}`
       })
     } else {
-      // Admin is removing another member
       if (!userId) {
         return NextResponse.json(
           { error: 'User ID is required' },
@@ -220,7 +210,6 @@ export async function DELETE(
         )
       }
 
-      // Verify user is admin of this community
       const { data: membership, error: membershipError } = await supabase
         .from('community_members')
         .select('role')
@@ -235,7 +224,6 @@ export async function DELETE(
         )
       }
 
-      // Check if trying to remove another admin
       const { data: targetMember, error: targetError } = await supabase
         .from('community_members')
         .select('role')
@@ -257,7 +245,6 @@ export async function DELETE(
         )
       }
 
-      // Remove member's RSVPs from community events first
       console.log(`Removing RSVPs for user ${userId} from community ${communityId} (admin removal)`)
       const { error: rsvpError, count: rsvpCount } = await supabase
         .from('rsvps')
@@ -275,7 +262,6 @@ export async function DELETE(
 
       console.log(`Removed ${rsvpCount || 0} RSVPs for user ${userId} from community ${communityId} (admin removal)`)
 
-      // Remove member
       const { error: removeError } = await supabase
         .from('community_members')
         .delete()

@@ -4,7 +4,6 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get current user for authentication
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -15,7 +14,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get current profile
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('avatar_url')
@@ -29,7 +27,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Check if we already have a blob-stored avatar
     if (profile?.avatar_url && profile.avatar_url.includes('blob.vercel-storage.com')) {
       return NextResponse.json({ 
         message: 'Avatar already migrated',
@@ -37,7 +34,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Get Google avatar URL from user metadata
     const googleAvatarUrl = user.user_metadata?.['avatar_url']
     if (!googleAvatarUrl) {
       return NextResponse.json({ 
@@ -45,7 +41,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Fetch the Google avatar image
     const response = await fetch(googleAvatarUrl)
     if (!response.ok) {
       return NextResponse.json({ 
@@ -56,17 +51,14 @@ export async function POST(request: NextRequest) {
     const imageBuffer = await response.arrayBuffer()
     const imageBlob = new Blob([imageBuffer], { type: response.headers.get('content-type') || 'image/jpeg' })
 
-    // Generate unique filename for user avatar
     const timestamp = Date.now()
     const filename = `avatars/${user.id}-${timestamp}.jpg`
 
-    // Upload to Vercel Blob
     const blob = await put(filename, imageBlob, {
       access: 'public',
       token: process.env['BLOB_READ_WRITE_TOKEN'],
     })
 
-    // Update user profile with new avatar URL
     const { error: updateError } = await supabaseClient
       .from('profiles')
       .update({ 

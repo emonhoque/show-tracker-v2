@@ -3,7 +3,6 @@ import { SpotifyArtist, SpotifyRelease } from './types'
 const SPOTIFY_CLIENT_ID = process.env['SPOTIFY_CLIENT_ID']
 const SPOTIFY_CLIENT_SECRET = process.env['SPOTIFY_CLIENT_SECRET']
 
-// Check if Spotify API credentials are available
 export const isSpotifyConfigured = !!(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET)
 
 let accessToken: string | null = null
@@ -14,7 +13,6 @@ async function getAccessToken(): Promise<string> {
     throw new Error('Spotify API credentials not configured')
   }
 
-  // Check if we have a valid token
   if (accessToken && Date.now() < tokenExpiry) {
     return accessToken
   }
@@ -34,7 +32,7 @@ async function getAccessToken(): Promise<string> {
 
   const data = await response.json()
   accessToken = data.access_token
-  tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000 // Refresh 1 minute early
+  tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000
 
   if (!accessToken) {
     throw new Error('Failed to get access token from Spotify response')

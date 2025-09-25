@@ -21,7 +21,6 @@ export function CategoryFilter({
   const categories = getAllCategories()
   const hasFilters = !selectedCategories.has('all')
 
-  // Create a map of category stats for quick lookup
   const statsMap = new Map(
     categoryStats.map(stat => [stat.category, stat.count])
   )
@@ -45,7 +44,6 @@ export function CategoryFilter({
           const isSelected = selectedCategories.has(category.value)
           const showCount = statsMap.get(category.value) || 0
           
-          // Only show categories that have upcoming events
           if (showCount === 0) {
             return null
           }

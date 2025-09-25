@@ -23,7 +23,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    // Return default values instead of throwing error during SSR or before context is ready
     console.warn('useAuth called outside of AuthProvider context')
     return {
       user: null,
@@ -93,13 +92,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const supabase = createClient()
 
-        // Get initial session
         const { data: { session } } = await supabase.auth.getSession()
         if (mounted) {
           setUser(session?.user ?? null)
           setLoading(false)
           
-          // Load profile data if user is authenticated
           if (session?.user) {
             try {
               const response = await fetch('/api/profile')
@@ -113,14 +110,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
 
-        // Listen for auth changes
         const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             if (mounted) {
               setUser(session?.user ?? null)
               setLoading(false)
               
-              // Only load profile data on sign in, not on every auth change
               if (session?.user && event === 'SIGNED_IN') {
                 try {
                   const response = await fetch('/api/profile')
@@ -138,7 +133,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         )
 
-        // Store subscription for cleanup
         subscription = authSubscription
       } catch (error) {
         console.error('Error initializing auth:', error)

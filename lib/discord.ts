@@ -18,7 +18,7 @@ interface DiscordApiResponse {
 
 class DiscordNotificationService {
   private baseUrl: string | undefined
-  private timeout: number = 5000 // 5 seconds timeout
+  private timeout: number = 5000
 
   constructor() {
     this.baseUrl = process.env['DISCORD_BOT_API_URL']
@@ -81,7 +81,6 @@ class DiscordNotificationService {
       console.log(`Discord notification sent successfully for new show: ${show.title}`)
     } catch (error) {
       console.error('Failed to send Discord notification for new show:', error)
-      // Don't throw - we don't want to fail the main operation
     }
   }
 
@@ -120,7 +119,6 @@ class DiscordNotificationService {
       console.log(`Discord notification sent successfully for updated show: ${show.title}`)
     } catch (error) {
       console.error('Failed to send Discord notification for updated show:', error)
-      // Don't throw - we don't want to fail the main operation
     }
   }
 
@@ -154,7 +152,6 @@ class DiscordNotificationService {
    * Send notification asynchronously (fire and forget)
    */
   async sendNotificationAsync(type: 'new-show' | 'updated-show', show: ShowData): Promise<void> {
-    // Fire and forget - don't await to avoid blocking the main operation
     setImmediate(async () => {
       try {
         if (type === 'new-show') {
@@ -169,8 +166,6 @@ class DiscordNotificationService {
   }
 }
 
-// Create singleton instance
 export const discordService = new DiscordNotificationService()
 
-// Export types for use in other modules
 export type { ShowData, DiscordNotificationPayload }

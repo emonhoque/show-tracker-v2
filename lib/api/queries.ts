@@ -3,10 +3,8 @@
  * This reduces API calls by providing intelligent caching and deduplication
  */
 
-// import { queryKeys } from '@/lib/query-client' // Not used in this file
 import { createClient } from '@/lib/supabase'
 
-// Types
 interface Show {
   id: string
   title: string
@@ -80,7 +78,6 @@ interface PaginatedResponse<T> {
   }
 }
 
-// Helper function for authenticated requests
 async function authenticatedFetch(url: string, options: RequestInit = {}) {
   const supabase = createClient()
   const { data: { session } } = await supabase.auth.getSession()
@@ -110,7 +107,6 @@ async function authenticatedFetch(url: string, options: RequestInit = {}) {
  * API Query Functions
  */
 
-// Communities
 export const fetchUserCommunities = async (): Promise<UserCommunity[]> => {
   const data = await authenticatedFetch('/api/communities')
   return data.communities || []
@@ -126,7 +122,6 @@ export const fetchCommunityMembers = async (communityId: string) => {
   return data.members || []
 }
 
-// Shows
 export const fetchUpcomingShows = async (
   communityId?: string, 
   categories?: string[]
@@ -173,7 +168,6 @@ export const fetchShow = async (id: string): Promise<Show> => {
   return authenticatedFetch(`/api/shows/${id}`)
 }
 
-// RSVPs
 export const fetchRSVPs = async (showId: string): Promise<RSVPSummary> => {
   return authenticatedFetch(`/api/rsvps/${showId}`)
 }
@@ -184,7 +178,6 @@ export const fetchUserRSVPs = async (showIds: string[]): Promise<Record<string, 
   return data.statuses || {}
 }
 
-// Categories
 export const fetchCategoryStats = async (communityId?: string): Promise<CategoryStats[]> => {
   const url = communityId 
     ? `/api/categories/stats?community_id=${communityId}`
@@ -193,7 +186,6 @@ export const fetchCategoryStats = async (communityId?: string): Promise<Category
   return data.stats || []
 }
 
-// Releases
 export const fetchReleases = async (
   limit: number = 50,
   days?: number,
@@ -225,7 +217,6 @@ export const fetchReleases = async (
   }
 }
 
-// Profile
 export const fetchProfile = async () => {
   return authenticatedFetch('/api/profile')
 }
@@ -234,7 +225,6 @@ export const fetchProfile = async () => {
  * Optimized query functions that combine multiple API calls
  */
 
-// Combined community data with members
 export const fetchCommunityWithMembers = async (communityId: string) => {
   const [community, members] = await Promise.all([
     fetchCommunity(communityId),

@@ -34,7 +34,6 @@ export function generateGoogleCalendarUrl(show: Show, shareableUrl?: string, dur
     const durationHours = duration || DEFAULT_DURATION_HOURS
     const endDate = addHours(bostonDate, durationHours)
     
-    // Convert to UTC for Google Calendar
     const utcStart = fromZonedTime(bostonDate, BOSTON_TZ)
     const utcEnd = fromZonedTime(endDate, BOSTON_TZ)
     
@@ -66,7 +65,6 @@ export function generateICSContent(show: Show, shareableUrl?: string, duration?:
     const durationHours = duration || DEFAULT_DURATION_HOURS
     const endDate = addHours(bostonDate, durationHours)
     
-    // Convert to UTC for ICS
     const utcStart = fromZonedTime(bostonDate, BOSTON_TZ)
     const utcEnd = fromZonedTime(endDate, BOSTON_TZ)
     const created = new Date(show.created_at)
@@ -112,7 +110,6 @@ function buildEventDescription(show: Show, shareableUrl?: string): string {
     parts.push(show.notes)
   }
   
-  // Add URLs if available
   const urls: string[] = []
   if (show.ticket_url) urls.push(`Tickets: ${show.ticket_url}`)
   if (show.spotify_url) urls.push(`Spotify: ${show.spotify_url}`)

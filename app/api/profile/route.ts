@@ -4,7 +4,6 @@ import { validateUserName } from '@/lib/validation'
 
 export async function GET() {
   try {
-    // Get current user for authentication
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -15,7 +14,6 @@ export async function GET() {
       )
     }
 
-    // Get the profile data
     const { data, error } = await supabaseClient
       .from('profiles')
       .select('*')
@@ -58,13 +56,11 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Validate and sanitize the name
     const nameValidation = validateUserName(name)
     if (!nameValidation.isValid) {
       return NextResponse.json({ error: nameValidation.error }, { status: 400 })
     }
 
-    // Get current user for authentication
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -75,7 +71,6 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Update the profile name
     const { data, error } = await supabaseClient
       .from('profiles')
       .update({ 

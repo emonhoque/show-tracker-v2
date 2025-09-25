@@ -9,7 +9,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { show_id, status } = body
 
-    // Validate required fields
     if (!show_id || !status) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -17,7 +16,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get current user for authentication and community validation
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -28,15 +26,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // No need to validate name since we're using user_id
-
-    // Validate status
     const statusValidation = validateRsvpStatus(status)
     if (!statusValidation.isValid) {
       return NextResponse.json({ error: statusValidation.error }, { status: 400 })
     }
 
-    // Check if the show exists and get community info
     const { data: show, error: showError } = await supabase
       .from('shows')
       .select('date_time, community_id')
@@ -50,7 +44,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If show has a community, verify user is a member
     if (show.community_id) {
       const supabaseAdmin = createSupabaseAdmin()
       const { data: membership, error: membershipError } = await supabaseAdmin
@@ -68,7 +61,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // For past shows, only allow "going" status (for "I was there!" functionality)
     if (isShowPast(show.date_time) && status !== 'going') {
       return NextResponse.json(
         { error: 'Cannot RSVP to past shows' },
@@ -76,7 +68,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upsert RSVP using user_id
     const rsvpData = {
       show_id,
       status: statusValidation.sanitizedValue!,
@@ -85,7 +76,6 @@ export async function POST(request: NextRequest) {
       user_id: user.id
     }
 
-    // Use upsert with the correct primary key (show_id, user_id)
     const { data, error } = await supabase
       .from('rsvps')
       .upsert(

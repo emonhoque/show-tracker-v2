@@ -6,7 +6,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/query-client'
 
-// Import the API functions
 import { 
   fetchUserCommunities,
   fetchUpcomingShows,
@@ -22,7 +21,6 @@ interface UseHomePageDataOptions {
   enabled?: boolean
 }
 
-// Combined home page data function
 const fetchHomePageData = async (communityId?: string, categories?: string[]) => {
   const [upcomingShows, pastShows, categoryStats] = await Promise.all([
     fetchUpcomingShows(communityId, categories),
@@ -30,13 +28,11 @@ const fetchHomePageData = async (communityId?: string, categories?: string[]) =>
     fetchCategoryStats(communityId)
   ])
 
-  // Extract all show IDs for bulk RSVP fetch
   const allShowIds = [
     ...upcomingShows.map(show => show.id),
     ...pastShows.data.map(show => show.id)
   ]
 
-  // Fetch user RSVPs for all shows in one request
   const userRsvps = allShowIds.length > 0 ? await fetchUserRSVPs(allShowIds) : {}
 
   return {
@@ -56,13 +52,9 @@ export function useHomePageData({
     queryKey: queryKeys.shows,
     queryFn: () => fetchHomePageData(communityId, categories),
     enabled,
-    // Cache for 2 minutes since shows data changes frequently
     staleTime: 2 * 60 * 1000,
-    // Keep in cache for 5 minutes
     gcTime: 5 * 60 * 1000,
-    // Refetch every 5 minutes in background
     refetchInterval: 5 * 60 * 1000,
-    // Retry on failure
     retry: 2,
   })
 }
@@ -74,10 +66,8 @@ export function useUserCommunities() {
   return useQuery({
     queryKey: queryKeys.communities,
     queryFn: () => fetchUserCommunities(),
-    // Cache communities for 10 minutes since they don't change often
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    // Only refetch on mount if data is stale
     refetchOnMount: 'always',
   })
 }
@@ -96,7 +86,6 @@ export function useReleases(
     queryKey: queryKeys.releases(limit, days, weeks, page),
     queryFn: () => fetchReleases(limit, days, weeks, page),
     enabled,
-    // Cache releases for 15 minutes since they don't change often
     staleTime: 15 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   })

@@ -11,7 +11,6 @@ async function fetchReleasesForAllArtists() {
       }, { status: 503 })
     }
 
-    // Get all active artists
     const { data: artists, error: artistsError } = await supabase
       .from('artists')
       .select('*')
@@ -29,14 +28,11 @@ async function fetchReleasesForAllArtists() {
     let totalNewReleases = 0
     const results = []
 
-    // Check each artist for new releases
     for (const artist of artists) {
       try {
         
-        // Fetch latest albums from Spotify
         const spotifyReleases = await getArtistAlbums(artist.spotify_id, 50)
 
-        // Filter for recent releases (last 6 months)
         const sixMonthsAgo = new Date()
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
 
@@ -46,7 +42,6 @@ async function fetchReleasesForAllArtists() {
         })
 
         if (recentReleases.length > 0) {
-          // Map and insert releases
           const releasesToInsert = recentReleases.map(release => 
             mapSpotifyReleaseToRelease(release, artist.id)
           )
@@ -82,13 +77,11 @@ async function fetchReleasesForAllArtists() {
           })
         }
 
-        // Update artist's last_checked timestamp
         await supabase
           .from('artists')
           .update({ last_checked: new Date().toISOString() })
           .eq('id', artist.id)
 
-        // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100))
 
       } catch (error) {
@@ -123,7 +116,6 @@ export async function GET(request: NextRequest) {
     const weeks = parseInt(searchParams.get('weeks') || '0')
     const offset = (page - 1) * limit
 
-    // Get releases from the last N days or weeks
     const cutoffDate = new Date()
     if (weeks > 0) {
       cutoffDate.setDate(cutoffDate.getDate() - (weeks * 7))
@@ -175,12 +167,10 @@ export async function POST(request: NextRequest) {
 
     const { artistId } = await request.json()
 
-    // If no artistId provided, fetch releases for all artists
     if (!artistId) {
       return await fetchReleasesForAllArtists()
     }
 
-    // Get artist from database
     const { data: artist, error: artistError } = await supabase
       .from('artists')
       .select('*')
@@ -191,10 +181,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Artist not found' }, { status: 404 })
     }
 
-    // Fetch latest albums from Spotify
     const spotifyReleases = await getArtistAlbums(artist.spotify_id, 50)
 
-    // Filter for recent releases (last 6 months)
     const sixMonthsAgo = new Date()
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
 
@@ -203,7 +191,6 @@ export async function POST(request: NextRequest) {
       return releaseDate >= sixMonthsAgo
     })
 
-    // Map and insert releases
     const releasesToInsert = recentReleases.map(release => 
       mapSpotifyReleaseToRelease(release, artistId)
     )
@@ -225,7 +212,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to insert releases' }, { status: 500 })
     }
 
-    // Update artist's last_checked timestamp
     await supabase
       .from('artists')
       .update({ last_checked: new Date().toISOString() })

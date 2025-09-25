@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json({ 
@@ -18,20 +17,17 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024 // 10MB
+    const maxSize = 10 * 1024 * 1024  
     if (file.size > maxSize) {
       return NextResponse.json({ 
         error: 'File too large. Maximum size is 10MB.' 
       }, { status: 400 })
     }
 
-    // Generate unique filename
     const timestamp = Date.now()
     const fileExtension = file.name.split('.').pop()
     const filename = `posters/${timestamp}-${Math.random().toString(36).substring(2)}.${fileExtension}`
 
-    // Upload to Vercel Blob
     const blob = await put(filename, file, {
       access: 'public',
       token: process.env['BLOB_READ_WRITE_TOKEN'],

@@ -14,19 +14,16 @@ export default function LandingPage() {
   const router = useRouter()
   const [isClient, setIsClient] = useState(false)
 
-  // Ensure we're on the client side
   useEffect(() => {
     setIsClient(true)
   }, [])
 
-  // Redirect authenticated users to home
   useEffect(() => {
     if (!loading && user) {
       router.replace('/home')
     }
   }, [user, loading, router])
 
-  // Show loading while checking auth - but only after client hydration
   if (loading && isClient) {
     return (
       <Layout variant="landing">
@@ -42,7 +39,6 @@ export default function LandingPage() {
     )
   }
 
-  // Don't render landing page if user is authenticated (redirect in progress)
   if (user && isClient) {
     return null
   }

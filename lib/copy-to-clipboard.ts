@@ -9,7 +9,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return false
   }
 
-  // Method 1: Modern Clipboard API (preferred)
   if (navigator.clipboard && window.isSecureContext) {
     try {
       console.log('Using modern clipboard API')
@@ -21,7 +20,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     }
   }
 
-  // Method 2: Fallback using textarea (works in most browsers)
   try {
     console.log('Using textarea fallback method')
     const textArea = document.createElement('textarea')
@@ -47,7 +45,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     console.warn('Textarea fallback failed:', error)
   }
 
-  // Method 3: Alternative fallback
   try {
     console.log('Using alternative fallback method')
     const textArea = document.createElement('textarea')

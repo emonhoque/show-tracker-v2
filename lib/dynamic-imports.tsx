@@ -5,7 +5,6 @@
 import dynamic from 'next/dynamic'
 import React from 'react'
 
-// Loading components
 const ReleasesFeedSkeleton = () => (
   <div className="space-y-4">
     <div className="flex items-center justify-between">
@@ -37,7 +36,6 @@ const CalendarExportButtonSkeleton = () => (
   </button>
 )
 
-// Lazy load heavy components
 export const LazyReleasesFeed = dynamic(() => import('@/components/ReleasesFeed'), {
   loading: () => <ReleasesFeedSkeleton />,
   ssr: false
@@ -53,7 +51,6 @@ export const LazyCalendarExportButton = dynamic(() => import('@/components/Calen
   ssr: false
 })
 
-// Lazy load utility functions
 export const lazyLoadUtility = <T extends React.ComponentType>(
   importFn: () => Promise<T>,
   fallback?: React.ComponentType
@@ -64,10 +61,8 @@ export const lazyLoadUtility = <T extends React.ComponentType>(
   })
 }
 
-// Preload critical components
 export const preloadComponents = () => {
   if (typeof window !== 'undefined') {
-    // Preload components that are likely to be used
     import('@/components/AddShowModal')
     import('@/components/ReleasesFeed')
     import('@/components/CalendarExportButton')

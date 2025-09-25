@@ -38,7 +38,6 @@ export default function CreateGroupPage() {
       setLoading(true)
       setError(null)
       
-      // Get the current session to include the auth token
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       
@@ -59,7 +58,6 @@ export default function CreateGroupPage() {
       const data = await response.json()
       
       if (response.ok && data.success && data.community) {
-        // Store the new community as selected
         localStorage.setItem('selectedCommunityId', data.community.id)
         router.push('/')
       } else {

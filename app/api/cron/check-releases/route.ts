@@ -5,7 +5,6 @@ import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify this is a cron job (optional security check)
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env['CRON_SECRET']
     
@@ -13,7 +12,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get all active artists
     const { data: artists, error: artistsError } = await supabase
       .from('artists')
       .select('*')
@@ -31,15 +29,12 @@ export async function GET(request: NextRequest) {
     let totalNewReleases = 0
     const results = []
 
-    // Check each artist for new releases
     for (const artist of artists) {
       try {
         logger.debug('Checking releases for artist', { artistName: artist.artist_name, artistId: artist.id })
         
-        // Fetch latest albums from Spotify
         const spotifyReleases = await getArtistAlbums(artist.spotify_id, 50)
 
-        // Filter for recent releases (last 30 days)
         const thirtyDaysAgo = new Date()
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -49,7 +44,6 @@ export async function GET(request: NextRequest) {
         })
 
         if (recentReleases.length > 0) {
-          // Map and insert releases
           const releasesToInsert = recentReleases.map(release => 
             mapSpotifyReleaseToRelease(release, artist.id)
           )
@@ -86,13 +80,11 @@ export async function GET(request: NextRequest) {
           })
         }
 
-        // Update artist's last_checked timestamp
         await supabase
           .from('artists')
           .update({ last_checked: new Date().toISOString() })
           .eq('id', artist.id)
 
-        // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100))
 
       } catch (error) {

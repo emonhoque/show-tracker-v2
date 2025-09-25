@@ -8,18 +8,7 @@ export async function GET(request: NextRequest) {
     const communityId = searchParams.get('community_id')
     const categories = searchParams.get('categories')
 
-    // Get current user for community filtering (temporarily disabled for debugging)
-    // const supabaseClient = createServerClient(request)
-    // const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-    
-    // if (authError || !user) {
-    //   return NextResponse.json(
-    //     { error: 'Authentication required' },
-    //     { status: 401 }
-    //   )
-    // }
 
-    // Build query with community filtering - only select necessary fields
     let query = supabase
       .from('shows')
       .select(`
@@ -43,28 +32,10 @@ export async function GET(request: NextRequest) {
       .gte('date_time', new Date().toISOString())
       .order('date_time', { ascending: true })
 
-    // If community_id is provided, filter by it
     if (communityId) {
       query = query.eq('community_id', communityId)
     }
-    // TODO: Re-enable user-based community filtering after fixing authentication
-    // else {
-    //   // If no community_id provided, get user's communities and filter by them
-    //   const { data: userCommunities } = await supabaseClient
-    //     .from('community_members')
-    //     .select('community_id')
-    //     .eq('user_id', user.id)
 
-    //   if (userCommunities && userCommunities.length > 0) {
-    //     const communityIds = userCommunities.map((c: { community_id: string }) => c.community_id)
-    //     query = query.in('community_id', communityIds)
-    //   } else {
-    //     // If user has no communities, return empty array
-    //     return NextResponse.json([])
-    //   }
-    // }
-
-    // Add category filtering if specified
     if (categories && categories !== 'all') {
       const categoryList = categories.split(',').filter(Boolean)
       if (categoryList.length > 0) {
@@ -82,7 +53,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get all unique user IDs from RSVPs
     const userIds = new Set<string>()
     if (shows) {
       for (const show of shows) {
@@ -96,7 +66,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch user names for all RSVPs
     let userNames: Record<string, string> = {}
     if (userIds.size > 0) {
       const { data: profiles } = await supabase
@@ -112,7 +81,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Process shows and organize RSVPs efficiently
     const processedShows = (shows || []).map(show => {
       const rsvps: RSVPSummary = {
         going: [],
@@ -120,7 +88,6 @@ export async function GET(request: NextRequest) {
         not_going: []
       }
 
-      // Group RSVPs by status efficiently
       if (show.rsvps && Array.isArray(show.rsvps)) {
         for (const rsvp of show.rsvps) {
           const name = rsvp.user_id ? (userNames[rsvp.user_id] || 'Unknown User') : 'Unknown User'
@@ -134,7 +101,6 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Return optimized show object
       return {
         id: show.id,
         title: show.title,
@@ -157,7 +123,6 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json(processedShows)
     
-    // No caching for upcoming shows to ensure real-time updates
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
     response.headers.set('Content-Type', 'application/json; charset=utf-8')
     

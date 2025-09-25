@@ -10,7 +10,6 @@ import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the authenticated user
     const supabaseClient = await createServerSupabaseClient()
     const authHeader = request.headers.get('authorization')
     
@@ -34,7 +33,6 @@ export async function GET(request: NextRequest) {
     const communityId = searchParams.get('community_id')
     const categories = searchParams.get('categories')
 
-    // Get user's communities first
     const { data: communityMembers, error: communitiesError } = await supabase
       .from('community_members')
       .select('community_id, role')
@@ -56,7 +54,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Get community details for each community
     const communities = await Promise.all(
       communityMembers.map(async (member: { community_id: string; role: string }) => {
         const { data: community, error: communityError } = await supabase
@@ -95,13 +92,11 @@ export async function GET(request: NextRequest) {
 
     const validCommunities = communities.filter(community => community !== null)
 
-    // Determine which community to use for shows
     let targetCommunityId = communityId
     if (!targetCommunityId && validCommunities.length > 0) {
       targetCommunityId = validCommunities[0]?.community_id || null
     }
 
-    // Build shows query
     let upcomingQuery = supabase
       .from('shows')
       .select(`
@@ -147,18 +142,15 @@ export async function GET(request: NextRequest) {
       .order('date_time', { ascending: false })
       .limit(20)
 
-    // Apply community filter
     if (targetCommunityId) {
       upcomingQuery = upcomingQuery.eq('community_id', targetCommunityId)
       pastQuery = pastQuery.eq('community_id', targetCommunityId)
     } else {
-      // Filter by user's communities
       const communityIds = validCommunities.map(c => c.community_id)
       upcomingQuery = upcomingQuery.in('community_id', communityIds)
       pastQuery = pastQuery.in('community_id', communityIds)
     }
 
-    // Apply category filter
     if (categories && categories !== 'all') {
       const categoryList = categories.split(',').filter(Boolean)
       if (categoryList.length > 0) {
@@ -167,7 +159,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch both upcoming and past shows in parallel
     const [{ data: upcomingShows, error: upcomingError }, { data: pastShows, error: pastError }] = await Promise.all([
       upcomingQuery,
       pastQuery
@@ -183,7 +174,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch past shows' }, { status: 500 })
     }
 
-    // Get all unique user IDs from RSVPs
     const userIds = new Set<string>()
     const allShows = [...(upcomingShows || []), ...(pastShows || [])]
     
@@ -197,7 +187,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch user names for all RSVPs
     let userNames: Record<string, string> = {}
     if (userIds.size > 0) {
       const { data: profiles } = await supabase
@@ -213,7 +202,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Process shows and organize RSVPs efficiently
     const processShows = (shows: any[]) => shows.map((show: any) => {
       const rsvps = {
         going: [] as string[],
@@ -221,7 +209,6 @@ export async function GET(request: NextRequest) {
         not_going: [] as string[]
       }
 
-      // Group RSVPs by status efficiently
       if (show.rsvps && Array.isArray(show.rsvps)) {
         for (const rsvp of show.rsvps) {
           const name = rsvp.user_id ? (userNames[rsvp.user_id] || 'Unknown User') : 'Unknown User'
@@ -257,10 +244,8 @@ export async function GET(request: NextRequest) {
     const processedUpcomingShows = processShows(upcomingShows || [])
     const processedPastShows = processShows(pastShows || [])
 
-    // Get all show IDs for user RSVP statuses
     const allShowIds = allShows.map(show => show.id)
 
-    // Fetch user RSVP statuses for all shows
     let userRsvps: Record<string, string | null> = {}
     if (allShowIds.length > 0) {
       const { data: userRsvpData } = await supabase
@@ -277,7 +262,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch category statistics
     let categoryStats: Array<{ category: string; count: number }> = []
     if (targetCommunityId) {
       const { data: statsData } = await supabase
@@ -300,13 +284,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Calculate pagination for past shows
     const pastShowsPagination = {
       page: 1,
       limit: 20,
       total: processedPastShows.length,
       totalPages: Math.ceil(processedPastShows.length / 20),
-      hasNext: false, // We only fetch first 20 for now
+      hasNext: false
       hasPrev: false
     }
 
@@ -322,8 +305,7 @@ export async function GET(request: NextRequest) {
       userRsvps
     })
 
-    // Add caching headers
-    response.headers.set('Cache-Control', 'private, max-age=120') // 2 minutes cache
+    response.headers.set('Cache-Control', 'private, max-age=120')
     response.headers.set('Content-Type', 'application/json; charset=utf-8')
 
     return response

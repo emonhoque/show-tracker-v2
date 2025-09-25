@@ -125,7 +125,6 @@ export function SelectItem({ value, children, ...props }: SelectOptionProps & Re
   )
 }
 
-// Keep the old SelectOption for backward compatibility
 export function SelectOption({ value, children, ...props }: SelectOptionProps & React.HTMLAttributes<HTMLDivElement>) {
   const { value: selectedValue, onChange, setIsOpen } = React.useContext(SelectContext)
   const isSelected = value === selectedValue

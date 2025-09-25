@@ -19,7 +19,6 @@ export default function SignOutPage() {
 
     try {
       await signOut()
-      // Redirect to sign in page
       router.replace('/signin')
     } catch (error) {
       console.error('Sign out error:', error)
@@ -28,12 +27,10 @@ export default function SignOutPage() {
     }
   }, [signOut, router])
 
-  // Auto-signout if user is authenticated
   useEffect(() => {
     if (!loading && user) {
       handleSignOut()
     } else if (!loading && !user) {
-      // If not authenticated, redirect to signin
       router.replace('/signin')
     }
   }, [user, loading, router, handleSignOut])

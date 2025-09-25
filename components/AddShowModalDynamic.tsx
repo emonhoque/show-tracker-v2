@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic'
 import { Loader2 } from 'lucide-react'
 
-// Dynamically import AddShowModal with loading fallback
 const AddShowModal = dynamic(() => import('./AddShowModal').then(mod => ({ default: mod.AddShowModal })), {
   loading: () => (
     <div className="flex items-center justify-center p-8">

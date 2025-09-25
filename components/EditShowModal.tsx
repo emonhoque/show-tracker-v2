@@ -40,7 +40,6 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  // Helper function for authenticated requests with caching
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
@@ -54,13 +53,12 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
       headers: {
         'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
-        'Cache-Control': 'max-age=300', // Cache for 5 minutes
+        'Cache-Control': 'max-age=300',
         ...options.headers,
       },
     })
   }
 
-  // Populate form when show changes
   useEffect(() => {
     if (show) {
       const bostonDate = formatInTimeZone(show.date_time, 'America/New_York', 'yyyy-MM-dd')
@@ -68,7 +66,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
       setFormData({
         title: show.title,
         date_local: bostonDate,
-        time_local: show.time_local, // Use the stored time_local directly
+        time_local: show.time_local,
         city: show.city,
         venue: show.venue,
         category: show.category || 'general',
@@ -90,7 +88,6 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
 
     if (!show) return
 
-    // Validate required fields
     if (!formData.title || !formData.date_local || !formData.time_local || !formData.city || !formData.venue) {
       setError('Please fill in all required fields')
       return
@@ -98,7 +95,6 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
 
     setSaving(true)
     try {
-      // Upload poster if file is selected
       let posterUrl = formData.poster_url
       if (selectedFile) {
         setUploading(true)
@@ -130,7 +126,6 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
         throw new Error(errorData.error || 'Failed to update show')
       }
 
-      // Close modal and refresh
       onOpenChange(false)
       onShowUpdated()
     } catch (error) {
@@ -148,15 +143,13 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
       if (!allowedTypes.includes(file.type)) {
         setError('Invalid file type. Only JPEG, PNG, and WebP images are allowed.')
         return
       }
 
-      // Validate file size (max 10MB)
-      const maxSize = 10 * 1024 * 1024 // 10MB
+      const maxSize = 10 * 1024 * 1024
       if (file.size > maxSize) {
         setError('File too large. Maximum size is 10MB.')
         return
@@ -165,7 +158,6 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
       setSelectedFile(file)
       setError('')
       
-      // Create preview URL
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
     }
@@ -203,15 +195,13 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
     if (files && files.length > 0) {
       const file = files[0]
       if (file) {
-        // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
         if (!allowedTypes.includes(file.type)) {
           setError('Invalid file type. Only JPEG, PNG, and WebP images are allowed.')
           return
         }
 
-        // Validate file size (max 10MB)
-        const maxSize = 10 * 1024 * 1024 // 10MB
+        const maxSize = 10 * 1024 * 1024  
         if (file.size > maxSize) {
           setError('File too large. Maximum size is 10MB.')
           return
@@ -220,7 +210,6 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
         setSelectedFile(file)
         setError('')
         
-        // Create preview URL
         const url = URL.createObjectURL(file)
         setPreviewUrl(url)
       }

@@ -47,7 +47,6 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  // Helper function for authenticated requests with caching
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
@@ -61,7 +60,7 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
       headers: {
         'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
-        'Cache-Control': 'max-age=300', // Cache for 5 minutes
+        'Cache-Control': 'max-age=300',
         ...options.headers,
       },
     })
@@ -71,7 +70,6 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
     e.preventDefault()
     setError('')
 
-    // Validate and sanitize all inputs
     const titleValidation = validateTitle(formData.title)
     if (!titleValidation.isValid) {
       setError(titleValidation.error!)
@@ -116,7 +114,6 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
 
     setSaving(true)
     try {
-      // Upload poster if file is selected
       let posterUrl = formData.poster_url
       if (selectedFile) {
         setUploading(true)
@@ -149,7 +146,6 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
         throw new Error(errorData.error || 'Failed to create show')
       }
 
-      // Reset form and close modal
       setFormData({
         title: '',
         date_local: '',
@@ -182,15 +178,13 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
       if (!allowedTypes.includes(file.type)) {
         setError('Invalid file type. Only JPEG, PNG, and WebP images are allowed.')
         return
       }
 
-      // Validate file size (max 10MB)
-      const maxSize = 10 * 1024 * 1024 // 10MB
+      const maxSize = 10 * 1024 * 1024
       if (file.size > maxSize) {
         setError('File too large. Maximum size is 10MB.')
         return
@@ -199,7 +193,6 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
       setSelectedFile(file)
       setError('')
       
-      // Create preview URL
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
     }
@@ -237,15 +230,13 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
     if (files && files.length > 0) {
       const file = files[0]
       if (file) {
-        // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
         if (!allowedTypes.includes(file.type)) {
           setError('Invalid file type. Only JPEG, PNG, and WebP images are allowed.')
           return
         }
 
-        // Validate file size (max 10MB)
-        const maxSize = 10 * 1024 * 1024 // 10MB
+        const maxSize = 10 * 1024 * 1024  
         if (file.size > maxSize) {
           setError('File too large. Maximum size is 10MB.')
           return
@@ -254,7 +245,6 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
         setSelectedFile(file)
         setError('')
         
-        // Create preview URL
         const url = URL.createObjectURL(file)
         setPreviewUrl(url)
       }

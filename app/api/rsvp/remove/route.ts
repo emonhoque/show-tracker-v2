@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { show_id } = body
 
-    // Validate required fields
     if (!show_id) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -15,7 +14,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get current user for authentication
     const supabaseClient = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
@@ -26,7 +24,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if the show is in the past
     const { data: show, error: showError } = await supabase
       .from('shows')
       .select('date_time')
@@ -40,10 +37,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Allow RSVP removal for both past and future shows
-    // (Users should be able to clear their "I went!" status for past shows)
-
-    // Delete the RSVP record using user_id
     const { error } = await supabase
       .from('rsvps')
       .delete()

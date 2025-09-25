@@ -19,8 +19,8 @@ const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
     React.useEffect(() => {
       const timer = setTimeout(() => {
         setIsVisible(false)
-        setTimeout(() => onClose?.(), 300) // Wait for animation to complete
-      }, 5000) // Auto-dismiss after 5 seconds
+        setTimeout(() => onClose?.(), 300)
+      }, 5000)
 
       return () => clearTimeout(timer)
     }, [onClose])

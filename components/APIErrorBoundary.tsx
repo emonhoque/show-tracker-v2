@@ -13,8 +13,6 @@ export function APIErrorBoundary({ children, fallback, onRetry }: APIErrorBounda
   const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
     console.error('API Error Boundary caught an error:', error, errorInfo)
     
-    // You could send this to an error reporting service
-    // Example: Sentry.captureException(error, { tags: { component: 'API' } })
   }
 
   const defaultFallback = (

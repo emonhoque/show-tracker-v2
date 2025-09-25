@@ -9,12 +9,10 @@ import {
   RSVPSummary 
 } from './types'
 
-// Feature flag check
 function isShareableUrlsEnabled(): boolean {
   return process.env['ENABLE_SHAREABLE_URLS'] === 'true' || process.env.NODE_ENV === 'development'
 }
 
-// Generate a unique public ID
 function generatePublicId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = ''
@@ -24,17 +22,15 @@ function generatePublicId(): string {
   return result
 }
 
-// Create a URL-friendly slug from a title
 function createSlug(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
     .trim()
 }
 
-// Generate a shareable URL for a show
 export async function generateShareableUrl(showId: string): Promise<ShareableUrlResponse> {
   console.log('=== generateShareableUrl called with showId:', showId)
   
@@ -45,7 +41,6 @@ export async function generateShareableUrl(showId: string): Promise<ShareableUrl
 
   try {
     console.log('Fetching show details...')
-    // Get the show details first
     const { data: show, error: showError } = await supabase
       .from('shows')
       .select(`
@@ -65,7 +60,6 @@ export async function generateShareableUrl(showId: string): Promise<ShareableUrl
       return { success: false, error: 'Show not found' }
     }
 
-    // Get community details separately
     let communityNumericId = null
     if (show.community_id) {
       console.log('Fetching community details for:', show.community_id)
@@ -81,7 +75,6 @@ export async function generateShareableUrl(showId: string): Promise<ShareableUrl
       }
     }
 
-    // If show already has a shareable URL, return it
     if (show.public_id && show.shareable_url) {
       return {
         success: true,
@@ -90,14 +83,12 @@ export async function generateShareableUrl(showId: string): Promise<ShareableUrl
       }
     }
 
-    // Generate new shareable URL directly in application code
     const publicId = generatePublicId()
     const slug = createSlug(show.title)
     const shareableUrl = communityNumericId 
       ? `/groups/${communityNumericId}/event/${publicId}`
       : `/share/${publicId}`
 
-    // Update the show with the new shareable URL
     const { error: updateError } = await supabase
       .from('shows')
       .update({
@@ -124,7 +115,6 @@ export async function generateShareableUrl(showId: string): Promise<ShareableUrl
   }
 }
 
-// Get show by public ID and community ID
 export async function getShowByPublicId(
   publicId: string, 
   communityId?: string
@@ -136,7 +126,6 @@ export async function getShowByPublicId(
   }
 
   try {
-    // Get show by public ID directly
     const { data: show, error } = await supabase
       .from('shows')
       .select('*')
@@ -151,12 +140,9 @@ export async function getShowByPublicId(
       }
     }
 
-    // If communityId is provided, verify the show belongs to that community
     if (communityId) {
-      // Check if communityId is a numeric_id or actual UUID
       let actualCommunityId = communityId
       
-      // If it looks like a numeric_id (all digits), look up the actual community_id
       if (/^\d+$/.test(communityId)) {
         const { data: community, error: communityError } = await supabase
           .from('communities')
@@ -184,7 +170,6 @@ export async function getShowByPublicId(
       }
     }
 
-    // Get RSVPs for the show with profile names
     const { data: rsvps, error: rsvpError } = await supabase
       .from('rsvps')
       .select(`
@@ -198,7 +183,6 @@ export async function getShowByPublicId(
       console.error('Error fetching RSVPs:', rsvpError)
     }
 
-    // Group RSVPs by status
     const rsvpSummary: RSVPSummary = {
       going: [],
       maybe: [],
@@ -229,7 +213,6 @@ export async function getShowByPublicId(
   }
 }
 
-// Resolve show URL (for URL validation)
 export async function resolveShowUrl(
   communityId: string, 
   publicId: string
@@ -253,7 +236,6 @@ export async function resolveShowUrl(
       }
     }
 
-    // If communityId is provided, verify the show belongs to that community
     if (communityId && show.community_id !== communityId) {
       return { 
         success: false, 
@@ -273,14 +255,12 @@ export async function resolveShowUrl(
   }
 }
 
-// Update share tracking
 export async function updateShareTracking(publicId: string): Promise<ShareTrackingResponse> {
   if (!isShareableUrlsEnabled()) {
     return { success: false, error: 'Shareable URLs feature is disabled' }
   }
 
   try {
-    // Use the database function to increment share count
     const { error } = await supabase
       .rpc('increment_share_count', { p_public_id: publicId })
 
@@ -288,7 +268,6 @@ export async function updateShareTracking(publicId: string): Promise<ShareTracki
       return { success: false, error: 'Failed to update share tracking' }
     }
 
-    // Get updated share count
     const { data: show, error: showError } = await supabase
       .from('shows')
       .select('share_count')
@@ -309,7 +288,6 @@ export async function updateShareTracking(publicId: string): Promise<ShareTracki
   }
 }
 
-// Validate URL access (check if user can access the show)
 export async function validateUrlAccess(
   userId: string,
   communityId: string,
@@ -320,7 +298,6 @@ export async function validateUrlAccess(
   }
 
   try {
-    // Check if user is member of the community
     const { data: membership, error: membershipError } = await supabase
       .from('community_members')
       .select(`
@@ -335,7 +312,6 @@ export async function validateUrlAccess(
       return { success: true, hasAccess: false }
     }
 
-    // Check if show exists and belongs to the community
     const { data: show, error: showError } = await supabase
       .from('shows')
       .select('id, community_id')
@@ -354,7 +330,6 @@ export async function validateUrlAccess(
   }
 }
 
-// Get shareable URL info without full access (for previews)
 export async function getShareableUrlInfo(publicId: string): Promise<{
   success: boolean
   title?: string
@@ -383,7 +358,6 @@ export async function getShareableUrlInfo(publicId: string): Promise<{
       return { success: false, error: 'Show not found' }
     }
 
-    // Get community name separately
     let communityName = null
     if (show.community_id) {
       const { data: community } = await supabase

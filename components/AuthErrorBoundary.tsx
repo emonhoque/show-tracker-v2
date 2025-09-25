@@ -15,9 +15,7 @@ export function AuthErrorBoundary({ children, fallback }: AuthErrorBoundaryProps
   const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
     console.error('Auth Error Boundary caught an error:', error, errorInfo)
     
-    // Check if it's an authentication-related error
     if (error.message.includes('auth') || error.message.includes('session')) {
-      // Redirect to sign in page
       router.push('/auth/signin')
     }
   }

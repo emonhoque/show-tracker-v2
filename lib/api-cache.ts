@@ -6,13 +6,11 @@
 interface CacheEntry<T> {
   data: T
   timestamp: number
-  ttl: number // Time to live in milliseconds
+  ttl: number
 }
 
-// In-memory cache store
 const cache = new Map<string, CacheEntry<any>>()
 
-// Clean up expired entries every 2 minutes
 setInterval(() => {
   const now = Date.now()
   for (const [key, entry] of cache.entries()) {
@@ -68,17 +66,15 @@ function setCachedData<T>(key: string, data: T, ttl: number): void {
 export async function cachedFetch<T>(
   url: string,
   options: RequestInit = {},
-  ttl: number = 5 * 60 * 1000 // 5 minutes default
+  ttl: number = 5 * 60 * 1000
 ): Promise<T> {
   const key = generateCacheKey(url, options)
   
-  // Check cache first
   const cached = getCachedData<T>(key)
   if (cached !== null) {
     return cached
   }
   
-  // Make request
   const response = await fetch(url, options)
   
   if (!response.ok) {
@@ -87,7 +83,6 @@ export async function cachedFetch<T>(
   
   const data = await response.json()
   
-  // Cache the response
   setCachedData(key, data, ttl)
   
   return data
