@@ -1,13 +1,16 @@
+# *
 User-agent: *
+Allow: /
 Disallow: /api/
 Disallow: /auth/
-Disallow: /groups/*/settings
-Disallow: /share/
+Disallow: /signin
+Disallow: /signout
+Disallow: /access-denied
 Disallow: /invite/
-Disallow: /home
-Disallow: /profile
-Disallow: /groups
+Disallow: /share/
 
-# Allow public pages
-Allow: /
+# Host
+Host: https://show-tracker.vercel.app
 
+# Sitemaps
+Sitemap: https://show-tracker.vercel.app/sitemap.xml
