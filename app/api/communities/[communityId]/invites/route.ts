@@ -181,3 +181,89 @@ export async function GET(
     )
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ communityId: string }> }
+) {
+  try {
+    const { communityId } = await params
+    const url = new URL(request.url)
+    const inviteId = url.searchParams.get('inviteId')
+
+    if (!inviteId) {
+      return NextResponse.json(
+        { error: 'Invite ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Get the authenticated user from the request
+    const supabaseClient = await createServerSupabaseClient()
+    const authHeader = request.headers.get('authorization')
+    
+    let user
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(token)
+      if (authError || !authUser) {
+        return NextResponse.json(
+          { error: 'Authentication failed' },
+          { status: 401 }
+        )
+      }
+      user = authUser
+    } else {
+      const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser()
+      if (authError || !authUser) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        )
+      }
+      user = authUser
+    }
+
+    // Verify user is admin of this community
+    const { data: membership, error: membershipError } = await supabase
+      .from('community_members')
+      .select('role')
+      .eq('community_id', communityId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (membershipError || !membership || membership.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      )
+    }
+
+    // Delete the invite
+    const { error: deleteError } = await supabase
+      .from('community_invites')
+      .delete()
+      .eq('id', inviteId)
+      .eq('community_id', communityId)
+
+    if (deleteError) {
+      console.error('Failed to delete invite:', deleteError)
+      return NextResponse.json(
+        { error: 'Failed to delete invite' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Invite deleted successfully'
+    })
+
+  } catch (error) {
+    console.error('Error deleting invite:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

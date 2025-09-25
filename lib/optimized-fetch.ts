@@ -75,7 +75,7 @@ export async function optimizedFetch<T>(
   const { ttl = 5 * 60 * 1000, useCache = true, skipDeduplication = false, ...fetchOptions } = options
 
   // For GET requests, use caching if enabled
-  if (requestOptions.method === 'GET' || !requestOptions.method) {
+  if (fetchOptions.method === 'GET' || !fetchOptions.method) {
     if (useCache) {
       return cachedFetch<T>(url, fetchOptions, ttl)
     }

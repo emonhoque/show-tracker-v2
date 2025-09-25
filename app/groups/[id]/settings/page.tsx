@@ -30,6 +30,8 @@ export default function GroupSettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isCreatingInvite, setIsCreatingInvite] = useState(false)
+  const [isDeletingInvite, setIsDeletingInvite] = useState<string | null>(null)
+  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null)
   const [inviteLinks, setInviteLinks] = useState<Array<{
     id: string
     inviteUrl?: string
@@ -251,13 +253,83 @@ export default function GroupSettingsPage() {
     }
   }
 
-  const copyInviteLink = async (inviteUrl: string) => {
+  const copyInviteLink = async (inviteUrl: string, inviteId: string) => {
     try {
-      await navigator.clipboard.writeText(inviteUrl)
-      // You could add a toast notification here
-      alert('Invite link copied to clipboard!')
+      // Check if clipboard API is available
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(inviteUrl)
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea')
+        textArea.value = inviteUrl
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        document.execCommand('copy')
+        textArea.remove()
+      }
+      
+      // Show visual feedback
+      setCopiedInviteId(inviteId)
+      setTimeout(() => setCopiedInviteId(null), 2000) // Hide after 2 seconds
     } catch (error) {
       console.error('Failed to copy invite link:', error)
+      // Fallback: try the old method
+      try {
+        const textArea = document.createElement('textarea')
+        textArea.value = inviteUrl
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        
+        // Show visual feedback even for fallback
+        setCopiedInviteId(inviteId)
+        setTimeout(() => setCopiedInviteId(null), 2000)
+      } catch (fallbackError) {
+        console.error('Fallback copy also failed:', fallbackError)
+      }
+    }
+  }
+
+  const handleDeleteInviteLink = async (inviteId: string) => {
+    if (!community) return
+
+    try {
+      setIsDeletingInvite(inviteId)
+      
+      const { createClient } = await import('@/lib/supabase')
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.access_token) {
+        setError('You must be logged in to delete invite links')
+        return
+      }
+
+      const response = await fetch(`/api/communities/${community.id}/invites?inviteId=${inviteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        // Reload invite links
+        await loadInviteLinks(community.id, session.access_token)
+      } else {
+        setError(data.error || 'Failed to delete invite link')
+      }
+      
+    } catch {
+      setError('Failed to delete invite link')
+    } finally {
+      setIsDeletingInvite(null)
     }
   }
 
@@ -404,7 +476,7 @@ export default function GroupSettingsPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="mb-8">
         <Button 
           variant="outline" 
@@ -415,20 +487,22 @@ export default function GroupSettingsPage() {
           Back
         </Button>
         
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center space-x-2">
-              <Settings className="h-8 w-8" />
-              <span>Group Settings</span>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Settings className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
+                <span>Group Settings</span>
+              </div>
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-gray-600 mt-2 break-words">
               Manage {community.name} settings and members
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
         {/* Group Settings */}
         <Card>
           <CardHeader>
@@ -517,32 +591,32 @@ export default function GroupSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="space-y-2 sm:space-y-3 max-h-64 overflow-y-auto">
               {members.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Users className="h-8 w-8 mx-auto mb-2" />
-                  <p>No members found</p>
-                  <p className="text-sm">Invite members to get started</p>
+                <div className="text-center py-6 sm:py-8 text-gray-500">
+                  <Users className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2" />
+                  <p className="text-sm sm:text-base">No members found</p>
+                  <p className="text-xs sm:text-sm">Invite members to get started</p>
                 </div>
               ) : (
                 members.map((member) => (
-                  <div key={member.user_id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium">
+                  <div key={member.user_id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-gray-50">
+                    <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs sm:text-sm font-medium">
                           {member.profiles?.name?.charAt(0) || '?'}
                         </span>
                       </div>
-                      <div>
-                        <p className="font-medium">{member.profiles?.name || 'Unknown'}</p>
-                        <p className="text-sm text-gray-500">{member.profiles?.email}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm sm:text-base truncate">{member.profiles?.name || 'Unknown'}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 truncate">{member.profiles?.email}</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                       {member.role === 'admin' && (
-                        <Crown className="h-4 w-4 text-yellow-500" />
+                        <Crown className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
                       )}
-                      <span className="text-sm text-gray-500 capitalize">
+                      <span className="text-xs sm:text-sm text-gray-500 capitalize">
                         {member.role}
                       </span>
                       {member.role !== 'admin' && (
@@ -550,7 +624,7 @@ export default function GroupSettingsPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleRemoveMember(member.user_id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 p-1 sm:p-2"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -594,14 +668,50 @@ export default function GroupSettingsPage() {
                       Expires: {new Date(invite.expires_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => copyInviteLink(invite.inviteUrl || invite.invite_url || '')}
-                  >
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Copy
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyInviteLink(invite.inviteUrl || invite.invite_url || '', invite.id)}
+                      className={copiedInviteId === invite.id ? 'bg-green-50 border-green-200 text-green-700' : ''}
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      {copiedInviteId === invite.id ? 'Copied!' : 'Copy'}
+                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          disabled={isDeletingInvite === invite.id}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Delete Invite Link</DialogTitle>
+                          <DialogDescription>
+                            Are you sure you want to delete this invite link? This action cannot be undone.
+                            Anyone with this link will no longer be able to join the group.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button variant="outline">
+                            Cancel
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            onClick={() => handleDeleteInviteLink(invite.id)}
+                            disabled={isDeletingInvite === invite.id}
+                          >
+                            {isDeletingInvite === invite.id ? 'Deleting...' : 'Delete'}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               ))}
             </div>

@@ -200,11 +200,41 @@ export default function GroupPage() {
     if (!inviteLink) return
     
     try {
-      await navigator.clipboard.writeText(inviteLink)
+      // Check if clipboard API is available
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(inviteLink)
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea')
+        textArea.value = inviteLink
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        document.execCommand('copy')
+        textArea.remove()
+      }
+      
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       console.error('Failed to copy invite link:', error)
+      // Fallback: try the old method
+      try {
+        const textArea = document.createElement('textarea')
+        textArea.value = inviteLink
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (fallbackError) {
+        console.error('Fallback copy also failed:', fallbackError)
+      }
     }
   }
 
@@ -269,7 +299,7 @@ export default function GroupPage() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-4xl mx-auto px-4 py-6 sm:p-4">
         <div className="mb-8">
           <Button 
             variant="ghost" 
@@ -280,11 +310,13 @@ export default function GroupPage() {
             Back
           </Button>
         
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center space-x-2">
-              <Users className="h-8 w-8" />
-              <span>{community.name}</span>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
+                <span className="break-words">{community.name}</span>
+              </div>
             </h1>
             <p className="text-gray-600 mt-2">
               {members.length} member{members.length !== 1 ? 's' : ''}
@@ -292,19 +324,22 @@ export default function GroupPage() {
           </div>
           
           {isAdmin && (
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <Button 
                 onClick={handleCreateInviteLink} 
                 disabled={isCreatingInvite}
-                className="flex items-center space-x-2"
+                className="flex items-center justify-center gap-2 text-sm sm:text-base"
+                size="sm"
               >
                 <Share2 className="h-4 w-4" />
-                <span>{isCreatingInvite ? 'Creating...' : 'Create Invite Link'}</span>
+                <span className="hidden sm:inline">{isCreatingInvite ? 'Creating...' : 'Create Invite Link'}</span>
+                <span className="sm:hidden">{isCreatingInvite ? 'Creating...' : 'Invite'}</span>
               </Button>
               <Button 
                 variant="outline" 
                 onClick={handleManageSettings}
-                className="flex items-center space-x-2"
+                className="flex items-center justify-center gap-2 text-sm sm:text-base"
+                size="sm"
               >
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>
@@ -314,7 +349,7 @@ export default function GroupPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
         {/* Group Info */}
         <Card>
           <CardHeader>
@@ -353,25 +388,25 @@ export default function GroupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="space-y-2 sm:space-y-3 max-h-64 overflow-y-auto">
               {members.map((member) => (
-                <div key={member.user_id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium">
+                <div key={member.user_id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-gray-50">
+                  <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs sm:text-sm font-medium">
                         {member.profiles?.name?.charAt(0) || '?'}
                       </span>
                     </div>
-                    <div>
-                      <p className="font-medium">{member.profiles?.name || 'Unknown'}</p>
-                      <p className="text-sm text-gray-500">{member.profiles?.email}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm sm:text-base truncate">{member.profiles?.name || 'Unknown'}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">{member.profiles?.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
                     {member.role === 'admin' && (
-                      <Crown className="h-4 w-4 text-yellow-500" />
+                      <Crown className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
                     )}
-                    <span className="text-sm text-gray-500 capitalize">
+                    <span className="text-xs sm:text-sm text-gray-500 capitalize">
                       {member.role}
                     </span>
                   </div>

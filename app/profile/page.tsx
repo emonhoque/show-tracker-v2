@@ -9,7 +9,9 @@ import { useAuth } from '@/lib/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, User, Mail, Calendar, Save, X, Upload, Camera } from 'lucide-react'
+import { ArrowLeft, User, Mail, Calendar, Save, X, Upload, Camera, Users, Settings, Crown, LogOut, Plus } from 'lucide-react'
+import { UserCommunity } from '@/lib/types'
+import { LeaveCommunityDialog } from '@/components/LeaveCommunityDialog'
 
 interface Profile {
   id: string
@@ -31,6 +33,12 @@ export default function ProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [migratingAvatar, setMigratingAvatar] = useState(false)
+  const [communities, setCommunities] = useState<UserCommunity[]>([])
+  const [loadingCommunities, setLoadingCommunities] = useState(true)
+  const [leaveDialog, setLeaveDialog] = useState<{
+    isOpen: boolean
+    community: UserCommunity | null
+  }>({ isOpen: false, community: null })
 
   // Fetch profile data on component mount
   useEffect(() => {
@@ -60,6 +68,52 @@ export default function ProfilePage() {
       setLoadingProfile(false)
     }
   }, [user, profile]) // Add profile dependency to prevent refetching
+
+  // Fetch communities data on component mount
+  useEffect(() => {
+    const fetchCommunities = async () => {
+      if (!user) return
+      
+      try {
+        setLoadingCommunities(true)
+        
+        // Get the current session to include the auth token
+        const { createClient } = await import('@/lib/supabase')
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session?.access_token) {
+          console.error('No session token available')
+          return
+        }
+        
+        const response = await fetch('/api/communities', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok && data.success && data.communities) {
+          setCommunities(data.communities)
+        } else {
+          console.error('Failed to load communities:', data.error)
+        }
+      } catch (error) {
+        console.error('Error fetching communities:', error)
+      } finally {
+        setLoadingCommunities(false)
+      }
+    }
+
+    if (user) {
+      fetchCommunities()
+    } else {
+      setLoadingCommunities(false)
+    }
+  }, [user])
 
   const handleSaveName = async () => {
     if (!displayName.trim()) {
@@ -169,6 +223,60 @@ export default function ProfilePage() {
     } finally {
       setMigratingAvatar(false)
     }
+  }
+
+  // Community management handlers
+  const handleCreateGroup = () => {
+    router.push('/groups/create')
+  }
+
+  const handleGroupClick = (numericId: string) => {
+    router.push(`/groups/${numericId}`)
+  }
+
+  const handleGroupSettings = (numericId: string) => {
+    router.push(`/groups/${numericId}/settings`)
+  }
+
+  const handleLeaveGroup = (community: UserCommunity) => {
+    setLeaveDialog({ isOpen: true, community })
+  }
+
+  const handleLeaveSuccess = () => {
+    // Reload communities after leaving
+    const fetchCommunities = async () => {
+      if (!user) return
+      
+      try {
+        const { createClient } = await import('@/lib/supabase')
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session?.access_token) {
+          console.error('No session token available')
+          return
+        }
+        
+        const response = await fetch('/api/communities', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok && data.success && data.communities) {
+          setCommunities(data.communities)
+        } else {
+          console.error('Failed to reload communities:', data.error)
+        }
+      } catch (error) {
+        console.error('Error reloading communities:', error)
+      }
+    }
+
+    fetchCommunities()
   }
 
   if (loadingProfile) {
@@ -355,7 +463,124 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Groups Section */}
+          <Card className="mt-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    My Groups
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your group memberships and settings
+                  </CardDescription>
+                </div>
+                <Button onClick={handleCreateGroup} className="flex items-center space-x-2">
+                  <Plus className="h-4 w-4" />
+                  <span>Create Group</span>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingCommunities ? (
+                <div className="space-y-4">
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ) : communities.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                    <Users className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No Groups Yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    You're not a member of any groups. Create a new group or ask someone to invite you.
+                  </p>
+                  <Button onClick={handleCreateGroup} className="flex items-center space-x-2">
+                    <Plus className="h-4 w-4" />
+                    <span>Create Your First Group</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {communities.map((community) => (
+                    <div
+                      key={community.community_id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => handleGroupClick(community.community_numeric_id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Users className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-gray-900">{community.community_name}</h4>
+                              {community.user_role === 'admin' && (
+                                <Crown className="h-4 w-4 text-yellow-500" />
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">
+                              {community.member_count} member{community.member_count !== 1 ? 's' : ''} • 
+                              Role: {community.user_role}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleGroupSettings(community.community_numeric_id)
+                          }}
+                          title="Group Settings"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleLeaveGroup(community)
+                          }}
+                          title="Leave Group"
+                        >
+                          <LogOut className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
       </div>
+
+      {/* Leave Group Dialog */}
+      {leaveDialog.community && (
+        <LeaveCommunityDialog
+          isOpen={leaveDialog.isOpen}
+          onClose={() => setLeaveDialog({ isOpen: false, community: null })}
+          communityId={leaveDialog.community.community_id}
+          communityName={leaveDialog.community.community_name}
+          userRole={leaveDialog.community.user_role as 'admin' | 'member'}
+          onSuccess={handleLeaveSuccess}
+        />
+      )}
     </Layout>
   )
 }
