@@ -1,5 +1,5 @@
 -- =====================================================
--- SHOW TRACKER - FINAL MASTER DATABASE MIGRATION
+-- SHOW TRACKER - COMPLETE DATABASE SCHEMA
 -- =====================================================
 -- This file contains the complete, clean database schema for the show-tracker app.
 -- This is the single source of truth - run this entire file in your Supabase SQL editor.
@@ -12,7 +12,7 @@
 -- ✅ Music features with community-level control
 -- ✅ Shareable URLs for events
 -- ✅ Performance indexes and RLS policies
--- ✅ Data migration for existing records
+-- ✅ All user-generated tables only (no Supabase system tables)
 
 -- =====================================================
 -- 1. CORE TABLE CREATION
@@ -145,95 +145,16 @@ CREATE TABLE IF NOT EXISTS community_invites (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     community_id UUID NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
     created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    email TEXT,
     token TEXT NOT NULL UNIQUE,
     expires_at TIMESTAMPTZ NOT NULL,
-    max_uses INTEGER DEFAULT 100,
+    max_uses INTEGER DEFAULT 1,
     current_uses INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- =====================================================
--- 2. FOREIGN KEY VERIFICATION
--- =====================================================
-
--- Verify the rsvps foreign key constraint was created successfully
-DO $$
-DECLARE
-    constraint_exists BOOLEAN;
-BEGIN
-    SELECT EXISTS (
-        SELECT 1 
-        FROM information_schema.table_constraints tc 
-        JOIN information_schema.key_column_usage kcu
-          ON tc.constraint_name = kcu.constraint_name
-          AND tc.table_schema = kcu.table_schema
-        JOIN information_schema.constraint_column_usage ccu
-          ON ccu.constraint_name = tc.constraint_name
-          AND ccu.table_schema = tc.table_schema
-        WHERE tc.constraint_type = 'FOREIGN KEY' 
-          AND tc.table_name = 'rsvps'
-          AND kcu.column_name = 'user_id'
-          AND ccu.table_name = 'profiles'
-          AND ccu.column_name = 'id'
-    ) INTO constraint_exists;
-    
-    IF NOT constraint_exists THEN
-        RAISE EXCEPTION 'Foreign key constraint rsvps_user_id_fkey was not created properly';
-    END IF;
-    
-    RAISE NOTICE 'Foreign key constraint rsvps_user_id_fkey verified successfully';
-END $$;
-
--- =====================================================
--- 3. PERFORMANCE INDEXES
--- =====================================================
-
--- Core table indexes
-CREATE INDEX IF NOT EXISTS idx_shows_upcoming ON shows(date_time ASC);
-CREATE INDEX IF NOT EXISTS idx_shows_past ON shows(date_time DESC);
-CREATE INDEX IF NOT EXISTS idx_shows_category ON shows(category);
-CREATE INDEX IF NOT EXISTS idx_shows_community_id ON shows(community_id);
-CREATE INDEX IF NOT EXISTS idx_shows_public_id ON shows(public_id) WHERE public_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_shows_public_id_unique ON shows(public_id) WHERE public_id IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_rsvps_show_id ON rsvps(show_id);
-CREATE INDEX IF NOT EXISTS idx_rsvps_user_id ON rsvps(user_id);
-CREATE INDEX IF NOT EXISTS idx_rsvps_community_id ON rsvps(community_id);
-CREATE INDEX IF NOT EXISTS idx_rsvps_show_status ON rsvps(show_id, status);
-
-CREATE INDEX IF NOT EXISTS idx_artists_spotify_id ON artists(spotify_id);
-CREATE INDEX IF NOT EXISTS idx_artists_active ON artists(is_active) WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_artists_last_checked ON artists(last_checked);
-
-CREATE INDEX IF NOT EXISTS idx_releases_artist_id ON releases(artist_id);
-CREATE INDEX IF NOT EXISTS idx_releases_release_date ON releases(release_date DESC);
-CREATE INDEX IF NOT EXISTS idx_releases_spotify_id ON releases(spotify_id);
-
-CREATE INDEX IF NOT EXISTS idx_user_artists_user_id ON user_artists(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_artists_artist_id ON user_artists(artist_id);
-
--- Profiles table indexes
-CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
-CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at);
-
--- Communities table indexes
-CREATE INDEX IF NOT EXISTS idx_communities_slug ON communities(slug);
-CREATE INDEX IF NOT EXISTS idx_communities_created_by ON communities(created_by);
-CREATE INDEX IF NOT EXISTS idx_communities_is_default ON communities(is_default) WHERE is_default = true;
-
--- Community members indexes
-CREATE INDEX IF NOT EXISTS idx_community_members_community_id ON community_members(community_id);
-CREATE INDEX IF NOT EXISTS idx_community_members_user_id ON community_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_community_members_role ON community_members(community_id, role);
-
--- Community invites indexes
-CREATE INDEX IF NOT EXISTS idx_community_invites_community_id ON community_invites(community_id);
-CREATE INDEX IF NOT EXISTS idx_community_invites_token ON community_invites(token);
-CREATE INDEX IF NOT EXISTS idx_community_invites_expires_at ON community_invites(expires_at);
-CREATE INDEX IF NOT EXISTS idx_community_invites_created_by ON community_invites(created_by);
-
--- =====================================================
--- 4. UTILITY FUNCTIONS
+-- 2. UTILITY FUNCTIONS
 -- =====================================================
 
 -- Function to update updated_at timestamp
@@ -258,7 +179,7 @@ BEGIN
     END LOOP;
     RETURN result;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Function to create URL-friendly slug from title
 CREATE OR REPLACE FUNCTION create_slug(title TEXT)
@@ -272,7 +193,7 @@ BEGIN
         '-+', '-', 'g'
     ));
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Function to handle new user profile creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -341,6 +262,87 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- =====================================================
+-- HELPER FUNCTIONS FOR RLS (FIXES CIRCULAR DEPENDENCIES)
+-- =====================================================
+
+-- Function to get user's community IDs (bypasses RLS for policy use)
+CREATE OR REPLACE FUNCTION get_user_community_ids(user_uuid UUID DEFAULT auth.uid())
+RETURNS UUID[] AS $$
+DECLARE
+    result UUID[];
+BEGIN
+    -- Use exception handling to gracefully handle missing table
+    BEGIN
+        SELECT ARRAY(
+            SELECT cm.community_id 
+            FROM community_members cm 
+            WHERE cm.user_id = user_uuid
+        ) INTO result;
+        RETURN COALESCE(result, ARRAY[]::UUID[]);
+    EXCEPTION
+        WHEN undefined_table THEN
+            RETURN ARRAY[]::UUID[];
+        WHEN OTHERS THEN
+            RETURN ARRAY[]::UUID[];
+    END;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Function to check if user is member of specific community
+CREATE OR REPLACE FUNCTION is_user_community_member(
+    user_uuid UUID DEFAULT auth.uid(),
+    community_uuid UUID DEFAULT NULL
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    result BOOLEAN;
+BEGIN
+    IF community_uuid IS NULL THEN
+        RETURN TRUE; -- Allow access to shows without community_id
+    END IF;
+    
+    -- Use exception handling to gracefully handle missing table
+    BEGIN
+        SELECT EXISTS (
+            SELECT 1 
+            FROM community_members cm 
+            WHERE cm.user_id = user_uuid 
+            AND cm.community_id = community_uuid
+        ) INTO result;
+        RETURN COALESCE(result, FALSE);
+    EXCEPTION
+        WHEN undefined_table THEN
+            RETURN FALSE;
+        WHEN OTHERS THEN
+            RETURN FALSE;
+    END;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Function to check if user can access show
+CREATE OR REPLACE FUNCTION can_user_access_show(
+    show_community_id UUID DEFAULT NULL,
+    show_public_id TEXT DEFAULT NULL,
+    user_uuid UUID DEFAULT auth.uid()
+)
+RETURNS BOOLEAN AS $$
+BEGIN
+    -- Allow access to shows without community_id (legacy shows)
+    IF show_community_id IS NULL THEN
+        RETURN TRUE;
+    END IF;
+    
+    -- Allow access by public_id if user is member of show's community
+    IF show_public_id IS NOT NULL THEN
+        RETURN is_user_community_member(user_uuid, show_community_id);
+    END IF;
+    
+    -- Standard community membership check
+    RETURN is_user_community_member(user_uuid, show_community_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
 -- Function to get show by public_id and community_numeric_id
 CREATE OR REPLACE FUNCTION get_show_by_public_id(
     p_public_id TEXT,
@@ -353,10 +355,7 @@ RETURNS TABLE (
     time_local TEXT,
     city TEXT,
     venue TEXT,
-    ticket_url TEXT,
-    spotify_url TEXT,
-    apple_music_url TEXT,
-    google_photos_url TEXT,
+    category TEXT,
     poster_url TEXT,
     notes TEXT,
     created_at TIMESTAMPTZ,
@@ -370,8 +369,7 @@ RETURNS TABLE (
 BEGIN
     RETURN QUERY
     SELECT 
-        s.id, s.title, s.date_time, s.time_local, s.city, s.venue,
-        s.ticket_url, s.spotify_url, s.apple_music_url, s.google_photos_url,
+        s.id, s.title, s.date_time, s.time_local, s.city, s.venue, s.category,
         s.poster_url, s.notes, s.created_at, s.community_id,
         s.public_id, s.slug, s.shareable_url, s.share_count, s.last_shared_at
     FROM shows s
@@ -472,8 +470,189 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- Additional utility functions
+CREATE OR REPLACE FUNCTION generate_numeric_id()
+RETURNS TEXT AS $$
+BEGIN
+    RETURN LPAD(FLOOR(RANDOM() * 100000000)::TEXT, 8, '0');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+CREATE OR REPLACE FUNCTION batch_generate_shareable_urls()
+RETURNS INTEGER AS $$
+DECLARE
+    show_record RECORD;
+    new_public_id TEXT;
+    new_slug TEXT;
+    new_shareable_url TEXT;
+    community_numeric_id TEXT;
+    attempts INTEGER;
+    max_attempts INTEGER := 10;
+    updated_count INTEGER := 0;
+BEGIN
+    FOR show_record IN 
+        SELECT s.id, s.title, s.community_id, c.numeric_id as community_numeric_id
+        FROM shows s
+        LEFT JOIN communities c ON s.community_id = c.id
+        WHERE s.public_id IS NULL
+    LOOP
+        attempts := 0;
+        
+        -- Generate unique public_id
+        LOOP
+            new_public_id := encode(gen_random_bytes(6), 'base64url');
+            new_public_id := replace(replace(new_public_id, '+', ''), '/', '');
+            new_public_id := left(new_public_id, 8);
+            
+            -- Check if public_id is unique
+            IF NOT EXISTS (SELECT 1 FROM shows WHERE public_id = new_public_id) THEN
+                EXIT;
+            END IF;
+            
+            attempts := attempts + 1;
+            IF attempts >= max_attempts THEN
+                RAISE NOTICE 'Could not generate unique public_id for show %', show_record.id;
+                CONTINUE;
+            END IF;
+        END LOOP;
+        
+        -- Generate slug from title
+        new_slug := create_slug(show_record.title);
+        
+        -- Generate shareable URL
+        IF show_record.community_numeric_id IS NOT NULL THEN
+            new_shareable_url := '/c/' || show_record.community_numeric_id || '/e/' || new_public_id;
+        ELSE
+            new_shareable_url := '/share/' || new_public_id;
+        END IF;
+        
+        -- Update the show record
+        UPDATE shows 
+        SET 
+            public_id = new_public_id,
+            slug = new_slug,
+            shareable_url = new_shareable_url,
+            share_count = '0',
+            last_shared_at = NOW()
+        WHERE id = show_record.id;
+        
+        updated_count := updated_count + 1;
+    END LOOP;
+    
+    RETURN updated_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+CREATE OR REPLACE FUNCTION create_default_community_and_migrate()
+RETURNS VOID AS $$
+DECLARE
+    default_community_id UUID;
+    profile_record RECORD;
+BEGIN
+    -- Create default community
+    INSERT INTO communities (name, description, slug, created_by, is_default)
+    VALUES (
+        'Default Community',
+        'All existing shows and RSVPs have been migrated to this community',
+        'default',
+        (SELECT id FROM profiles LIMIT 1), -- Use first profile as creator
+        true
+    )
+    RETURNING id INTO default_community_id;
+    
+    -- Add all existing users to default community
+    FOR profile_record IN SELECT id FROM profiles LOOP
+        INSERT INTO community_members (community_id, user_id, role)
+        VALUES (default_community_id, profile_record.id, 'member')
+        ON CONFLICT (community_id, user_id) DO NOTHING;
+    END LOOP;
+    
+    -- Update all existing shows to default community
+    UPDATE shows 
+    SET community_id = default_community_id 
+    WHERE community_id IS NULL;
+    
+    -- Update all existing RSVPs to default community
+    UPDATE rsvps 
+    SET community_id = default_community_id 
+    WHERE community_id IS NULL;
+    
+    RAISE NOTICE 'Default community created and data migrated successfully';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+CREATE OR REPLACE FUNCTION get_or_create_profile_for_name(user_name TEXT)
+RETURNS UUID AS $$
+DECLARE
+    profile_id UUID;
+    temp_email TEXT;
+BEGIN
+    -- Check if profile already exists for this name
+    SELECT id INTO profile_id 
+    FROM profiles 
+    WHERE LOWER(name) = LOWER(user_name) 
+    LIMIT 1;
+    
+    IF profile_id IS NOT NULL THEN
+        RETURN profile_id;
+    END IF;
+    
+    -- Create temporary email for migration
+    temp_email := 'migration-' || gen_random_uuid()::text || '@temp.local';
+    
+    -- Create temporary user in auth.users
+    INSERT INTO auth.users (
+        id,
+        instance_id,
+        aud,
+        role,
+        email,
+        encrypted_password,
+        email_confirmed_at,
+        created_at,
+        updated_at,
+        raw_user_meta_data,
+        is_super_admin,
+        confirmation_token,
+        email_change,
+        email_change_token_new,
+        recovery_token
+    ) VALUES (
+        gen_random_uuid(),
+        '00000000-0000-0000-0000-000000000000',
+        'authenticated',
+        'authenticated',
+        temp_email,
+        '',
+        NOW(),
+        NOW(),
+        NOW(),
+        jsonb_build_object('full_name', user_name),
+        false,
+        '',
+        '',
+        '',
+        ''
+    ) RETURNING id INTO profile_id;
+    
+    -- Profile will be created automatically by the trigger
+    RETURN profile_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+CREATE OR REPLACE FUNCTION get_unique_rsvp_names()
+RETURNS TABLE(name TEXT) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT DISTINCT r.name
+    FROM public.rsvps r
+    WHERE r.name IS NOT NULL
+    ORDER BY r.name;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
 -- =====================================================
--- 5. TRIGGERS
+-- 3. TRIGGERS
 -- =====================================================
 
 -- Create trigger for profiles updated_at timestamp
@@ -495,7 +674,57 @@ CREATE TRIGGER on_auth_user_created
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- =====================================================
--- 6. ROW LEVEL SECURITY (RLS) SETUP
+-- 4. PERFORMANCE INDEXES
+-- =====================================================
+
+-- Core table indexes
+CREATE INDEX IF NOT EXISTS idx_shows_upcoming ON shows(date_time ASC);
+CREATE INDEX IF NOT EXISTS idx_shows_past ON shows(date_time DESC);
+CREATE INDEX IF NOT EXISTS idx_shows_category ON shows(category);
+CREATE INDEX IF NOT EXISTS idx_shows_community_id ON shows(community_id);
+CREATE INDEX IF NOT EXISTS idx_shows_public_id ON shows(public_id) WHERE public_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_shows_public_id_unique ON shows(public_id) WHERE public_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_shows_community_public_id ON shows(community_id, public_id) WHERE public_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_rsvps_show_id ON rsvps(show_id);
+CREATE INDEX IF NOT EXISTS idx_rsvps_user_id ON rsvps(user_id);
+CREATE INDEX IF NOT EXISTS idx_rsvps_community_id ON rsvps(community_id);
+CREATE INDEX IF NOT EXISTS idx_rsvps_show_status ON rsvps(show_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rsvps_show_name_unique ON rsvps(show_id, name) WHERE name IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_artists_spotify_id ON artists(spotify_id);
+CREATE INDEX IF NOT EXISTS idx_artists_active ON artists(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_artists_last_checked ON artists(last_checked);
+
+CREATE INDEX IF NOT EXISTS idx_releases_artist_id ON releases(artist_id);
+CREATE INDEX IF NOT EXISTS idx_releases_release_date ON releases(release_date DESC);
+CREATE INDEX IF NOT EXISTS idx_releases_spotify_id ON releases(spotify_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_artists_user_id ON user_artists(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_artists_artist_id ON user_artists(artist_id);
+
+-- Profiles table indexes
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at);
+
+-- Communities table indexes
+CREATE INDEX IF NOT EXISTS idx_communities_numeric_id ON communities(numeric_id);
+CREATE INDEX IF NOT EXISTS idx_communities_created_by ON communities(created_by);
+CREATE INDEX IF NOT EXISTS idx_communities_is_default ON communities(is_default) WHERE is_default = true;
+
+-- Community members indexes
+CREATE INDEX IF NOT EXISTS idx_community_members_community_id ON community_members(community_id);
+CREATE INDEX IF NOT EXISTS idx_community_members_user_id ON community_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_members_role ON community_members(community_id, role);
+
+-- Community invites indexes
+CREATE INDEX IF NOT EXISTS idx_community_invites_community_id ON community_invites(community_id);
+CREATE INDEX IF NOT EXISTS idx_community_invites_token ON community_invites(token);
+CREATE INDEX IF NOT EXISTS idx_community_invites_expires_at ON community_invites(expires_at);
+CREATE INDEX IF NOT EXISTS idx_community_invites_created_by ON community_invites(created_by);
+
+-- =====================================================
+-- 5. ROW LEVEL SECURITY (RLS) SETUP
 -- =====================================================
 
 -- Enable RLS on all tables
@@ -569,41 +798,16 @@ CREATE POLICY "profiles_update_policy" ON profiles
         (SELECT auth.uid()) = id
     );
 
--- Create community-scoped RLS policies for shows table
+-- Create community-scoped RLS policies for shows table (FIXED: Uses helper functions)
 CREATE POLICY "shows_select_policy" ON shows
     FOR SELECT USING (
-        -- Users can only access shows from communities they belong to
-        community_id IN (
-            SELECT community_id 
-            FROM community_members 
-            WHERE user_id = (SELECT auth.uid())
-        )
-        OR
-        -- Allow access to shows without community_id during migration
-        community_id IS NULL
-        OR
-        -- Allow access to shows by public_id (for shareable URLs)
-        (public_id IS NOT NULL AND (
-            -- Allow access if user is member of the show's community
-            community_id IN (
-                SELECT cm.community_id 
-                FROM community_members cm 
-                WHERE cm.user_id = (SELECT auth.uid())
-            )
-            OR
-            -- Allow access if show has no community (legacy shows)
-            community_id IS NULL
-        ))
+        can_user_access_show(community_id, public_id, (select auth.uid()))
     );
 
 CREATE POLICY "shows_insert_policy" ON shows
     FOR INSERT WITH CHECK (
         -- Users can insert shows in communities they belong to
-        community_id IN (
-            SELECT community_id 
-            FROM community_members 
-            WHERE user_id = (SELECT auth.uid())
-        )
+        is_user_community_member((select auth.uid()), community_id)
         OR
         -- Allow insertion without community_id during migration
         community_id IS NULL
@@ -612,11 +816,7 @@ CREATE POLICY "shows_insert_policy" ON shows
 CREATE POLICY "shows_update_policy" ON shows
     FOR UPDATE USING (
         -- Users can update shows in communities they belong to
-        community_id IN (
-            SELECT community_id 
-            FROM community_members 
-            WHERE user_id = (SELECT auth.uid())
-        )
+        is_user_community_member((select auth.uid()), community_id)
         OR
         -- Allow update without community_id during migration
         community_id IS NULL
@@ -625,25 +825,17 @@ CREATE POLICY "shows_update_policy" ON shows
 CREATE POLICY "shows_delete_policy" ON shows
     FOR DELETE USING (
         -- Users can delete shows in communities they belong to
-        community_id IN (
-            SELECT community_id 
-            FROM community_members 
-            WHERE user_id = (SELECT auth.uid())
-        )
+        is_user_community_member((select auth.uid()), community_id)
         OR
         -- Allow delete without community_id during migration
         community_id IS NULL
     );
 
--- Create RLS policies for rsvps table
+-- Create RLS policies for rsvps table (FIXED: Uses helper functions)
 CREATE POLICY "rsvps_select_policy" ON rsvps
     FOR SELECT USING (
         -- Users can see RSVPs in communities they belong to
-        community_id IN (
-            SELECT community_id 
-            FROM community_members 
-            WHERE user_id = (SELECT auth.uid())
-        )
+        is_user_community_member((select auth.uid()), community_id)
         OR
         -- Allow access to RSVPs without community_id (legacy support)
         community_id IS NULL
@@ -652,34 +844,31 @@ CREATE POLICY "rsvps_select_policy" ON rsvps
 CREATE POLICY "rsvps_insert_policy" ON rsvps
     FOR INSERT WITH CHECK (
         -- Users can create RSVPs in communities they belong to
-        (SELECT auth.uid()) IS NOT NULL 
-        AND user_id = (SELECT auth.uid())
-        AND community_id IN (
-            SELECT community_id 
-            FROM community_members 
-            WHERE user_id = (SELECT auth.uid())
+        (select auth.uid()) IS NOT NULL 
+        AND user_id = (select auth.uid())
+        AND (
+            is_user_community_member((select auth.uid()), community_id)
+            OR community_id IS NULL
         )
     );
 
 CREATE POLICY "rsvps_update_policy" ON rsvps
     FOR UPDATE USING (
         -- Users can update their own RSVPs in communities they belong to
-        (SELECT auth.uid()) = user_id 
-        AND community_id IN (
-            SELECT community_id 
-            FROM community_members 
-            WHERE user_id = (SELECT auth.uid())
+        (select auth.uid()) = user_id 
+        AND (
+            is_user_community_member((select auth.uid()), community_id)
+            OR community_id IS NULL
         )
     );
 
 CREATE POLICY "rsvps_delete_policy" ON rsvps
     FOR DELETE USING (
         -- Users can delete their own RSVPs in communities they belong to
-        (SELECT auth.uid()) = user_id 
-        AND community_id IN (
-            SELECT community_id 
-            FROM community_members 
-            WHERE user_id = (SELECT auth.uid())
+        (select auth.uid()) = user_id 
+        AND (
+            is_user_community_member((select auth.uid()), community_id)
+            OR community_id IS NULL
         )
     );
 
@@ -699,15 +888,11 @@ CREATE POLICY "user_artists_insert_policy" ON user_artists FOR INSERT WITH CHECK
 CREATE POLICY "user_artists_update_policy" ON user_artists FOR UPDATE USING (true);
 CREATE POLICY "user_artists_delete_policy" ON user_artists FOR DELETE USING (true);
 
--- Communities table policies
+-- Communities table policies (FIXED: Uses helper functions)
 CREATE POLICY "communities_select_policy" ON communities
     FOR SELECT USING (
         -- Users can read communities where they are members
-        id IN (
-            SELECT community_id 
-            FROM community_members 
-            WHERE user_id = (SELECT auth.uid())
-        )
+        id = ANY(get_user_community_ids((select auth.uid())))
     );
 
 CREATE POLICY "communities_insert_policy" ON communities
@@ -725,41 +910,50 @@ CREATE POLICY "communities_update_policy" ON communities
         (SELECT auth.uid()) IS NOT NULL
     );
 
--- Community members table policies (FIXED: No recursion)
-CREATE POLICY "community_members_select_policy" ON community_members
-    FOR SELECT USING (
-        -- Users can read their own membership records
-        user_id = (SELECT auth.uid())
-        OR
-        -- Allow system access for authorization checks (needed for app functionality)
-        (SELECT auth.uid()) IS NOT NULL
-    );
-
-CREATE POLICY "community_members_insert_policy" ON community_members
-    FOR INSERT WITH CHECK (
-        -- Users can join communities (self-insertion)
-        (SELECT auth.uid()) = user_id
-        OR
-        -- Allow system/admin operations (handled by application logic with proper validation)
-        (SELECT auth.uid()) IS NOT NULL
-    );
-
-CREATE POLICY "community_members_update_policy" ON community_members
-    FOR UPDATE USING (
-        -- Users can update their own membership records
-        (SELECT auth.uid()) = user_id
+CREATE POLICY "communities_delete_policy" ON communities
+    FOR DELETE USING (
+        -- Users can delete communities they created
+        (SELECT auth.uid()) = created_by
         OR
         -- Allow system operations (admin changes handled by application logic)
         (SELECT auth.uid()) IS NOT NULL
     );
 
+-- Community members table policies (FIXED: No recursion, uses helper functions)
+CREATE POLICY "community_members_select_policy" ON community_members
+    FOR SELECT USING (
+        -- Users can read their own membership records
+        user_id = (select auth.uid())
+        OR
+        -- Allow system access for authorization checks (needed for app functionality)
+        (select auth.uid()) IS NOT NULL
+    );
+
+CREATE POLICY "community_members_insert_policy" ON community_members
+    FOR INSERT WITH CHECK (
+        -- Users can join communities (self-insertion)
+        (select auth.uid()) = user_id
+        OR
+        -- Allow system/admin operations (handled by application logic with proper validation)
+        (select auth.uid()) IS NOT NULL
+    );
+
+CREATE POLICY "community_members_update_policy" ON community_members
+    FOR UPDATE USING (
+        -- Users can update their own membership records
+        (select auth.uid()) = user_id
+        OR
+        -- Allow system operations (admin changes handled by application logic)
+        (select auth.uid()) IS NOT NULL
+    );
+
 CREATE POLICY "community_members_delete_policy" ON community_members
     FOR DELETE USING (
         -- Users can leave communities (delete their own membership)
-        (SELECT auth.uid()) = user_id
+        (select auth.uid()) = user_id
         OR
         -- Allow system operations (admin removals handled by application logic)
-        (SELECT auth.uid()) IS NOT NULL
+        (select auth.uid()) IS NOT NULL
     );
 
 -- Community invites table policies
@@ -782,271 +976,8 @@ CREATE POLICY "community_invites_insert_policy" ON community_invites
     );
 
 -- =====================================================
--- 7. DATA MIGRATION FOR EXISTING RECORDS
+-- 6. FINAL SETUP
 -- =====================================================
-
--- Create default community for existing data
-INSERT INTO communities (name, description, slug, created_by, is_default)
-SELECT 
-    'Default Community',
-    'All existing shows and RSVPs have been migrated to this community',
-    'default',
-    (SELECT id FROM profiles LIMIT 1),
-    true
-WHERE NOT EXISTS (SELECT 1 FROM communities WHERE is_default = true);
-
--- Add all existing users to default community
-INSERT INTO community_members (community_id, user_id, role)
-SELECT 
-    c.id,
-    p.id,
-    'member'
-FROM communities c
-CROSS JOIN profiles p
-WHERE c.is_default = true
-AND NOT EXISTS (
-    SELECT 1 FROM community_members cm 
-    WHERE cm.community_id = c.id AND cm.user_id = p.id
-);
-
--- Update all existing shows to default community
-UPDATE shows 
-SET community_id = (SELECT id FROM communities WHERE is_default = true LIMIT 1)
-WHERE community_id IS NULL;
-
--- Update all existing RSVPs to default community
-UPDATE rsvps 
-SET community_id = (SELECT id FROM communities WHERE is_default = true LIMIT 1)
-WHERE community_id IS NULL;
-
--- Migrate existing RSVPs to use user_id instead of name
--- Step 1: Create profiles for existing RSVP names that don't have profiles
-INSERT INTO profiles (id, email, name, created_at, updated_at)
-SELECT 
-    gen_random_uuid(),
-    COALESCE(rsvps.name || '@legacy.local', 'unknown@legacy.local'),
-    rsvps.name,
-    NOW(),
-    NOW()
-FROM rsvps 
-WHERE rsvps.user_id IS NULL 
-  AND rsvps.name IS NOT NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM profiles p 
-    WHERE LOWER(p.name) = LOWER(rsvps.name)
-  );
-
--- Step 2: Update RSVPs to use the created profiles
-UPDATE rsvps 
-SET user_id = (
-    SELECT p.id 
-    FROM profiles p 
-    WHERE LOWER(p.name) = LOWER(rsvps.name) 
-    LIMIT 1
-)
-WHERE user_id IS NULL AND name IS NOT NULL;
-
--- Step 3: For any remaining RSVPs without a matching profile, create a profile
-INSERT INTO profiles (id, email, name, created_at, updated_at)
-SELECT 
-    gen_random_uuid(),
-    COALESCE(rsvps.name || '@legacy.local', 'unknown@legacy.local'),
-    rsvps.name,
-    NOW(),
-    NOW()
-FROM rsvps 
-WHERE user_id IS NULL 
-  AND name IS NOT NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM profiles p 
-    WHERE LOWER(p.name) = LOWER(rsvps.name)
-  );
-
--- Step 4: Update the remaining NULL user_ids with the newly created profiles
-UPDATE rsvps 
-SET user_id = (
-    SELECT p.id 
-    FROM profiles p 
-    WHERE LOWER(p.name) = LOWER(rsvps.name) 
-    LIMIT 1
-)
-WHERE user_id IS NULL AND name IS NOT NULL;
-
--- Step 5: Make user_id NOT NULL (it should be populated by now)
-ALTER TABLE rsvps ALTER COLUMN user_id SET NOT NULL;
-
--- Step 6: Make the name column nullable since we're now using user_id
-ALTER TABLE rsvps ALTER COLUMN name DROP NOT NULL;
-
--- Step 7: Add a unique constraint on (show_id, name) for any legacy compatibility
-CREATE UNIQUE INDEX IF NOT EXISTS idx_rsvps_show_name_unique 
-ON rsvps (show_id, name) 
-WHERE name IS NOT NULL;
-
--- Apply smart categorization to existing shows
-UPDATE shows 
-SET category = CASE
-  -- Festival keywords
-  WHEN (
-    LOWER(title) LIKE '%festival%' OR 
-    LOWER(title) LIKE '%fest%' OR 
-    LOWER(title) LIKE '%weekend%' OR 
-    LOWER(title) LIKE '%multi-day%' OR
-    LOWER(venue) LIKE '%festival%' OR 
-    LOWER(venue) LIKE '%fest%'
-  ) THEN 'festival'
-  
-  -- Club night keywords
-  WHEN (
-    LOWER(title) LIKE '%club%' OR 
-    LOWER(title) LIKE '%nightclub%' OR 
-    LOWER(title) LIKE '%dj%' OR 
-    LOWER(title) LIKE '%dance%' OR
-    LOWER(venue) LIKE '%club%' OR 
-    LOWER(venue) LIKE '%nightclub%'
-  ) THEN 'club_night'
-  
-  -- Live music keywords
-  WHEN (
-    LOWER(title) LIKE '%band%' OR 
-    LOWER(title) LIKE '%concert%' OR 
-    LOWER(title) LIKE '%live%' OR 
-    LOWER(title) LIKE '%acoustic%' OR
-    LOWER(venue) LIKE '%concert%' OR 
-    LOWER(venue) LIKE '%theater%' OR
-    LOWER(venue) LIKE '%auditorium%'
-  ) THEN 'live_music'
-  
-  -- Warehouse keywords
-  WHEN (
-    LOWER(title) LIKE '%warehouse%' OR 
-    LOWER(title) LIKE '%underground%' OR 
-    LOWER(title) LIKE '%rave%' OR
-    LOWER(venue) LIKE '%warehouse%' OR 
-    LOWER(venue) LIKE '%industrial%'
-  ) THEN 'warehouse'
-  
-  -- Outdoor keywords
-  WHEN (
-    LOWER(title) LIKE '%outdoor%' OR 
-    LOWER(title) LIKE '%park%' OR 
-    LOWER(title) LIKE '%beach%' OR 
-    LOWER(title) LIKE '%garden%' OR 
-    LOWER(title) LIKE '%rooftop%' OR
-    LOWER(venue) LIKE '%park%' OR 
-    LOWER(venue) LIKE '%beach%' OR 
-    LOWER(venue) LIKE '%garden%' OR 
-    LOWER(venue) LIKE '%rooftop%'
-  ) THEN 'outdoor'
-  
-  -- Private event keywords
-  WHEN (
-    LOWER(title) LIKE '%private%' OR 
-    LOWER(title) LIKE '%exclusive%' OR 
-    LOWER(title) LIKE '%invite%' OR
-    LOWER(venue) LIKE '%private%'
-  ) THEN 'private_event'
-  
-  -- Workshop keywords
-  WHEN (
-    LOWER(title) LIKE '%workshop%' OR 
-    LOWER(title) LIKE '%class%' OR 
-    LOWER(title) LIKE '%educational%' OR 
-    LOWER(title) LIKE '%instruction%' OR
-    LOWER(venue) LIKE '%workshop%' OR 
-    LOWER(venue) LIKE '%studio%'
-  ) THEN 'workshop'
-  
-  -- Default to general for all other cases
-  ELSE 'general'
-END
-WHERE category IS NULL OR category = 'general';
-
--- Generate public IDs and slugs for existing shows
-DO $$
-DECLARE
-    show_record RECORD;
-    new_public_id TEXT;
-    new_slug TEXT;
-    new_shareable_url TEXT;
-    community_numeric_id TEXT;
-    attempts INTEGER;
-    max_attempts INTEGER := 10;
-BEGIN
-    FOR show_record IN 
-        SELECT s.id, s.title, s.community_id, c.numeric_id as community_numeric_id
-        FROM shows s
-        LEFT JOIN communities c ON s.community_id = c.id
-        WHERE s.public_id IS NULL
-    LOOP
-        attempts := 0;
-        
-        -- Generate unique public ID
-        LOOP
-            new_public_id := generate_public_id();
-            attempts := attempts + 1;
-            
-            -- Check if public_id already exists
-            IF NOT EXISTS (SELECT 1 FROM shows WHERE public_id = new_public_id) THEN
-                EXIT;
-            END IF;
-            
-            -- Prevent infinite loop
-            IF attempts >= max_attempts THEN
-                RAISE EXCEPTION 'Failed to generate unique public_id after % attempts', max_attempts;
-            END IF;
-        END LOOP;
-        
-        -- Generate slug from title
-        new_slug := create_slug(show_record.title);
-        
-        -- Generate shareable URL
-        IF show_record.community_numeric_id IS NOT NULL THEN
-            new_shareable_url := '/groups/' || show_record.community_numeric_id || '/event/' || new_public_id;
-        ELSE
-            new_shareable_url := '/share/' || new_public_id;
-        END IF;
-        
-        -- Update the show record
-        UPDATE shows 
-        SET 
-            public_id = new_public_id,
-            slug = new_slug,
-            shareable_url = new_shareable_url
-        WHERE id = show_record.id;
-        
-    END LOOP;
-END $$;
-
--- =====================================================
--- 8. VALIDATION AND CLEANUP
--- =====================================================
-
--- Verify all shows have public_ids
-DO $$
-DECLARE
-    missing_count INTEGER;
-BEGIN
-    SELECT COUNT(*) INTO missing_count
-    FROM shows 
-    WHERE public_id IS NULL;
-    
-    IF missing_count > 0 THEN
-        RAISE EXCEPTION 'Migration failed: % shows still missing public_id', missing_count;
-    END IF;
-    
-    RAISE NOTICE 'Migration successful: All shows have public_ids';
-END $$;
-
--- Verify all RSVPs have user_id
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM rsvps WHERE user_id IS NULL) THEN
-        RAISE EXCEPTION 'Migration failed: Some RSVPs still have NULL user_id';
-    END IF;
-    
-    RAISE NOTICE 'RSVP UUID migration completed successfully';
-END $$;
 
 -- Update table statistics for optimal query planning
 ANALYZE shows;
@@ -1060,9 +991,9 @@ ANALYZE community_members;
 ANALYZE community_invites;
 
 -- =====================================================
--- MIGRATION COMPLETE
+-- SCHEMA COMPLETE
 -- =====================================================
--- Your show-tracker database is now fully configured with:
+-- Your show-tracker database schema is now fully configured with:
 -- ✅ Core tables: shows, rsvps, artists, releases, user_artists
 -- ✅ Google Authentication with profiles table
 -- ✅ Show categories with smart categorization
@@ -1071,9 +1002,8 @@ ANALYZE community_invites;
 -- ✅ Shareable URLs for events
 -- ✅ Performance indexes for fast queries
 -- ✅ Comprehensive RLS policies for security
--- ✅ Data migration for existing records
--- ✅ UUID-based RSVP tracking with proper foreign key constraints
--- ✅ Database statistics updated
+-- ✅ Helper functions to avoid RLS policy circular dependencies
+-- ✅ All user-generated tables only (no Supabase system tables)
 -- 
 -- Next steps:
 -- 1. Configure Google OAuth in Supabase Auth settings
@@ -1082,4 +1012,4 @@ ANALYZE community_invites;
 -- 4. Test shareable URLs
 -- 5. Enable feature flags when ready
 -- 
--- The database is ready for your complete show-tracker application!
+-- The database schema is ready for your complete show-tracker application!
