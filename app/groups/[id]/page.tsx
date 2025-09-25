@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Community, UserCommunity, Show, RSVPSummary } from '@/lib/types'
+import { Community, UserCommunity, Show } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Layout } from '@/components/Layout'
@@ -94,6 +94,8 @@ export default function GroupPage() {
     }
   }, [])
 
+  const communityId = params['id']
+  
   const loadCommunityData = useCallback(async () => {
     try {
       setLoading(true)
@@ -118,7 +120,7 @@ export default function GroupPage() {
       
       if (response.ok && data.success && data.communities) {
         const foundCommunity = data.communities.find(
-          (c: UserCommunity) => c.community_numeric_id === params['id']
+          (c: UserCommunity) => c.community_numeric_id === communityId
         )
         
         if (foundCommunity) {
@@ -146,11 +148,11 @@ export default function GroupPage() {
     } finally {
       setLoading(false)
     }
-  }, [params['id'], loadCommunityMembers, loadCommunityEvents])
+  }, [communityId, loadCommunityMembers, loadCommunityEvents])
 
   useEffect(() => {
     loadCommunityData()
-  }, [params['id'], loadCommunityData])
+  }, [communityId, loadCommunityData])
 
   const handleCreateInviteLink = async () => {
     if (!community) return
@@ -463,7 +465,7 @@ export default function GroupPage() {
                   <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                   <h3 className="text-lg font-semibold mb-2">No Events Yet</h3>
                   <p className="text-gray-600">
-                    This group doesn't have any events yet. Check back later or create the first event!
+                    This group doesn&apos;t have any events yet. Check back later or create the first event!
                   </p>
                 </CardContent>
               </Card>

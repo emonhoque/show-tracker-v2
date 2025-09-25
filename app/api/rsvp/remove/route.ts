@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/db'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,17 +14,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabaseClient = await createServerSupabaseClient()
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
+    // Check for Authorization header first (client-side requests)
+    const authHeader = request.headers.get('authorization')
+    let supabaseClient
+    let user
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // Handle client-side requests with Authorization header
+      const token = authHeader.replace('Bearer ', '')
+      supabaseClient = createClient(
+        process.env['NEXT_PUBLIC_SUPABASE_URL']!,
+        process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        }
       )
+      
+      const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser()
+      if (authError || !authUser) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        )
+      }
+      user = authUser
+    } else {
+      // Handle server-side requests with cookies
+      supabaseClient = await createServerSupabaseClient()
+      const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser()
+      
+      if (authError || !authUser) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        )
+      }
+      user = authUser
     }
 
-    const { data: show, error: showError } = await supabase
+    const { data: show, error: showError } = await supabaseClient
       .from('shows')
       .select('date_time')
       .eq('id', show_id)
@@ -37,7 +69,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('rsvps')
       .delete()
       .eq('show_id', show_id)

@@ -37,13 +37,13 @@ interface ShowCardProps {
   userRsvpStatus?: string | null
   onEdit?: (show: Show) => void
   onDelete?: (showId: string) => void
-  onRSVPUpdate?: () => void
+  onRSVPUpdate?: (newStatus: 'going' | 'maybe' | 'not_going' | null) => void
   communitySlug?: string
 }
 
 export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete, onRSVPUpdate, communitySlug }: ShowCardProps) {
   const { profileData } = useAuth()
-  const { success, error: showError } = useToast()
+  const { error: showError } = useToast()
   const [loading, setLoading] = useState(false)
   const [imageModalOpen, setImageModalOpen] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
@@ -101,6 +101,9 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
   const handleRSVP = async (status: 'going' | 'maybe' | 'not_going' | null) => {
     if (!userName || loading) return
 
+    // Update frontend INSTANTLY
+    const previousStatus = userStatus
+    setUserStatus(status)
     setLoading(true)
     
     try {
@@ -116,13 +119,9 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
         if (!response.ok) {
           const error = await response.json()
           showError(error.error || 'Failed to save RSVP')
+          // Revert the frontend change on error
+          setUserStatus(previousStatus)
           return
-        }
-
-        const statusResponse = await authenticatedFetch(`/api/rsvps/${show.id}/user`)
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json()
-          setUserStatus(statusData.status)
         }
       } else {
         const response = await authenticatedFetch('/api/rsvp/remove', {
@@ -135,18 +134,21 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
         if (!response.ok) {
           const error = await response.json()
           showError(error.error || 'Failed to remove RSVP')
+          // Revert the frontend change on error
+          setUserStatus(previousStatus)
           return
         }
-
-        setUserStatus(null)
       }
 
+      // Update parent state directly to avoid API call timing issues
       if (onRSVPUpdate) {
-        onRSVPUpdate()
+        onRSVPUpdate(status)
       }
     } catch (error) {
       console.error('Error saving RSVP:', error)
       showError('Failed to save RSVP')
+      // Revert the frontend change on error
+      setUserStatus(previousStatus)
     } finally {
       setLoading(false)
     }
@@ -155,6 +157,7 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
   const [userStatus, setUserStatus] = useState<'going' | 'maybe' | 'not_going' | null>(
     (userRsvpStatus as 'going' | 'maybe' | 'not_going' | null) || null
   )
+
 
   useEffect(() => {
     setUserStatus((userRsvpStatus as 'going' | 'maybe' | 'not_going' | null) || null)

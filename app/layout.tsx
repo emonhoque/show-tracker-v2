@@ -14,12 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EDM Adoption Clinic Show Tracker",
-  description: "Track shows and manage RSVPs for the EDM Adoption Clinic group",
-  keywords: ["EDM", "shows", "events", "RSVP", "music", "concerts"],
-  authors: [{ name: "EDM Adoption Clinic" }],
-  creator: "EDM Adoption Clinic",
-  publisher: "EDM Adoption Clinic",
+  title: "Show Tracker",
+  description: "Track shows and manage RSVPs for your group",
+  keywords: ["shows", "events", "RSVP", "music", "concerts", "groups"],
+  authors: [{ name: "Show Tracker" }],
+  creator: "Show Tracker",
+  publisher: "Show Tracker",
   formatDetection: {
     email: false,
     address: false,

@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { Layout } from '@/components/Layout'
-import { ProfileSkeleton } from '@/components/ProfileSkeleton'
+import { Avatar } from '@/components/Avatar'
 import { useAuth } from '@/lib/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { User, Mail, Calendar, Save, X, Upload, Camera, Users, Settings, Crown, LogOut, Plus } from 'lucide-react'
+import { User, Mail, Calendar, Save, X, Upload, Users, Settings, Crown, LogOut, Plus } from 'lucide-react'
 import { BackButton } from '@/components/BackButton'
 import { UserCommunity } from '@/lib/types'
 import { LeaveCommunityDialog } from '@/components/LeaveCommunityDialog'
@@ -24,16 +23,15 @@ interface Profile {
 }
 
 export default function ProfilePage() {
-  const { user, refreshProfile } = useAuth()
+  const { user, refreshProfile, profileData } = useAuth()
   const router = useRouter()
   const [isEditingName, setIsEditingName] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [loadingProfile, setLoadingProfile] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const [migratingAvatar, setMigratingAvatar] = useState(false)
   const [communities, setCommunities] = useState<UserCommunity[]>([])
   const [loadingCommunities, setLoadingCommunities] = useState(true)
   const [leaveDialog, setLeaveDialog] = useState<{
@@ -42,31 +40,42 @@ export default function ProfilePage() {
   }>({ isOpen: false, community: null })
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) return
-      
-      try {
-        const response = await fetch('/api/profile')
-        if (response.ok) {
-          const profileData = await response.json()
-          setProfile(profileData)
-          setDisplayName(profileData.name)
-        } else {
-          console.error('Failed to fetch profile')
+    if (profileData) {
+      // Use profile data from auth context
+      setProfile({
+        id: profileData.id,
+        email: profileData.email,
+        name: profileData.name,
+        avatar_url: profileData.avatar_url || null,
+        created_at: '', // Not available in auth context
+        updated_at: '' // Not available in auth context
+      })
+      setDisplayName(profileData.name)
+      setLoadingProfile(false)
+    } else if (user && !profileData) {
+      // Only fetch if we have a user but no profile data from auth context
+      const fetchProfile = async () => {
+        try {
+          const response = await fetch('/api/profile')
+          if (response.ok) {
+            const profileData = await response.json()
+            setProfile(profileData)
+            setDisplayName(profileData.name)
+          } else {
+            console.error('Failed to fetch profile')
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error)
+        } finally {
+          setLoadingProfile(false)
         }
-      } catch (error) {
-        console.error('Error fetching profile:', error)
-      } finally {
-        setLoadingProfile(false)
       }
-    }
-
-    if (user && !profile) {
+      
       fetchProfile()
     } else if (!user) {
       setLoadingProfile(false)
     }
-  }, [user, profile])
+  }, [user, profileData])
 
   useEffect(() => {
     const fetchCommunities = async () => {
@@ -190,33 +199,6 @@ export default function ProfilePage() {
     }
   }
 
-  const handleMigrateAvatar = async () => {
-    setMigratingAvatar(true)
-    setError('')
-
-    try {
-      const response = await fetch('/api/migrate-avatar', {
-        method: 'POST',
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        setProfile(prev => prev ? { ...prev, avatar_url: result.url } : null)
-        setError('')
-        if (refreshProfile) {
-          refreshProfile()
-        }
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to migrate avatar')
-      }
-    } catch (error) {
-      console.error('Error migrating avatar:', error)
-      setError('Failed to migrate avatar')
-    } finally {
-      setMigratingAvatar(false)
-    }
-  }
 
   const handleCreateGroup = () => {
     router.push('/groups/create')
@@ -270,10 +252,53 @@ export default function ProfilePage() {
     fetchCommunities()
   }
 
-  if (loadingProfile) {
+  if (loadingProfile || (user && !profileData && !profile)) {
     return (
       <Layout>
-        <ProfileSkeleton />
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="space-y-6">
+            {/* Back Button Skeleton */}
+            <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            
+            {/* Profile Card Skeleton */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                  <div className="space-y-2">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Display Name Section */}
+                <div className="space-y-2">
+                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse"></div>
+                </div>
+                
+                {/* Email Section */}
+                <div className="space-y-2">
+                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-80 animate-pulse"></div>
+                </div>
+                
+                {/* Member Since Section */}
+                <div className="space-y-2">
+                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse"></div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </Layout>
     )
   }
@@ -296,27 +321,18 @@ export default function ProfilePage() {
               {/* Profile Picture */}
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {profile?.avatar_url || user?.user_metadata?.['avatar_url'] ? (
-                      <Image
-                        src={profile?.avatar_url || user?.user_metadata?.['avatar_url'] || ''}
-                        alt="Profile"
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                        unoptimized={true}
-                        onError={(e) => {
-                          console.error('Failed to load profile image:', e);
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <User className="w-8 h-8 text-gray-400" />
-                    )}
-                  </div>
+                  <Avatar
+                    src={profile?.avatar_url || profileData?.avatar_url}
+                    alt="Profile"
+                    size={64}
+                    fallbackIcon={<User className="w-8 h-8 text-gray-400" />}
+                    onError={() => {
+                      console.error('Failed to load profile image');
+                    }}
+                  />
                   <div>
-                    <p className="font-medium">{profile?.name || user?.user_metadata?.['full_name'] || user?.email?.split('@')[0]}</p>
-                    <p className="text-sm text-muted-foreground">{profile?.email || user?.email}</p>
+                    <p className="font-medium">{profile?.name || profileData?.name || user?.user_metadata?.['full_name'] || user?.email?.split('@')[0]}</p>
+                    <p className="text-sm text-muted-foreground">{profile?.email || profileData?.email || user?.email}</p>
                   </div>
                 </div>
                 
@@ -347,24 +363,10 @@ export default function ProfilePage() {
                       </label>
                     </Button>
                     
-                    {/* Show migrate button if using Google avatar */}
-                    {user?.user_metadata?.['avatar_url'] && 
-                     (!profile?.avatar_url || profile.avatar_url.includes('googleusercontent.com')) && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleMigrateAvatar}
-                        disabled={migratingAvatar}
-                        className="flex items-center gap-2"
-                      >
-                        <Camera className="w-4 h-4" />
-                        {migratingAvatar ? 'Migrating...' : 'Save to Storage'}
-                      </Button>
-                    )}
                   </div>
                   
                   <p className="text-xs text-muted-foreground">
-                    Upload a new profile picture or migrate your Google avatar to our storage for better performance.
+                    Upload a new profile picture to replace your current avatar.
                   </p>
                 </div>
               </div>
@@ -378,7 +380,7 @@ export default function ProfilePage() {
                     Email Address
                   </label>
                   <Input
-                    value={profile?.email || user?.email || ''}
+                    value={profile?.email || profileData?.email || user?.email || ''}
                     disabled
                     className="bg-gray-50"
                   />
@@ -493,7 +495,7 @@ export default function ProfilePage() {
                   </div>
                   <h3 className="text-lg font-semibold mb-2">No Groups Yet</h3>
                   <p className="text-muted-foreground mb-4">
-                    You're not a member of any groups. Create a new group or ask someone to invite you.
+                    You&apos;re not a member of any groups. Create a new group or ask someone to invite you.
                   </p>
                   <Button onClick={handleCreateGroup} className="flex items-center space-x-2">
                     <Plus className="h-4 w-4" />

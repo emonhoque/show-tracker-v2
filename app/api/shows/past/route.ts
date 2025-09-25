@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/db'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { RSVPSummary } from '@/lib/types'
 
 export async function GET(request: NextRequest) {
@@ -8,9 +8,19 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = (page - 1) * limit
-    const categories = searchParams.get('categories')
 
-    let query = supabase
+    const supabase = await createServerSupabaseClient()
+    
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const query = supabase
       .from('shows')
       .select(`
         id,
@@ -32,13 +42,6 @@ export async function GET(request: NextRequest) {
       `, { count: 'exact' })
       .lt('date_time', new Date().toISOString())
       .order('date_time', { ascending: false })
-
-    if (categories && categories !== 'all') {
-      const categoryList = categories.split(',').filter(Boolean)
-      if (categoryList.length > 0) {
-        query = query.in('category', categoryList)
-      }
-    }
 
     const { data: shows, error: showsError, count } = await query.range(offset, offset + limit - 1)
 

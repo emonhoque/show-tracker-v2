@@ -27,14 +27,7 @@ export function ThemeProvider({
   defaultTheme = 'light',
   storageKey = 'show-tracker-theme',
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window !== 'undefined') {
-      const root = window.document.documentElement
-      if (root.classList.contains('dark')) return 'dark'
-      if (root.classList.contains('light')) return 'light'
-    }
-    return defaultTheme
-  })
+  const [theme, setThemeState] = useState<Theme>(defaultTheme)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -44,6 +37,14 @@ export function ThemeProvider({
       const storedTheme = localStorage.getItem(storageKey) as Theme
       if (storedTheme && (storedTheme === 'light' || storedTheme === 'dark')) {
         setThemeState(storedTheme)
+      } else {
+        // Check if the document already has a theme class set by the script in layout.tsx
+        const root = window.document.documentElement
+        if (root.classList.contains('dark')) {
+          setThemeState('dark')
+        } else if (root.classList.contains('light')) {
+          setThemeState('light')
+        }
       }
     } catch (error) {
       console.warn('Failed to read theme from localStorage:', error)
@@ -74,7 +75,7 @@ export function ThemeProvider({
   }, [mounted, storageKey])
 
   const value = {
-    theme,
+    theme: mounted ? theme : defaultTheme, // Always return defaultTheme until mounted
     setTheme,
   }
 

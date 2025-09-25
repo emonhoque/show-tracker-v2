@@ -1,6 +1,13 @@
 User-agent: *
-Disallow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /groups/*/settings
+Disallow: /share/
+Disallow: /invite/
+Disallow: /home
+Disallow: /profile
+Disallow: /groups
 
-# Block all web crawlers and bots
-# This is a private application for EDM Adoption Clinic group
-# No public indexing or crawling allowed
+# Allow public pages
+Allow: /
+

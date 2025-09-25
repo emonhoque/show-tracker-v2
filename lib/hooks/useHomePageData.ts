@@ -24,7 +24,7 @@ interface UseHomePageDataOptions {
 const fetchHomePageData = async (communityId?: string, categories?: string[]) => {
   const [upcomingShows, pastShows, categoryStats] = await Promise.all([
     fetchUpcomingShows(communityId, categories),
-    fetchPastShows(1, communityId, categories),
+    fetchPastShows(1, communityId), // No category filtering for past shows
     fetchCategoryStats(communityId)
   ])
 

@@ -13,7 +13,7 @@ interface ToastProps {
 }
 
 const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
-  ({ id, title, description, variant = 'default', onClose }, ref) => {
+  ({ title, description, variant = 'default', onClose }, ref) => {
     const [isVisible, setIsVisible] = React.useState(true)
 
     React.useEffect(() => {

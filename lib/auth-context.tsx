@@ -86,7 +86,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     let mounted = true
-    let subscription: any = null
+    let subscription: { unsubscribe: () => void } | null = null
 
     const initializeAuth = async (): Promise<void> => {
       try {

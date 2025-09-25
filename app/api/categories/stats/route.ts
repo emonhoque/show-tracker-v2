@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/db'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { CategoryStats } from '@/lib/types'
 
 export async function GET(request: NextRequest) {
@@ -7,9 +7,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const communityId = searchParams.get('community_id')
 
+    const supabase = await createServerSupabaseClient()
+    
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
     let query = supabase
       .from('shows')
       .select('category')
+      .gte('date_time', new Date().toISOString())
     
     if (communityId) {
       query = query.eq('community_id', communityId)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/db'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { RSVPSummary } from '@/lib/types'
 
 export async function GET(request: NextRequest) {
@@ -8,6 +8,16 @@ export async function GET(request: NextRequest) {
     const communityId = searchParams.get('community_id')
     const categories = searchParams.get('categories')
 
+    const supabase = await createServerSupabaseClient()
+    
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
 
     let query = supabase
       .from('shows')

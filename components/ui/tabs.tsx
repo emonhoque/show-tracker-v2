@@ -5,6 +5,11 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
+// const SafeTabsPrimitive = React.memo(TabsPrimitive.Root)
+// const SafeTabsList = React.memo(TabsPrimitive.List)
+// const SafeTabsTrigger = React.memo(TabsPrimitive.Trigger)
+// const SafeTabsContent = React.memo(TabsPrimitive.Content)
+
 function Tabs({
   className,
   ...props

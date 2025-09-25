@@ -202,15 +202,33 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const processShows = (shows: any[]) => shows.map((show: any) => {
+    const processShows = (shows: unknown[]) => shows.map((show: unknown) => {
       const rsvps = {
         going: [] as string[],
         maybe: [] as string[],
         not_going: [] as string[]
       }
 
-      if (show.rsvps && Array.isArray(show.rsvps)) {
-        for (const rsvp of show.rsvps) {
+      const showObj = show as { 
+        id: string;
+        title: string;
+        date_time: string;
+        city: string;
+        venue: string;
+        category: string;
+        ticket_url?: string;
+        spotify_url?: string;
+        apple_music_url?: string;
+        google_photos_url?: string;
+        poster_url?: string;
+        notes?: string;
+        community_id: string;
+        created_at: string;
+        rsvps?: Array<{ user_id?: string; status: string }> 
+      }
+      
+      if (showObj.rsvps && Array.isArray(showObj.rsvps)) {
+        for (const rsvp of showObj.rsvps) {
           const name = rsvp.user_id ? (userNames[rsvp.user_id] || 'Unknown User') : 'Unknown User'
           if (rsvp.status === 'going') {
             rsvps.going.push(name)
@@ -223,20 +241,20 @@ export async function GET(request: NextRequest) {
       }
 
       return {
-        id: show.id,
-        title: show.title,
-        date_time: show.date_time,
-        city: show.city,
-        venue: show.venue,
-        category: show.category,
-        ticket_url: show.ticket_url,
-        spotify_url: show.spotify_url,
-        apple_music_url: show.apple_music_url,
-        google_photos_url: show.google_photos_url,
-        poster_url: show.poster_url,
-        notes: show.notes,
-        community_id: show.community_id,
-        created_at: show.created_at,
+        id: showObj.id,
+        title: showObj.title,
+        date_time: showObj.date_time,
+        city: showObj.city,
+        venue: showObj.venue,
+        category: showObj.category,
+        ticket_url: showObj.ticket_url,
+        spotify_url: showObj.spotify_url,
+        apple_music_url: showObj.apple_music_url,
+        google_photos_url: showObj.google_photos_url,
+        poster_url: showObj.poster_url,
+        notes: showObj.notes,
+        community_id: showObj.community_id,
+        created_at: showObj.created_at,
         rsvps
       }
     })
@@ -289,7 +307,7 @@ export async function GET(request: NextRequest) {
       limit: 20,
       total: processedPastShows.length,
       totalPages: Math.ceil(processedPastShows.length / 20),
-      hasNext: false
+      hasNext: false,
       hasPrev: false
     }
 

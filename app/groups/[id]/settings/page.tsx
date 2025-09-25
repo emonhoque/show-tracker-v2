@@ -24,7 +24,7 @@ interface CommunityMemberWithProfile extends CommunityMember {
 export default function GroupSettingsPage() {
   const params = useParams()
   const router = useRouter()
-  const { success, error: showError } = useToast()
+  const { success } = useToast()
   const [community, setCommunity] = useState<Community | null>(null)
   const [members, setMembers] = useState<CommunityMemberWithProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,6 +51,8 @@ export default function GroupSettingsPage() {
     music_enabled: false
   })
 
+  const communityId = params['id']
+  
   const loadCommunityData = useCallback(async () => {
     try {
       setLoading(true)
@@ -79,7 +81,7 @@ export default function GroupSettingsPage() {
       }
       
       const foundCommunity = communitiesData.communities.find(
-        (c: { community_numeric_id: string }) => c.community_numeric_id === params['id']
+        (c: { community_numeric_id: string }) => c.community_numeric_id === communityId
       )
       
       if (!foundCommunity) {
@@ -116,7 +118,7 @@ export default function GroupSettingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [params['id']])
+  }, [communityId])
 
   const loadCommunityMembers = async (communityId: string, accessToken: string) => {
     try {
@@ -153,7 +155,7 @@ export default function GroupSettingsPage() {
       const data = await response.json()
       
       if (response.ok && data.success && data.invites) {
-        const invitesWithUrls = data.invites.map((invite: any) => ({
+        const invitesWithUrls = data.invites.map((invite: { token: string; [key: string]: unknown }) => ({
           ...invite,
           inviteUrl: `${window.location.origin}/invite/${invite.token}`
         }))
@@ -170,7 +172,7 @@ export default function GroupSettingsPage() {
 
   useEffect(() => {
     loadCommunityData()
-  }, [params['id'], loadCommunityData])
+  }, [communityId, loadCommunityData])
 
   const handleSaveSettings = async () => {
     if (!community || !isAdmin) return

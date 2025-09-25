@@ -38,7 +38,8 @@ function createCSPHeader(nonce: string, isDevelopment: boolean): string {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'"
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests"
   ].join('; ')
 }
 
@@ -134,7 +135,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -150,7 +151,11 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set('X-Frame-Options', 'DENY')
   supabaseResponse.headers.set('X-XSS-Protection', '1; mode=block')
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()')
+  supabaseResponse.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+  supabaseResponse.headers.set('Cross-Origin-Embedder-Policy', 'require-corp')
+  supabaseResponse.headers.set('Cross-Origin-Opener-Policy', 'same-origin')
+  supabaseResponse.headers.set('Cross-Origin-Resource-Policy', 'same-origin')
   
   const cspHeader = createCSPHeader(nonce, isDevelopment)
   supabaseResponse.headers.set('Content-Security-Policy', cspHeader)

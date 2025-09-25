@@ -6,7 +6,7 @@ interface BatchRequest {
   id: string
   url: string
   options?: RequestInit
-  resolve: (value: any) => void
+  resolve: (value: unknown) => void
   reject: (error: Error) => void
 }
 
@@ -24,14 +24,14 @@ class BatchLoader {
     return new Promise((resolve, reject) => {
       if (this.pendingRequests.has(id)) {
         const existing = this.pendingRequests.get(id)!
-        return existing.resolve(resolve as any)
+        return existing.resolve(resolve as (value: unknown) => void)
       }
 
       const request: BatchRequest = {
         id,
         url,
         options,
-        resolve: resolve as any,
+        resolve: resolve as (value: unknown) => void,
         reject
       }
 

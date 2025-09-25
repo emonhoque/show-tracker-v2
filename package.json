@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "type-check": "tsc --noEmit",
     "test:calendar": "node scripts/test-calendar-export.js",
-    "test:shareable": "npx tsx scripts/test-shareable-urls.ts"
+    "test:shareable": "npx tsx scripts/test-shareable-urls.ts",
+    "postbuild": "next-sitemap"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -46,6 +49,12 @@
     "eslint-config-next": "15.5.2",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.8",
-    "typescript": "^5"
+    "typescript": "^5",
+    "next-sitemap": "^4.2.3",
+    "sharp": "^0.33.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

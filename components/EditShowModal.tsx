@@ -24,7 +24,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
     title: '',
     date_local: '',
     time_local: '',
-    city: 'Boston',
+    city: '',
     venue: '',
     category: 'general',
     ticket_url: '',

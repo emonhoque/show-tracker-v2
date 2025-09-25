@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GoogleAuthGate } from '@/components/GoogleAuthGate'
@@ -69,7 +70,6 @@ export default function OptimizedHomePage() {
   const { 
     data: homePageData,
     isLoading: loadingHomeData,
-    error: homePageError,
     refetch: refetchHomeData
   } = useHomePageData({
     communityId: currentCommunity?.id,
@@ -285,7 +285,6 @@ export default function OptimizedHomePage() {
             </TabsContent>
             
             <TabsContent value="past" className="space-y-4">
-              <RSVPFilterSkeleton />
               <ShowCardSkeleton />
               <ShowCardSkeleton />
             </TabsContent>
@@ -336,10 +335,10 @@ export default function OptimizedHomePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild>
-                <a href="/groups">Browse Groups</a>
+                <Link href="/groups">Browse Groups</Link>
               </Button>
               <Button variant="outline" asChild>
-                <a href="/groups/create">Create Group</a>
+                <Link href="/groups/create">Create Group</Link>
               </Button>
             </div>
           </div>
@@ -425,22 +424,6 @@ export default function OptimizedHomePage() {
           
           <TabsContent value="past" className="space-y-4">
             <h2 className="sr-only">Past Shows</h2>
-            
-            {/* Combined Filter */}
-            {loadingHomeData ? (
-              <RSVPFilterSkeleton />
-            ) : (
-              <RSVPFilter
-                selectedStatusFilters={selectedStatusFilters}
-                selectedCategoryFilters={selectedCategoryFilters}
-                onStatusFilterToggle={handleStatusFilterToggle}
-                onCategoryFilterToggle={handleCategoryFilterToggle}
-                filteredShowsCount={pastShows.length}
-                onClearAllFilters={handleClearAllFilters}
-                categoryStats={categoryStats}
-                hasCommunities={userCommunities.length > 0}
-              />
-            )}
             
             {loadingHomeData ? (
               <>

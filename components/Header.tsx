@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { CommunitySwitcher } from '@/components/CommunitySwitcher'
+import { Avatar } from '@/components/Avatar'
 import { useAuth } from '@/lib/auth-context'
 import { Community } from '@/lib/types'
 import { 
@@ -50,6 +50,7 @@ export function Header({
     }
   }, [user, profileData, refreshProfile])
 
+
   useEffect(() => {
     if (user) {
       const profileName = profileData?.name
@@ -57,6 +58,7 @@ export function Header({
       if (profileName) {
         setUserName(profileName)
       }
+      
     } else {
       setUserName(null)
     }
@@ -159,24 +161,15 @@ export function Header({
                 <DropdownMenu.DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-8 px-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                        {profileData?.avatar_url || user.user_metadata?.['avatar_url'] ? (
-                          <Image
-                            src={profileData?.avatar_url || user.user_metadata['avatar_url'] || ''}
-                            alt="Profile"
-                            width={24}
-                            height={24}
-                            className="w-full h-full object-cover"
-                            unoptimized={true}
-                            onError={(e) => {
-                              console.error('Failed to load profile image:', e);
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <User className="w-4 h-4 text-gray-400" />
-                        )}
-                      </div>
+                      <Avatar
+                        src={profileData?.avatar_url}
+                        alt="Profile"
+                        size={24}
+                        fallbackIcon={<User className="w-4 h-4 text-gray-400" />}
+                        onError={() => {
+                          console.error('Failed to load profile image');
+                        }}
+                      />
                        <span className="text-sm">
                          {userName || '...'}
                        </span>

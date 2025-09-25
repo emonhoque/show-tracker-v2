@@ -138,16 +138,13 @@ export const fetchUpcomingShows = async (
 
 export const fetchPastShows = async (
   page: number = 1,
-  communityId?: string,
-  categories?: string[]
+  communityId?: string
 ): Promise<PaginatedResponse<Show>> => {
   const params = new URLSearchParams()
   params.append('page', page.toString())
   params.append('limit', '20')
   if (communityId) params.append('community_id', communityId)
-  if (categories && categories.length > 0 && !categories.includes('all')) {
-    params.append('categories', categories.join(','))
-  }
+  // Note: Category filtering is not applied to past shows
   
   const url = `/api/shows/past?${params.toString()}`
   const data = await authenticatedFetch(url)
@@ -185,6 +182,8 @@ export const fetchCategoryStats = async (communityId?: string): Promise<Category
   const data = await authenticatedFetch(url)
   return data.stats || []
 }
+
+// Note: categories variable was unused in the original code
 
 export const fetchReleases = async (
   limit: number = 50,

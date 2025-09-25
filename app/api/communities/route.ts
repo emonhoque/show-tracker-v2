@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createSupabaseAdmin } from '@/lib/supabase-server'
-import { supabase } from '@/lib/db'
 import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
@@ -37,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (isCurrent) {
       logger.debug('Fetching current community for user', { userId: user.id })
       
-      const { data: communityMembers, error } = await supabase
+      const { data: communityMembers, error } = await supabaseClient
         .from('community_members')
         .select('community_id, role')
         .eq('user_id', user.id)
@@ -67,7 +66,7 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      const { data: community, error: communityError } = await supabase
+      const { data: community, error: communityError } = await supabaseClient
         .from('communities')
         .select('id, name, description, numeric_id, created_at, music_enabled')
         .eq('id', member.community_id)
@@ -88,7 +87,7 @@ export async function GET(request: NextRequest) {
     } else if (communityId) {
       logger.debug('Fetching specific community', { communityId, userId: user.id })
       
-      const { data: userCommunities, error: communitiesError } = await supabase
+      const { data: userCommunities, error: communitiesError } = await supabaseClient
         .from('community_members')
         .select('community_id')
         .eq('user_id', user.id)
@@ -109,7 +108,7 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      const { data: community, error: communityError } = await supabase
+      const { data: community, error: communityError } = await supabaseClient
         .from('communities')
         .select('*')
         .eq('id', communityId)
@@ -128,7 +127,7 @@ export async function GET(request: NextRequest) {
         community
       })
     } else {
-      const { data: communityMembers, error } = await supabase
+      const { data: communityMembers, error } = await supabaseClient
         .from('community_members')
         .select('community_id, role')
         .eq('user_id', user.id)
@@ -150,7 +149,7 @@ export async function GET(request: NextRequest) {
       
       const transformedCommunities = await Promise.all(
         communityMembers.map(async (member: { community_id: string; role: string }) => {
-          const { data: community, error: communityError } = await supabase
+          const { data: community, error: communityError } = await supabaseClient
             .from('communities')
             .select('id, name, numeric_id, created_at, music_enabled, description')
             .eq('id', member.community_id)
@@ -161,7 +160,7 @@ export async function GET(request: NextRequest) {
             return null
           }
           
-          const { count: memberCount } = await supabase
+          const { count: memberCount } = await supabaseClient
             .from('community_members')
             .select('*', { count: 'exact', head: true })
             .eq('community_id', member.community_id)

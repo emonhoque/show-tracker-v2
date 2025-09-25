@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/db'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { bostonToUTC } from '@/lib/time'
 import { discordService, ShowData } from '@/lib/discord'
 import { 
@@ -26,7 +26,17 @@ export async function DELETE(
       )
     }
 
-    const { error } = await supabase
+    const supabaseClient = await createServerSupabaseClient()
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const { error } = await supabaseClient
       .from('shows')
       .delete()
       .eq('id', id)
@@ -61,6 +71,16 @@ export async function PUT(
       return NextResponse.json(
         { error: 'Show ID is required' },
         { status: 400 }
+      )
+    }
+
+    const supabaseClient = await createServerSupabaseClient()
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
       )
     }
 
@@ -121,7 +141,7 @@ export async function PUT(
 
     const utcDateTime = bostonToUTC(dateValidation.sanitizedValue!, timeValidation.sanitizedValue!)
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('shows')
       .update({
         title: titleValidation.sanitizedValue,

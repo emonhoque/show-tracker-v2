@@ -11,7 +11,7 @@ export const SHOW_CATEGORIES: Record<ShowCategory, CategoryInfo> = {
     value: 'festival',
     label: 'Festival',
     description: 'Multi-day festivals and large events',
-    examples: ['Music festival', 'EDM weekend', 'Multi-stage event']
+    examples: ['Music festival', 'Electronic music weekend', 'Multi-stage event']
   },
   club_night: {
     value: 'club_night',

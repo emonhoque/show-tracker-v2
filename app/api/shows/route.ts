@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/db'
 import { createServerSupabaseClient, createSupabaseAdmin } from '@/lib/supabase-server'
 import { bostonToUTC } from '@/lib/time'
 import { discordService, ShowData } from '@/lib/discord'
@@ -120,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     const utcDateTime = bostonToUTC(dateValidation.sanitizedValue!, timeValidation.sanitizedValue!)
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('shows')
       .insert([
         {

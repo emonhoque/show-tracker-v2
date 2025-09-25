@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
-  compress: false,
+  compress: true,
+  poweredByHeader: false,
   
   experimental: {
     optimizeCss: true,
@@ -104,7 +106,7 @@ const nextConfig: NextConfig = {
       
       config.resolve.alias = {
         ...config.resolve.alias,
-        '@': require('path').resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, '.'),
       };
     }
     return config;
@@ -136,6 +138,23 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'unsafe-none',
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin',
           },
         ],
       },

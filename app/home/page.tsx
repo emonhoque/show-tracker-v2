@@ -175,13 +175,11 @@ export default function Home() {
         if (responseText && responseText.trim()) {
           try {
             const data = JSON.parse(responseText)
-            setUserRsvpStatuses(data.statuses || {})
+            setUserRsvpStatuses(prev => ({ ...prev, ...(data.statuses || {}) }))
           } catch (parseError) {
             console.error('Error parsing RSVP statuses JSON:', parseError)
             console.error('Response text:', responseText)
           }
-        } else {
-          console.log('Empty response received for RSVP statuses, skipping')
         }
       }
     } catch (error) {
@@ -243,8 +241,7 @@ export default function Home() {
         }
       }
 
-      const pastCategoryParam = selectedCategoryFilters.has('all') ? '' : Array.from(selectedCategoryFilters).join(',')
-      const pastUrl = `/api/shows/past?page=${pastPage}&limit=20&v=${cacheVersion}${pastCategoryParam ? `&categories=${encodeURIComponent(pastCategoryParam)}` : ''}`
+      const pastUrl = `/api/shows/past?page=${pastPage}&limit=20&v=${cacheVersion}`
       
       try {
         const pastResponse = await authenticatedFetch(pastUrl)
@@ -364,7 +361,7 @@ export default function Home() {
       setLoadingCommunities(false)
       hasLoadedCommunities.current = false
     }
-  }, [user])
+  }, [user, currentCommunity])
 
   useEffect(() => {
     if (debounceTimeout.current) {
@@ -522,12 +519,14 @@ export default function Home() {
     rsvpDebounceTimeouts.current[showId] = setTimeout(async () => {
       const rsvpKey = `rsvp-${showId}`
       if (activeRequests.current.has(rsvpKey)) {
-        console.log(`RSVP update already in progress for show ${showId}, skipping duplicate`)
         return
       }
 
       try {
         activeRequests.current.add(rsvpKey)
+        
+        // Clear the existing data first to force a fresh display
+        setRsvpsData(prev => ({ ...prev, [showId]: { going: [], maybe: [], not_going: [] } }))
         
         const response = await authenticatedFetch(`/api/rsvps/${showId}`)
         if (response.ok) {
@@ -538,7 +537,6 @@ export default function Home() {
               setRsvpsData(prev => ({ ...prev, [showId]: data }))
             } catch (parseError) {
               console.error('Error parsing RSVPs JSON:', parseError)
-              console.error('Response text:', responseText)
             }
           }
         }
@@ -552,7 +550,6 @@ export default function Home() {
               setUserRsvpStatuses(prev => ({ ...prev, [showId]: userData.status }))
             } catch (parseError) {
               console.error('Error parsing user RSVP JSON:', parseError)
-              console.error('Response text:', userResponseText)
             }
           }
         }
@@ -632,7 +629,6 @@ export default function Home() {
             </TabsContent>
             
             <TabsContent value="past" className="space-y-4">
-              <RSVPFilterSkeleton />
               <ShowCardSkeleton />
               <ShowCardSkeleton />
             </TabsContent>
@@ -761,7 +757,51 @@ export default function Home() {
                   userRsvpStatus={userRsvpStatuses[show.id] || null}
                   onEdit={handleEditShow}
                   onDelete={handleDeleteShow}
-                  onRSVPUpdate={() => updateRSVPs(show.id)}
+                  onRSVPUpdate={(newStatus) => {
+                    // Update both user status and RSVP summary instantly on frontend
+                    setUserRsvpStatuses(prev => ({ ...prev, [show.id]: newStatus }))
+                    
+                    // Update the RSVP summary instantly with the correct name
+                    setRsvpsData(prev => {
+                      const currentRsvps = prev[show.id] || { going: [], maybe: [], not_going: [] }
+                      
+                      // Use the profile name (Emon Hoque) consistently
+                      const currentUserName = userName || 'User'
+                      
+                      // Remove user from all lists first - remove ALL possible names
+                      const updatedRsvps = {
+                        going: currentRsvps.going.filter(name => 
+                          name !== currentUserName && 
+                          name !== user?.user_metadata?.['full_name'] &&
+                          name !== user?.email?.split('@')[0]
+                        ),
+                        maybe: currentRsvps.maybe.filter(name => 
+                          name !== currentUserName && 
+                          name !== user?.user_metadata?.['full_name'] &&
+                          name !== user?.email?.split('@')[0]
+                        ),
+                        not_going: currentRsvps.not_going.filter(name => 
+                          name !== currentUserName && 
+                          name !== user?.user_metadata?.['full_name'] &&
+                          name !== user?.email?.split('@')[0]
+                        )
+                      }
+                      
+                      // Add user to the new status list
+                      if (newStatus === 'going') {
+                        updatedRsvps.going.push(currentUserName)
+                      } else if (newStatus === 'maybe') {
+                        updatedRsvps.maybe.push(currentUserName)
+                      } else if (newStatus === 'not_going') {
+                        updatedRsvps.not_going.push(currentUserName)
+                      }
+                      
+                      return { ...prev, [show.id]: updatedRsvps }
+                    })
+                    
+                    // Also trigger a background refresh to sync with database
+                    updateRSVPs(show.id)
+                  }}
                 />
               ))
             )}
@@ -769,22 +809,6 @@ export default function Home() {
           
           <TabsContent value="past" className="space-y-6">
             <h2 className="sr-only">Past Shows</h2>
-            
-            {/* Combined Filter */}
-            {loading ? (
-              <RSVPFilterSkeleton />
-            ) : (
-              <RSVPFilter
-                selectedStatusFilters={selectedStatusFilters}
-                selectedCategoryFilters={selectedCategoryFilters}
-                onStatusFilterToggle={handleStatusFilterToggle}
-                onCategoryFilterToggle={handleCategoryFilterToggle}
-                filteredShowsCount={pastShows.length}
-                onClearAllFilters={handleClearAllFilters}
-                categoryStats={categoryStats}
-                hasCommunities={userCommunities.length > 0}
-              />
-            )}
             
             {loading ? (
               <>
@@ -804,7 +828,51 @@ export default function Home() {
                     userRsvpStatus={userRsvpStatuses[show.id] || null}
                     onEdit={handleEditShow}
                     onDelete={handleDeleteShow}
-                    onRSVPUpdate={() => updateRSVPs(show.id)}
+                    onRSVPUpdate={(newStatus) => {
+                    // Update both user status and RSVP summary instantly on frontend
+                    setUserRsvpStatuses(prev => ({ ...prev, [show.id]: newStatus }))
+                    
+                    // Update the RSVP summary instantly with the correct name
+                    setRsvpsData(prev => {
+                      const currentRsvps = prev[show.id] || { going: [], maybe: [], not_going: [] }
+                      
+                      // Use the profile name (Emon Hoque) consistently
+                      const currentUserName = userName || 'User'
+                      
+                      // Remove user from all lists first - remove ALL possible names
+                      const updatedRsvps = {
+                        going: currentRsvps.going.filter(name => 
+                          name !== currentUserName && 
+                          name !== user?.user_metadata?.['full_name'] &&
+                          name !== user?.email?.split('@')[0]
+                        ),
+                        maybe: currentRsvps.maybe.filter(name => 
+                          name !== currentUserName && 
+                          name !== user?.user_metadata?.['full_name'] &&
+                          name !== user?.email?.split('@')[0]
+                        ),
+                        not_going: currentRsvps.not_going.filter(name => 
+                          name !== currentUserName && 
+                          name !== user?.user_metadata?.['full_name'] &&
+                          name !== user?.email?.split('@')[0]
+                        )
+                      }
+                      
+                      // Add user to the new status list
+                      if (newStatus === 'going') {
+                        updatedRsvps.going.push(currentUserName)
+                      } else if (newStatus === 'maybe') {
+                        updatedRsvps.maybe.push(currentUserName)
+                      } else if (newStatus === 'not_going') {
+                        updatedRsvps.not_going.push(currentUserName)
+                      }
+                      
+                      return { ...prev, [show.id]: updatedRsvps }
+                    })
+                    
+                    // Also trigger a background refresh to sync with database
+                    updateRSVPs(show.id)
+                  }}
                   />
                 ))}
                 

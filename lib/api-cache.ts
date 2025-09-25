@@ -9,7 +9,7 @@ interface CacheEntry<T> {
   ttl: number
 }
 
-const cache = new Map<string, CacheEntry<any>>()
+const cache = new Map<string, CacheEntry<unknown>>()
 
 setInterval(() => {
   const now = Date.now()
@@ -42,7 +42,7 @@ function getCachedData<T>(key: string): T | null {
     return null
   }
   
-  return entry.data
+  return entry.data as T
 }
 
 /**

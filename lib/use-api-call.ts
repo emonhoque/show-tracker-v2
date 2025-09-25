@@ -67,16 +67,15 @@ export function useApiCall<T>({
     } finally {
       setLoading(false)
     }
-  }, [url, JSON.stringify(options), ttl, enabled, onSuccess, onError])
+  }, [url, options, ttl, enabled, onSuccess, onError])
 
   const refetch = useCallback(async () => {
     await fetchData()
   }, [fetchData])
 
   const clearCache = useCallback(() => {
-    const cacheKey = `GET:${url}:`
     refetch()
-  }, [url, refetch])
+  }, [refetch])
 
   useEffect(() => {
     if (enabled) {

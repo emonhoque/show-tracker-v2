@@ -89,7 +89,7 @@ export function useOptimizedApi<T>({
         setLoading(false)
       }
     }
-  }, [url, JSON.stringify(options), ttl, enabled, useBatch, onSuccess, onError])
+  }, [url, options, ttl, enabled, useBatch, onSuccess, onError])
 
   const refetch = useCallback(async () => {
     await fetchData()

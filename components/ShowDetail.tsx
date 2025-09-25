@@ -44,26 +44,27 @@ interface ShowDetailProps {
   show: Show
   rsvps?: RSVPSummary
   communityId?: string
+  initialUserRsvpStatus?: 'going' | 'maybe' | 'not_going' | null
 }
 
 export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
-  const { user, profileData } = useAuth()
-  const { success, error: showError } = useToast()
+  const { user } = useAuth()
+  const { error: showError } = useToast()
   const [loading, setLoading] = useState(false)
-  const [userName, setUserName] = useState<string | null>(null)
+  // const [userName, setUserName] = useState<string | null>(null)
   const [imageModalOpen, setImageModalOpen] = useState(false)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [shareLoading, setShareLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
 
-  useEffect(() => {
-    if (profileData?.name) {
-      setUserName(profileData.name)
-    } else if (user?.user_metadata?.['full_name']) {
-      setUserName(user.user_metadata['full_name'])
-    }
-  }, [profileData, user])
+  // useEffect(() => {
+  //   if (profileData?.name) {
+  //     setUserName(profileData.name)
+  //   } else if (user?.user_metadata?.['full_name']) {
+  //     setUserName(user.user_metadata['full_name'])
+  //   }
+  // }, [profileData, user])
 
   const formatShowAsText = (show: Show): string => {
     const dateTime = formatUserTime(show.date_time, show.time_local)
@@ -126,10 +127,17 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
   const handleRSVP = async (status: 'going' | 'maybe' | 'not_going' | null) => {
     if (!user || loading) return
 
+    console.log('ShowDetail handleRSVP called with status:', status, 'current userStatus:', userStatus)
+    
+    // Update frontend INSTANTLY
+    const previousStatus = userStatus
+    setUserStatus(status)
+    console.log('ShowDetail setUserStatus to:', status)
     setLoading(true)
     
     try {
       if (status) {
+        console.log('ShowDetail making API call to save RSVP:', { show_id: show.id, status })
         const response = await authenticatedFetch('/api/rsvp', {
           method: 'POST',
           body: JSON.stringify({
@@ -138,12 +146,20 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
           })
         })
         
+        console.log('ShowDetail API response status:', response.status, 'ok:', response.ok)
+        
         if (!response.ok) {
           const error = await response.json()
+          console.error('ShowDetail API error:', error)
           showError(error.error || 'Failed to save RSVP')
+          // Revert the frontend change on error
+          setUserStatus(previousStatus)
+          console.log('ShowDetail reverted to previous status:', previousStatus)
           return
         }
+        console.log('ShowDetail RSVP saved successfully')
       } else {
+        console.log('ShowDetail making API call to remove RSVP for show:', show.id)
         const response = await authenticatedFetch('/api/rsvp/remove', {
           method: 'POST',
           body: JSON.stringify({
@@ -151,17 +167,25 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
           })
         })
 
+        console.log('ShowDetail remove API response status:', response.status, 'ok:', response.ok)
+
         if (!response.ok) {
           const error = await response.json()
+          console.error('ShowDetail remove API error:', error)
           showError(error.error || 'Failed to remove RSVP')
+          // Revert the frontend change on error
+          setUserStatus(previousStatus)
+          console.log('ShowDetail reverted to previous status:', previousStatus)
           return
         }
+        console.log('ShowDetail RSVP removed successfully')
       }
-
-      window.location.reload()
     } catch (error) {
-      console.error('Error saving RSVP:', error)
+      console.error('ShowDetail error saving RSVP:', error)
       showError('Failed to save RSVP')
+      // Revert the frontend change on error
+      setUserStatus(previousStatus)
+      console.log('ShowDetail reverted to previous status due to error:', previousStatus)
     } finally {
       setLoading(false)
     }
@@ -234,18 +258,41 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
     }
   }
 
-  const currentUserName = userName || user?.user_metadata?.['full_name'] || user?.user_metadata?.['name']
+  const [userStatus, setUserStatus] = useState<'going' | 'maybe' | 'not_going' | null>(null)
   
+  // Debug logging
+  console.log('ShowDetail render - userStatus:', userStatus, 'show.id:', show.id)
   
-  const userStatus = currentUserName && rsvps
-    ? rsvps.going?.includes(currentUserName.toLowerCase()) || rsvps.going?.includes(currentUserName)
-      ? 'going'
-      : rsvps.maybe?.includes(currentUserName.toLowerCase()) || rsvps.maybe?.includes(currentUserName)
-      ? 'maybe'
-      : rsvps.not_going?.includes(currentUserName.toLowerCase()) || rsvps.not_going?.includes(currentUserName)
-      ? 'not_going'
-      : null
-    : null
+
+  // Load user's existing RSVP status on page load
+  useEffect(() => {
+    const loadUserRsvpStatus = async () => {
+      if (!user) return
+      
+      console.log('ShowDetail loading user RSVP status for show:', show.id)
+      try {
+        const response = await authenticatedFetch(`/api/rsvps/${show.id}/user`)
+        
+        console.log('ShowDetail load response status:', response.status, 'ok:', response.ok)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('ShowDetail loaded RSVP data:', data)
+          setUserStatus(data.status)
+          console.log('ShowDetail setUserStatus to:', data.status)
+        } else {
+          const errorData = await response.json()
+          console.error('ShowDetail RSVP status error:', errorData)
+        }
+      } catch (error) {
+        console.error('ShowDetail failed to fetch user RSVP status:', error)
+      }
+    }
+
+    loadUserRsvpStatus()
+  }, [user, show.id])
+
+  // const currentUserName = userName || user?.user_metadata?.['full_name'] || user?.user_metadata?.['name']
     
 
   const isPast = new Date(show.date_time) < new Date()

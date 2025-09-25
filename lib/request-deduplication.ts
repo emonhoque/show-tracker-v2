@@ -4,7 +4,7 @@
  */
 
 interface PendingRequest {
-  promise: Promise<any>
+  promise: Promise<Response>
   timestamp: number
 }
 
@@ -24,7 +24,7 @@ setInterval(() => {
 /**
  * Generate a unique key for a request based on URL and method
  */
-function generateRequestKey(url: string, method: string = 'GET', body?: any): string {
+function generateRequestKey(url: string, method: string = 'GET', body?: unknown): string {
   const bodyString = body ? JSON.stringify(body) : ''
   return `${method}:${url}:${bodyString}`
 }
@@ -43,7 +43,7 @@ export async function deduplicatedFetch(
   
   const existing = pendingRequests.get(key)
   if (existing) {
-    return existing.promise
+    return existing.promise as Promise<Response>
   }
   
   const promise = fetch(url, options)
