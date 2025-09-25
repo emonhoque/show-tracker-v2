@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CommunityCardSkeleton } from '@/components/CommunityCardSkeleton'
 import { LeaveCommunityDialog } from '@/components/LeaveCommunityDialog'
 import { Plus, Users, Settings, Crown, LogOut } from 'lucide-react'
+import { BackButton } from '@/components/BackButton'
 
 export default function GroupsPage() {
   const [communities, setCommunities] = useState<UserCommunity[]>([])
@@ -83,6 +84,7 @@ export default function GroupsPage() {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8">
+          <BackButton />
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Groups</h1>
             <Button onClick={handleCreateGroup} className="flex items-center space-x-2">
@@ -104,6 +106,7 @@ export default function GroupsPage() {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-8">
+          <BackButton />
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Groups</h1>
             <Button onClick={handleCreateGroup} className="flex items-center space-x-2">
@@ -130,6 +133,7 @@ export default function GroupsPage() {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-8">
+        <BackButton />
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">Groups</h1>

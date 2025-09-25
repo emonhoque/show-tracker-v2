@@ -7,8 +7,10 @@ import { Layout } from '@/components/Layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Settings, Users, Trash2, Crown, UserPlus, Save, AlertTriangle, Share2 } from 'lucide-react'
+import { Settings, Users, Trash2, Crown, UserPlus, Save, AlertTriangle, Share2, Eye } from 'lucide-react'
+import { BackButton } from '@/components/BackButton'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/toast-provider'
 
 interface CommunityMemberWithProfile extends CommunityMember {
   profiles: {
@@ -22,6 +24,7 @@ interface CommunityMemberWithProfile extends CommunityMember {
 export default function GroupSettingsPage() {
   const params = useParams()
   const router = useRouter()
+  const { success, error: showError } = useToast()
   const [community, setCommunity] = useState<Community | null>(null)
   const [members, setMembers] = useState<CommunityMemberWithProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,6 +35,7 @@ export default function GroupSettingsPage() {
   const [isCreatingInvite, setIsCreatingInvite] = useState(false)
   const [isDeletingInvite, setIsDeletingInvite] = useState<string | null>(null)
   const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null)
+  const [showUrls, setShowUrls] = useState<{ [key: string]: boolean }>({})
   const [inviteLinks, setInviteLinks] = useState<Array<{
     id: string
     inviteUrl?: string
@@ -155,7 +159,12 @@ export default function GroupSettingsPage() {
       const data = await response.json()
       
       if (response.ok && data.success && data.invites) {
-        setInviteLinks(data.invites)
+        // Construct full invite URLs for each invite
+        const invitesWithUrls = data.invites.map((invite: any) => ({
+          ...invite,
+          inviteUrl: `${window.location.origin}/invite/${invite.token}`
+        }))
+        setInviteLinks(invitesWithUrls)
       } else {
         console.error('Failed to load invite links:', data.error)
         setInviteLinks([])
@@ -193,7 +202,8 @@ export default function GroupSettingsPage() {
         },
         body: JSON.stringify({
           name: formData.name,
-          description: formData.description
+          description: formData.description,
+          music_enabled: formData.music_enabled
         })
       })
       
@@ -202,7 +212,7 @@ export default function GroupSettingsPage() {
       if (response.ok && data.success) {
         setCommunity(data.community)
         // Show success message
-        alert('Settings saved successfully!')
+        success('Settings saved successfully!')
       } else {
         setError(data.error || 'Failed to save settings')
       }
@@ -253,46 +263,39 @@ export default function GroupSettingsPage() {
     }
   }
 
+  const toggleUrlVisibility = (inviteId: string) => {
+    setShowUrls(prev => ({
+      ...prev,
+      [inviteId]: !prev[inviteId]
+    }))
+  }
+
   const copyInviteLink = async (inviteUrl: string, inviteId: string) => {
-    try {
-      // Check if clipboard API is available
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(inviteUrl)
-      } else {
-        // Fallback for older browsers or non-secure contexts
-        const textArea = document.createElement('textarea')
-        textArea.value = inviteUrl
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-999999px'
-        textArea.style.top = '-999999px'
-        document.body.appendChild(textArea)
-        textArea.focus()
-        textArea.select()
-        document.execCommand('copy')
-        textArea.remove()
-      }
-      
-      // Show visual feedback
-      setCopiedInviteId(inviteId)
-      setTimeout(() => setCopiedInviteId(null), 2000) // Hide after 2 seconds
-    } catch (error) {
-      console.error('Failed to copy invite link:', error)
-      // Fallback: try the old method
-      try {
-        const textArea = document.createElement('textarea')
-        textArea.value = inviteUrl
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-        
-        // Show visual feedback even for fallback
+    console.log('Copy attempt - URL:', inviteUrl, 'ID:', inviteId)
+    
+    if (!inviteUrl || inviteUrl.trim() === '') {
+      console.error('No invite URL provided for copy')
+      return
+    }
+    
+    const { copyWithFeedback } = await import('@/lib/copy-to-clipboard')
+    
+    await copyWithFeedback(
+      inviteUrl,
+      () => {
+        // Success callback
+        console.log('Copy successful')
         setCopiedInviteId(inviteId)
         setTimeout(() => setCopiedInviteId(null), 2000)
-      } catch (fallbackError) {
-        console.error('Fallback copy also failed:', fallbackError)
+      },
+      (error) => {
+        // Error callback
+        console.error('Copy failed:', error)
+        // Still show visual feedback to indicate attempt was made
+        setCopiedInviteId(inviteId)
+        setTimeout(() => setCopiedInviteId(null), 2000)
       }
-    }
+    )
   }
 
   const handleDeleteInviteLink = async (inviteId: string) => {
@@ -405,11 +408,11 @@ export default function GroupSettingsPage() {
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-4" />
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-8" />
+            <div className="h-8 bg-muted rounded w-1/3 mb-4" />
+            <div className="h-4 bg-muted rounded w-1/2 mb-8" />
             <div className="grid gap-6 md:grid-cols-2">
-              <div className="h-64 bg-gray-200 rounded" />
-              <div className="h-64 bg-gray-200 rounded" />
+              <div className="h-64 bg-muted rounded" />
+              <div className="h-64 bg-muted rounded" />
             </div>
           </div>
         </div>
@@ -476,16 +479,9 @@ export default function GroupSettingsPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 sm:py-8">
+      <div className="max-w-4xl mx-auto px-4 py-6 sm:p-4">
       <div className="mb-8">
-        <Button 
-          variant="outline" 
-          onClick={() => router.back()}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+        <BackButton />
         
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex-1">
@@ -552,7 +548,7 @@ export default function GroupSettingsPage() {
               <Input
                 value={community.numeric_id}
                 disabled
-                className="bg-gray-50"
+                className="bg-muted/50"
               />
               <p className="text-xs text-gray-500 mt-1">
                 This ID is used to join the group and cannot be changed
@@ -600,9 +596,9 @@ export default function GroupSettingsPage() {
                 </div>
               ) : (
                 members.map((member) => (
-                  <div key={member.user_id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-gray-50">
+                  <div key={member.user_id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-xs sm:text-sm font-medium">
                           {member.profiles?.name?.charAt(0) || '?'}
                         </span>
@@ -651,66 +647,93 @@ export default function GroupSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {inviteLinks.map((invite) => (
-                <div key={invite.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                  <div className="flex-1">
+                <div key={invite.id} className="p-4 rounded-lg bg-muted/50 border">
+                  {/* Header with title and usage */}
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
+                      <Share2 className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">Invite Link</span>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        {invite.current_uses}/{invite.max_uses} uses
-                      </span>
                     </div>
-                    <p className="text-sm text-gray-600 font-mono break-all">
-                      {invite.inviteUrl || invite.invite_url}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Expires: {new Date(invite.expires_at).toLocaleDateString()}
-                    </p>
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                      {invite.current_uses}/{invite.max_uses} uses
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  
+                  {/* URL toggle and display */}
+                  <div className="mb-3">
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => copyInviteLink(invite.inviteUrl || invite.invite_url || '', invite.id)}
-                      className={copiedInviteId === invite.id ? 'bg-green-50 border-green-200 text-green-700' : ''}
+                      variant="ghost"
+                      onClick={() => toggleUrlVisibility(invite.id)}
+                      className="text-muted-foreground hover:text-foreground p-0 h-auto"
                     >
-                      <Share2 className="h-4 w-4 mr-2" />
-                      {copiedInviteId === invite.id ? 'Copied!' : 'Copy'}
+                      <Eye className="h-4 w-4 mr-2" />
+                      {showUrls[invite.id] ? 'Hide URL' : 'Show URL'}
                     </Button>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          disabled={isDeletingInvite === invite.id}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Delete Invite Link</DialogTitle>
-                          <DialogDescription>
-                            Are you sure you want to delete this invite link? This action cannot be undone.
-                            Anyone with this link will no longer be able to join the group.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <Button variant="outline">
-                            Cancel
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            onClick={() => handleDeleteInviteLink(invite.id)}
+                    
+                    {showUrls[invite.id] && (
+                      <div className="mt-2 p-3 bg-muted/30 rounded border">
+                        <p className="text-xs text-muted-foreground mb-1">Invite URL:</p>
+                        <p className="text-sm font-mono break-all text-foreground">
+                          {invite.inviteUrl || invite.invite_url}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Action buttons */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Expires {new Date(invite.expires_at).toLocaleDateString()}
+                    </p>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyInviteLink(invite.inviteUrl || '', invite.id)}
+                        className={copiedInviteId === invite.id ? 'bg-green-500/10 border-green-500/20 text-green-700' : ''}
+                      >
+                        <Share2 className="h-4 w-4 mr-2" />
+                        {copiedInviteId === invite.id ? 'Copied!' : 'Copy'}
+                      </Button>
+                      
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-500/10"
                             disabled={isDeletingInvite === invite.id}
                           >
-                            {isDeletingInvite === invite.id ? 'Deleting...' : 'Delete'}
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete Invite Link</DialogTitle>
+                            <DialogDescription>
+                              Are you sure you want to delete this invite link? This action cannot be undone.
+                              Anyone with this link will no longer be able to join the group.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <Button variant="outline">
+                              Cancel
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              onClick={() => handleDeleteInviteLink(invite.id)}
+                              disabled={isDeletingInvite === invite.id}
+                            >
+                              {isDeletingInvite === invite.id ? 'Deleting...' : 'Delete'}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -65,8 +65,8 @@ export function ReleaseCard({ release }: ReleaseCardProps) {
   }
 
   return (
-    <Card className="w-full mb-4 hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
+    <Card className="w-full mb-6 hover:shadow-md transition-shadow">
+      <CardContent className="p-6">
         {/* Mobile Layout (vertical) */}
         <div className="block md:hidden space-y-3">
           {/* Header with Title and Release Type */}

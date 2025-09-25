@@ -5,6 +5,7 @@ import { ThemeProvider } from './ThemeProvider'
 import { AuthProvider } from '@/lib/auth-context'
 import { QueryProvider } from '@/lib/providers/QueryProvider'
 import { ErrorBoundary } from './ErrorBoundary'
+import { ToastProvider } from './ui/toast-provider'
 
 interface ProvidersProps {
   children: ReactNode
@@ -19,7 +20,9 @@ export function Providers({ children }: ProvidersProps) {
           storageKey="show-tracker-theme" 
         >
           <AuthProvider>
-            {children}
+            <ToastProvider>
+              {children}
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </QueryProvider>

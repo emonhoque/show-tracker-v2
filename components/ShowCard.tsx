@@ -12,6 +12,7 @@ import { ImageModal } from '@/components/ImageModal'
 import { CalendarExportButton } from '@/components/CalendarExportButton'
 import { createClient } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
+import { useToast } from '@/components/ui/toast-provider'
 
 // Spotify and Apple Music icons as SVG components
 const SpotifyIcon = ({ className }: { className?: string }) => (
@@ -43,6 +44,7 @@ interface ShowCardProps {
 
 export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete, onRSVPUpdate, communitySlug }: ShowCardProps) {
   const { profileData } = useAuth()
+  const { success, error: showError } = useToast()
   const [loading, setLoading] = useState(false)
   const [imageModalOpen, setImageModalOpen] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
@@ -74,7 +76,7 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
       setTimeout(() => setCopySuccess(false), 2000)
     } catch (error) {
       console.error('Failed to copy show info:', error)
-      alert('Failed to copy show info to clipboard')
+      showError('Failed to copy show info to clipboard')
     }
   }
 
@@ -119,7 +121,7 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
 
         if (!response.ok) {
           const error = await response.json()
-          alert(error.error || 'Failed to save RSVP')
+          showError(error.error || 'Failed to save RSVP')
           return
         }
 
@@ -140,7 +142,7 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
 
         if (!response.ok) {
           const error = await response.json()
-          alert(error.error || 'Failed to remove RSVP')
+          showError(error.error || 'Failed to remove RSVP')
           return
         }
 
@@ -154,7 +156,7 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
       }
     } catch (error) {
       console.error('Error saving RSVP:', error)
-      alert('Failed to save RSVP')
+      showError('Failed to save RSVP')
     } finally {
       setLoading(false)
     }
@@ -224,13 +226,13 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
               setTimeout(() => setCopied(false), 2000)
             } catch (error) {
               console.error('Failed to copy URL:', error)
-              alert('Failed to copy URL to clipboard')
+              showError('Failed to copy URL to clipboard')
             }
           } else {
-            alert(data.error || 'Failed to generate shareable URL')
+            showError(data.error || 'Failed to generate shareable URL')
           }
         } else {
-          alert('Failed to generate shareable URL')
+          showError('Failed to generate shareable URL')
         }
       } else {
         // Use existing shareable URL
@@ -247,21 +249,21 @@ export function ShowCard({ show, isPast, rsvps, userRsvpStatus, onEdit, onDelete
             setTimeout(() => setCopied(false), 2000)
           } catch (error) {
             console.error('Failed to copy URL:', error)
-            alert('Failed to copy URL to clipboard')
+            showError('Failed to copy URL to clipboard')
           }
         }
       }
     } catch (error) {
       console.error('Error sharing:', error)
-      alert('Failed to share show')
+      showError('Failed to share show')
     } finally {
       setShareLoading(false)
     }
   }
 
   return (
-    <Card className="w-full mb-4">
-      <CardContent className="p-4 space-y-3">
+    <Card className="w-full mb-6">
+      <CardContent className="p-6 space-y-4">
         {/* Header with Title and Actions */}
         <div className="flex justify-between items-start">
           <div className="flex-1">

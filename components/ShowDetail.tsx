@@ -10,6 +10,7 @@ import { formatUserTime } from '@/lib/time'
 import { formatNameForDisplay } from '@/lib/validation'
 import { useAuth } from '@/lib/auth-context'
 import { createClient } from '@/lib/supabase'
+import { useToast } from '@/components/ui/toast-provider'
 import { 
   ExternalLink, 
   ArrowLeft, 
@@ -48,6 +49,7 @@ interface ShowDetailProps {
 
 export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
   const { user, profileData } = useAuth()
+  const { success, error: showError } = useToast()
   const [loading, setLoading] = useState(false)
   const [userName, setUserName] = useState<string | null>(null)
   const [imageModalOpen, setImageModalOpen] = useState(false)
@@ -91,7 +93,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
       setTimeout(() => setCopySuccess(false), 2000)
     } catch (error) {
       console.error('Failed to copy show info:', error)
-      alert('Failed to copy show info to clipboard')
+      showError('Failed to copy show info to clipboard')
     }
   }
 
@@ -147,7 +149,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
         
         if (!response.ok) {
           const error = await response.json()
-          alert(error.error || 'Failed to save RSVP')
+          showError(error.error || 'Failed to save RSVP')
           return
         }
       } else {
@@ -161,7 +163,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
 
         if (!response.ok) {
           const error = await response.json()
-          alert(error.error || 'Failed to remove RSVP')
+          showError(error.error || 'Failed to remove RSVP')
           return
         }
       }
@@ -170,7 +172,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
       window.location.reload()
     } catch (error) {
       console.error('Error saving RSVP:', error)
-      alert('Failed to save RSVP')
+      showError('Failed to save RSVP')
     } finally {
       setLoading(false)
     }
@@ -199,7 +201,7 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
         setTimeout(() => setCopied(false), 2000)
       } catch (error) {
         console.error('Failed to copy URL:', error)
-        alert('Failed to copy URL to clipboard')
+        showError('Failed to copy URL to clipboard')
       }
     } else {
       // Generate shareable URL
@@ -233,17 +235,17 @@ export function ShowDetail({ show, rsvps, communityId }: ShowDetailProps) {
               setTimeout(() => setCopied(false), 2000)
             } catch (error) {
               console.error('Failed to copy URL:', error)
-              alert('Failed to copy URL to clipboard')
+              showError('Failed to copy URL to clipboard')
             }
           } else {
-            alert(data.error || 'Failed to generate shareable URL')
+            showError(data.error || 'Failed to generate shareable URL')
           }
         } else {
-          alert('Failed to generate shareable URL')
+          showError('Failed to generate shareable URL')
         }
       } catch (error) {
         console.error('Error generating shareable URL:', error)
-        alert('Failed to generate shareable URL')
+        showError('Failed to generate shareable URL')
       } finally {
         setShareLoading(false)
       }

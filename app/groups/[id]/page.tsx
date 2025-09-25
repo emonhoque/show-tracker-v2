@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Layout } from '@/components/Layout'
 import { ShowCard } from '@/components/ShowCard'
-import { ArrowLeft, Users, Settings, Crown, UserPlus, Share2, Copy, Check, Calendar } from 'lucide-react'
+import { Users, Settings, Crown, UserPlus, Share2, Copy, Check, Calendar } from 'lucide-react'
+import { BackButton } from '@/components/BackButton'
 
 export default function GroupPage() {
   const params = useParams()
@@ -197,45 +198,28 @@ export default function GroupPage() {
   }
 
   const copyInviteLink = async () => {
-    if (!inviteLink) return
+    if (!inviteLink) {
+      console.error('No invite link available')
+      return
+    }
     
-    try {
-      // Check if clipboard API is available
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(inviteLink)
-      } else {
-        // Fallback for older browsers or non-secure contexts
-        const textArea = document.createElement('textarea')
-        textArea.value = inviteLink
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-999999px'
-        textArea.style.top = '-999999px'
-        document.body.appendChild(textArea)
-        textArea.focus()
-        textArea.select()
-        document.execCommand('copy')
-        textArea.remove()
-      }
-      
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error('Failed to copy invite link:', error)
-      // Fallback: try the old method
-      try {
-        const textArea = document.createElement('textarea')
-        textArea.value = inviteLink
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-        
+    const { copyWithFeedback } = await import('@/lib/copy-to-clipboard')
+    
+    await copyWithFeedback(
+      inviteLink,
+      () => {
+        // Success callback
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
-      } catch (fallbackError) {
-        console.error('Fallback copy also failed:', fallbackError)
+      },
+      (error) => {
+        // Error callback
+        console.error('Copy failed:', error)
+        // Still show visual feedback to indicate attempt was made
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
       }
-    }
+    )
   }
 
   const handleManageSettings = () => {
@@ -301,14 +285,7 @@ export default function GroupPage() {
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-6 sm:p-4">
         <div className="mb-8">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.back()}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+          <BackButton />
         
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex-1">
@@ -390,9 +367,9 @@ export default function GroupPage() {
           <CardContent>
             <div className="space-y-2 sm:space-y-3 max-h-64 overflow-y-auto">
               {members.map((member) => (
-                <div key={member.user_id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-gray-50">
+                <div key={member.user_id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50">
                   <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-xs sm:text-sm font-medium">
                         {member.profiles?.name?.charAt(0) || '?'}
                       </span>
@@ -518,7 +495,7 @@ export default function GroupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-2 p-3 rounded-lg bg-gray-50">
+            <div className="flex items-center space-x-2 p-3 rounded-lg bg-muted/50">
               <div className="flex-1">
                 <p className="text-sm text-gray-600 font-mono break-all">
                   {inviteLink}

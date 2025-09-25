@@ -229,7 +229,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-md mx-auto h-[85vh] sm:h-[90vh] flex flex-col rounded-lg">
+      <DialogContent className="w-[95vw] max-w-lg mx-auto h-[85vh] sm:h-[90vh] flex flex-col">
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-lg">Edit Show</DialogTitle>
@@ -238,15 +238,14 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="space-y-6 py-6 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Title *</label>
                 <Input
                   value={formData.title}
                   onChange={(e) => handleChange('title', e.target.value)}
                   placeholder="Show title"
-                  className="w-full h-10 text-sm"
-                  style={{ fontSize: '16px' }}
+                  className="w-full h-10 text-base"
                   required
                 />
             </div>
@@ -258,8 +257,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
                   type="date"
                   value={formData.date_local}
                   onChange={(e) => handleChange('date_local', e.target.value)}
-                  className="w-full h-10 text-sm"
-                  style={{ fontSize: '16px' }}
+                  className="w-full h-10 text-base"
                   required
                 />
               </div>
@@ -355,8 +353,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
                   value={formData.ticket_url}
                   onChange={(e) => handleChange('ticket_url', e.target.value)}
                   placeholder="https://..."
-                  className="w-full h-10 text-sm"
-                  style={{ fontSize: '16px' }}
+                  className="w-full h-10 text-base"
                 />
               </div>
             )}
@@ -369,8 +366,7 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
                   value={formData.google_photos_url}
                   onChange={(e) => handleChange('google_photos_url', e.target.value)}
                   placeholder="https://photos.app.goo.gl/..."
-                  className="w-full h-10 text-sm"
-                  style={{ fontSize: '16px' }}
+                  className="w-full h-10 text-base"
                 />
               </div>
             )}
@@ -483,11 +479,11 @@ export function EditShowModal({ open, onOpenChange, show, onShowUpdated, isPast 
             </div>
             
             {error && (
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-destructive">{error}</p>
             )}
           </div>
           
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
             <Button
               type="button"
               variant="outline"

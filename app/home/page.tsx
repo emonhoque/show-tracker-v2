@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GoogleAuthGate } from '@/components/GoogleAuthGate'
 import { Layout } from '@/components/Layout'
 import { useAuth } from '@/lib/auth-context'
+import { useToast } from '@/components/ui/toast-provider'
 import { createClient } from '@/lib/supabase'
 import { ShowCard } from '@/components/ShowCard'
 import { ShowCardSkeleton } from '@/components/ShowCardSkeleton'
@@ -23,6 +24,7 @@ import Link from 'next/link'
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth()
+  const { error: showError } = useToast()
   const [userName, setUserName] = useState<string | null>(null)
   const [currentCommunity, setCurrentCommunity] = useState<Community | null>(null)
   const [userCommunities, setUserCommunities] = useState<Array<{
@@ -631,10 +633,10 @@ export default function Home() {
         if (responseText && responseText.trim()) {
           try {
             const errorData = JSON.parse(responseText)
-            alert(errorData.error || 'Failed to delete show')
+            showError(errorData.error || 'Failed to delete show')
           } catch (parseError) {
             console.error('Error parsing delete error JSON:', parseError)
-            alert('Failed to delete show')
+            showError('Failed to delete show')
           }
         } else {
           alert('Failed to delete show')
@@ -660,7 +662,6 @@ export default function Home() {
         currentCommunity={currentCommunity}
         onCommunityChange={setCurrentCommunity}
         showAddButton={false}
-        showBreadcrumbs={false}
       >
         <div className="max-w-4xl mx-auto p-4">
           <Tabs defaultValue="upcoming" className="w-full">
@@ -717,7 +718,6 @@ export default function Home() {
         currentCommunity={currentCommunity}
         onCommunityChange={setCurrentCommunity}
         showAddButton={false}
-        showBreadcrumbs={false}
       >
         <div className="max-w-4xl mx-auto p-4">
           <div className="text-center py-12">
@@ -750,7 +750,6 @@ export default function Home() {
       onCommunityChange={setCurrentCommunity}
       showAddButton={true}
       onAddClick={() => setShowAddModal(true)}
-      showBreadcrumbs={false}
     >
       {isOffline && (
         <div className="bg-yellow-100 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800 px-4 py-2">
@@ -817,7 +816,7 @@ export default function Home() {
             )}
           </TabsContent>
           
-          <TabsContent value="past" className="space-y-4">
+          <TabsContent value="past" className="space-y-6">
             <h2 className="sr-only">Past Shows</h2>
             
             {/* Combined Filter */}
@@ -876,7 +875,7 @@ export default function Home() {
           
           {currentCommunity?.music_enabled && (
             <TabsContent value="releases" className="space-y-6">
-              <ReleasesFeed userName={userName} weeks={12} />
+              <ReleasesFeed userName={userName} days={90} />
             </TabsContent>
           )}
         </Tabs>

@@ -99,7 +99,7 @@ export function AddArtistModal({ onArtistAdded, userName }: AddArtistModalProps)
           Add Artist
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] max-w-lg mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Music className="h-5 w-5" />
@@ -156,11 +156,11 @@ export function AddArtistModal({ onArtistAdded, userName }: AddArtistModalProps)
                           )}
                           <div className="flex-1 min-w-0">
                             <h3 className="font-medium truncate">{artist.name}</h3>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               {artist.followers?.total?.toLocaleString()} followers
                             </p>
                             {artist.genres && artist.genres.length > 0 && (
-                              <p className="text-xs text-gray-500 truncate">
+                              <p className="text-xs text-muted-foreground/70 truncate">
                                 {artist.genres.slice(0, 3).join(', ')}
                               </p>
                             )}
@@ -182,7 +182,7 @@ export function AddArtistModal({ onArtistAdded, userName }: AddArtistModalProps)
 
               {searchResults.length === 0 && !isSearching && searchQuery && (
                 <div className="text-center py-4">
-                  <p className="text-gray-600">No artists found</p>
+                  <p className="text-muted-foreground">No artists found</p>
                 </div>
               )}
             </>

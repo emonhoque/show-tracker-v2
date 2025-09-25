@@ -9,7 +9,8 @@ import { useAuth } from '@/lib/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, User, Mail, Calendar, Save, X, Upload, Camera, Users, Settings, Crown, LogOut, Plus } from 'lucide-react'
+import { User, Mail, Calendar, Save, X, Upload, Camera, Users, Settings, Crown, LogOut, Plus } from 'lucide-react'
+import { BackButton } from '@/components/BackButton'
 import { UserCommunity } from '@/lib/types'
 import { LeaveCommunityDialog } from '@/components/LeaveCommunityDialog'
 
@@ -290,14 +291,7 @@ export default function ProfilePage() {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto p-4">
-        <Button
-          variant="ghost"
-          onClick={() => router.back()}
-          className="mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
+        <BackButton />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -338,8 +332,8 @@ export default function ProfilePage() {
                 </div>
                 
                 {/* Avatar Upload Controls */}
-                <div className="flex flex-col gap-2">
-                  <div className="flex gap-2">
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="file"
                       id="avatar-upload"
@@ -348,26 +342,34 @@ export default function ProfilePage() {
                       className="hidden"
                       disabled={uploadingAvatar}
                     />
-                    <label
-                      htmlFor="avatar-upload"
-                      className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 cursor-pointer disabled:opacity-50"
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingAvatar}
+                      className="flex items-center gap-2"
                     >
-                      <Upload className="w-4 h-4" />
-                      {uploadingAvatar ? 'Uploading...' : 'Upload New Avatar'}
-                    </label>
+                      <label
+                        htmlFor="avatar-upload"
+                        className="cursor-pointer"
+                      >
+                        <Upload className="w-4 h-4" />
+                        {uploadingAvatar ? 'Uploading...' : 'Change Avatar'}
+                      </label>
+                    </Button>
                     
                     {/* Show migrate button if using Google avatar */}
                     {user?.user_metadata?.['avatar_url'] && 
                      (!profile?.avatar_url || profile.avatar_url.includes('googleusercontent.com')) && (
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         onClick={handleMigrateAvatar}
                         disabled={migratingAvatar}
                         className="flex items-center gap-2"
                       >
                         <Camera className="w-4 h-4" />
-                        {migratingAvatar ? 'Migrating...' : 'Save to Our Storage'}
+                        {migratingAvatar ? 'Migrating...' : 'Save to Storage'}
                       </Button>
                     )}
                   </div>
@@ -487,12 +489,12 @@ export default function ProfilePage() {
               {loadingCommunities ? (
                 <div className="space-y-4">
                   <div className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
                   </div>
                   <div className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
                   </div>
                 </div>
               ) : communities.length === 0 ? (
@@ -514,24 +516,24 @@ export default function ProfilePage() {
                   {communities.map((community) => (
                     <div
                       key={community.community_id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                     >
                       <div 
                         className="flex-1 cursor-pointer"
                         onClick={() => handleGroupClick(community.community_numeric_id)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Users className="h-5 w-5 text-blue-600" />
+                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                            <Users className="h-5 w-5 text-primary" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="font-semibold text-gray-900">{community.community_name}</h4>
+                              <h4 className="font-semibold">{community.community_name}</h4>
                               {community.user_role === 'admin' && (
                                 <Crown className="h-4 w-4 text-yellow-500" />
                               )}
                             </div>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-muted-foreground">
                               {community.member_count} member{community.member_count !== 1 ? 's' : ''} • 
                               Role: {community.user_role}
                             </p>

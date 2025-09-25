@@ -263,7 +263,7 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-md mx-auto h-[85vh] sm:h-[90vh] flex flex-col rounded-lg">
+      <DialogContent className="w-[95vw] max-w-lg mx-auto h-[85vh] sm:h-[90vh] flex flex-col">
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-lg">Add New Show</DialogTitle>
@@ -272,7 +272,7 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="space-y-6 py-6 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <div className="space-y-2">
               <label htmlFor="show-title" className="text-sm font-medium text-foreground">Title *</label>
                 <Input
@@ -280,8 +280,7 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
                   value={formData.title}
                   onChange={(e) => handleChange('title', e.target.value)}
                   placeholder="Show title"
-                  className="w-full h-10 text-sm"
-                  style={{ fontSize: '16px' }}
+                  className="w-full h-10 text-base"
                   required
                   aria-describedby="title-required"
                 />
@@ -296,8 +295,7 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
                   type="date"
                   value={formData.date_local}
                   onChange={(e) => handleChange('date_local', e.target.value)}
-                  className="w-full h-10 text-sm"
-                  style={{ fontSize: '16px' }}
+                  className="w-full h-10 text-base"
                   required
                   aria-describedby="date-required"
                 />
@@ -535,11 +533,11 @@ export function AddShowModal({ open, onOpenChange, onShowAdded, communityId }: A
             </div>
             
             {error && (
-              <p className="text-sm text-red-600" role="alert" aria-live="polite">{error}</p>
+              <p className="text-sm text-destructive" role="alert" aria-live="polite">{error}</p>
             )}
           </div>
           
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
             <Button
               type="button"
               variant="outline"
